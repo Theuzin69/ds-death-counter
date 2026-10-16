@@ -1,0 +1,14 @@
+name: "💡 Feature request / Sugestão"
+description: "Suggest an idea / Sugira uma ideia"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: "What would you like? / O que você gostaria?"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: "Why / how would you use it? / Para que / como você usaria?"

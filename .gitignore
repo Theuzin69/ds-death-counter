@@ -1,0 +1,8 @@
+build/
+dist/
+release/
+portable/
+release-notes.md
+*.user
+.vs/
+__pycache__/

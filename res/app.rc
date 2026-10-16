@@ -1,0 +1,34 @@
+#include <windows.h>
+#include "../src/version.h"
+
+1 ICON "app.ico"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "app.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION DSDC_VERSION_MAJOR,DSDC_VERSION_MINOR,DSDC_VERSION_PATCH,0
+ PRODUCTVERSION DSDC_VERSION_MAJOR,DSDC_VERSION_MINOR,DSDC_VERSION_PATCH,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041604b0"
+        BEGIN
+            VALUE "CompanyName", "DS Death Counter"
+            VALUE "FileDescription", "DS Death Counter - contador de mortes para Dark Souls Remastered"
+            VALUE "FileVersion", DSDC_VERSION_STRING
+            VALUE "InternalName", "DSDeathCounter"
+            VALUE "LegalCopyright", "MIT License - MatheusMuzzi"
+            VALUE "OriginalFilename", "DSDeathCounter.exe"
+            VALUE "ProductName", "DS Death Counter"
+            VALUE "ProductVersion", DSDC_VERSION_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x416, 1200
+    END
+END

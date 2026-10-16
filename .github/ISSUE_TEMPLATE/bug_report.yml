@@ -1,0 +1,61 @@
+name: "🐞 Bug report / Relatar um bug"
+description: "Something isn't working / Algo não está funcionando"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! / Obrigado por relatar!
+        Write in English or Portuguese. / Pode escrever em português ou inglês.
+  - type: textarea
+    id: what
+    attributes:
+      label: "What happened? / O que aconteceu?"
+      description: "What did you expect, and what happened instead? / O que você esperava e o que aconteceu?"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce / Como reproduzir"
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: "Diagnóstico tab / Aba Diagnóstico"
+      description: "Open the app, go to the Diagnóstico tab, click Copiar and paste here. / Abra o app, vá na aba Diagnóstico, clique em Copiar e cole aqui."
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: "DS Death Counter version / Versão do DS Death Counter"
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: game-source
+    attributes:
+      label: "Game version / Versão do jogo"
+      options:
+        - "Steam (current / atual)"
+        - "Other / Outra"
+        - "Don't know / Não sei"
+    validations:
+      required: true
+  - type: dropdown
+    id: display-mode
+    attributes:
+      label: "Game display mode / Modo de tela do jogo"
+      options:
+        - "Windowed / Janela"
+        - "Borderless / Sem bordas"
+        - "Fullscreen / Tela cheia"
+  - type: input
+    id: windows
+    attributes:
+      label: "Windows version / Versão do Windows"
+      placeholder: "Windows 11 23H2"
