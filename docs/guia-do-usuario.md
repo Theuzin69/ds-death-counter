@@ -126,6 +126,9 @@ As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blig
 | *Cor normal* / *Cor quando a contagem foi editada* / *Cor do contorno* | Cores |
 | *Pré-visualizar o overlay agora* | Mostra o overlay na hora (sobre o jogo, se estiver aberto; senão sobre o monitor) enquanto você ajusta |
 | *Deixar a janela do jogo sem bordas* | Tira a borda da janela do jogo e a deixa do tamanho do monitor |
+| *Gravar a contagem num arquivo de texto para o OBS* | Grava a contagem num arquivo de texto que o OBS mostra (desligado por padrão, veja [Lives](#7-lives-obs)) |
+| *Texto no OBS* | O que vai no arquivo: `{mortes}` vira a contagem e `{nome}`, o nome do personagem |
+| *Arquivo* / *Escolher arquivo…* / *Usar o padrão* / *Abrir pasta* / *Copiar caminho* | Onde o arquivo é gravado (padrão `%APPDATA%\DSDeathCounter\obs.txt`) |
 | *Abrir pasta de dados* | Abre a pasta onde seus dados ficam |
 
 ## 7. Lives (OBS)
@@ -135,7 +138,29 @@ O overlay é desenhado numa janela própria por cima do jogo, e não dentro do j
 - **Captura de tela** (Display Capture) no OBS mostra o overlay;
 - **Captura de jogo** (Game Capture) e **Captura de janela** do jogo **não mostram**.
 
-Está nos planos uma fonte de texto para o OBS (um arquivo com a contagem atual).
+Com Captura de jogo ou Captura de janela, use o arquivo de texto para o OBS: o app mantém a contagem atual num pequeno arquivo de texto, e uma fonte de texto do OBS mostra esse arquivo. Você posiciona e estiliza a fonte no OBS como qualquer outra.
+
+### Configurando a fonte de texto
+
+1. No app, abra *Configurações* → *OBS (lives)* e marque *Gravar a contagem num arquivo de texto para o OBS*. A linha *Gravando: …* mostra o que está no arquivo.
+2. Opcional: mude o *Texto no OBS* (padrão `Mortes: {mortes}`), por exemplo para `{nome}: {mortes} mortes`.
+3. Clique em *Copiar caminho* para copiar o local do arquivo. O padrão é `%APPDATA%\DSDeathCounter\obs.txt`; *Escolher arquivo…* escolhe outro arquivo `.txt` e *Usar o padrão* volta para o padrão.
+4. No OBS, no painel **Fontes**, clique em **+** e escolha **Texto (GDI+)**. Dê um nome (ex.: "Mortes") e clique em **OK**.
+5. Na janela de propriedades, marque **Carregar do arquivo**, clique em **Procurar** ao lado de **Arquivo de texto (UTF-8)** e escolha o arquivo (dá para colar o caminho copiado na janela de seleção). Clique em **OK**.
+6. Escolha fonte, tamanho, cor e contorno nessa mesma janela. Arraste a fonte para onde quiser e deixe-a acima da captura do jogo na lista de Fontes.
+
+O arquivo muda logo depois de cada morte (o OBS confere o arquivo mais ou menos uma vez por segundo). Ele mostra o personagem que está sendo jogado; com o jogo fechado, continua mostrando o último personagem jogado.
+
+Marcadores do *Texto no OBS*:
+
+| Marcador | Vira |
+|---|---|
+| `{mortes}` (ou `{deaths}`) | A contagem de mortes, o mesmo número que o app mostra (incluindo edições manuais) |
+| `{nome}` (ou `{name}`) | O nome do personagem |
+
+O resto é gravado do jeito que você digitou: `{nome}: {mortes} mortes` vira `Chosen Undead: 42 mortes`.
+
+Se o app mostrar *Não foi possível gravar o arquivo*, a pasta escolhida não existe mais ou não aceita gravação: escolha outro arquivo ou clique em *Usar o padrão*.
 
 ## 8. Seus dados
 
@@ -147,6 +172,8 @@ Tudo fica num único arquivo:
 
 Ele guarda configurações, personagens e o histórico completo. Para fazer backup ou levar para outro PC, copie esse arquivo (com o app fechado). Desinstalar o app não apaga o arquivo.
 
+Se o arquivo de texto para o OBS estiver ligado, o `obs.txt` fica na mesma pasta (no local padrão). Ele só guarda o texto mostrado no OBS e é regravado quando preciso, então não precisa de backup.
+
 ## 9. Problemas comuns
 
 **"O jogo está rodando como administrador"**: o Windows não deixa um programa comum ler um programa aberto como administrador. Abra o jogo normalmente, ou abra o contador como administrador também.
@@ -156,6 +183,8 @@ Ele guarda configurações, personagens e o histórico completo. Para fazer back
 - aperte `Ctrl+Shift+D` (ele pode estar desligado);
 - o overlay some quando o jogo não é a janela ativa e no menu principal (as duas coisas são configuráveis);
 - teste com *Pré-visualizar o overlay agora*.
+
+**O overlay não aparece no OBS:** a Captura de jogo e a Captura de janela não pegam o overlay. Use o [arquivo de texto para o OBS](#7-lives-obs).
 
 **A contagem diminuiu:** você restaurou uma cópia antiga do save. O contador segue o número do próprio jogo.
 

@@ -715,6 +715,46 @@ void App::UiSettingsTab()
     ImGui::TextDisabled("Coloque o jogo em modo Janela, na resolução do seu monitor, e use o botão acima. "
                         "Só mexe na moldura da janela; nada dentro do jogo é alterado.");
 
+    ImGui::SeparatorText("OBS (lives)");
+    ImGui::TextDisabled("A Captura de jogo e a Captura de janela do OBS não mostram o overlay. Para pôr a contagem na "
+                        "live, o app grava o texto num arquivo, e uma fonte de texto do OBS lê esse arquivo sozinha.");
+    changed |= ImGui::Checkbox("Gravar a contagem num arquivo de texto para o OBS", &s.obsTextEnabled);
+    changed |= ImGui::InputText("Texto no OBS", &s.obsTextFormat);
+    ImGui::TextDisabled("{mortes} vira o número de mortes e {nome}, o nome do personagem.");
+    std::wstring obsPath = ObsTextPath();
+    std::string obsPathUtf8 = WideToUtf8(obsPath);
+    ImGui::SetNextItemWidth(560 * dpiScale_);
+    ImGui::InputText("Arquivo", &obsPathUtf8, ImGuiInputTextFlags_ReadOnly);
+    if (ImGui::Button("Escolher arquivo...")) {
+        std::wstring f = BrowseSaveTxt(hwnd_, obsPath);
+        if (f.size() > 4 && _wcsicmp(f.c_str() + f.size() - 4, L".txt") == 0) {
+            s.obsTextPath = WideToUtf8(f);
+            changed = true;
+        } else if (!f.empty()) {
+            statusMessage_ = "Escolha um arquivo .txt";
+            statusMessageUntil_ = GetTickCount64() + 4000;
+        }
+    }
+    ImGui::SameLine();
+    ImGui::BeginDisabled(s.obsTextPath.empty());
+    if (ImGui::Button("Usar o padrão")) { s.obsTextPath.clear(); changed = true; }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Abrir pasta")) OpenFolder(obsPath.substr(0, obsPath.find_last_of(L'\\')));
+    ImGui::SameLine();
+    if (ImGui::Button("Copiar caminho")) ImGui::SetClipboardText(obsPathUtf8.c_str());
+    if (!s.obsTextEnabled)
+        ImGui::TextDisabled("Prévia: %s", ObsText().c_str());
+    else if (obsWriteFailed_)
+        ImGui::TextColored(kRed, "Não foi possível gravar o arquivo. Confira se a pasta existe ou escolha outro arquivo.");
+    else
+        ImGui::TextColored(kGreen, "Gravando: %s", ObsText().c_str());
+    ImGui::TextUnformatted("Como usar no OBS:");
+    ImGui::TextDisabled("1. Ligue a opção acima.\n"
+                        "2. No OBS, em Fontes, clique em + e escolha Texto (GDI+).\n"
+                        "3. Marque \"Carregar do arquivo\" e escolha o arquivo acima (ou cole o caminho copiado).\n"
+                        "4. Fonte, cor e contorno se ajustam no próprio OBS. O texto se atualiza sozinho a cada morte.");
+
     ImGui::SeparatorText("Dados");
     if (ImGui::Button("Abrir pasta de dados")) OpenFolder(GetAppDataDir());
     ImGui::SameLine();

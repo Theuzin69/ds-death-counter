@@ -26,6 +26,11 @@ struct Settings {
     uint32_t colorNormal = 0xFFE8DFC8;  // ARGB
     uint32_t colorEdited = 0xFFFF8A2A;
     uint32_t colorOutline = 0xFF000000;
+
+    // Text file for OBS ("Text (GDI+)" source, "Read from file").
+    bool obsTextEnabled = false;
+    std::string obsTextPath;            // UTF-8; empty = %APPDATA%\DSDeathCounter\obs.txt
+    std::string obsTextFormat = "Mortes: {mortes}";
 };
 
 struct DeathRecord {

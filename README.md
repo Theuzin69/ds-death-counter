@@ -35,6 +35,7 @@
 - **One count per save/character**, each with its own history.
 - **Never loses the count.** Close the game and counting stops; open it again and it continues where it left off. Deaths that happen while the counter is closed are still added.
 - **Overlay on top of the game** with your choice of font, size, corner, colors and outline. `Ctrl+Shift+D` shows/hides it.
+- **OBS text source for streamers.** Optionally writes the count to a text file that an OBS **Text (GDI+)** source reads, so it works with Game Capture and Window Capture. You pick the text, e.g. `Deaths: {mortes}` ([how to set it up](docs/user-guide.md#7-streaming-obs)).
 - **List of every death**: date/time, area (map), last bonfire, cause and play time. Statistics by area and by cause, plus CSV export.
 - **Falls are detected automatically.** For other causes, pick from suggestions (bosses, enemies, traps…) with one click.
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.

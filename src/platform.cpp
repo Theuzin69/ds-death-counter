@@ -131,18 +131,28 @@ std::wstring BrowseForExe(HWND owner, const std::wstring& initial)
     return GetOpenFileNameW(&ofn) ? std::wstring(file) : std::wstring();
 }
 
-std::wstring BrowseSaveCsv(HWND owner, const std::wstring& suggestedName)
+static std::wstring BrowseSave(HWND owner, const std::wstring& initial, const wchar_t* filter, const wchar_t* ext)
 {
     wchar_t file[MAX_PATH * 2] = {};
-    wcsncpy_s(file, suggestedName.c_str(), _TRUNCATE);
+    wcsncpy_s(file, initial.c_str(), _TRUNCATE);
     OPENFILENAMEW ofn{ sizeof(ofn) };
     ofn.hwndOwner = owner;
-    ofn.lpstrFilter = L"CSV (*.csv)\0*.csv\0";
-    ofn.lpstrDefExt = L"csv";
+    ofn.lpstrFilter = filter;
+    ofn.lpstrDefExt = ext;
     ofn.lpstrFile = file;
     ofn.nMaxFile = (DWORD)std::size(file);
     ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
     return GetSaveFileNameW(&ofn) ? std::wstring(file) : std::wstring();
+}
+
+std::wstring BrowseSaveCsv(HWND owner, const std::wstring& suggestedName)
+{
+    return BrowseSave(owner, suggestedName, L"CSV (*.csv)\0*.csv\0", L"csv");
+}
+
+std::wstring BrowseSaveTxt(HWND owner, const std::wstring& initialPath)
+{
+    return BrowseSave(owner, initialPath, L"Texto (*.txt)\0*.txt\0", L"txt");
 }
 
 void OpenFolder(const std::wstring& path)

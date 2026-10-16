@@ -35,6 +35,7 @@
 - **Uma contagem para cada save/personagem**, cada uma com o seu histórico.
 - **Nunca perde a contagem.** Fechou o jogo, a contagem para; abriu de novo, continua de onde parou. Mortes que acontecerem com o contador fechado também entram.
 - **Overlay por cima do jogo**, com fonte, tamanho, canto, cores e contorno à sua escolha. `Ctrl+Shift+D` mostra/oculta.
+- **Fonte de texto para o OBS, para quem faz live.** Se quiser, grava a contagem num arquivo de texto que uma fonte **Texto (GDI+)** do OBS lê, então funciona com Captura de jogo e Captura de janela. Você escolhe o texto, ex.: `Mortes: {mortes}` ([como configurar](docs/guia-do-usuario.md#7-lives-obs)).
 - **Lista de todas as mortes**: data/hora, área (mapa), última fogueira, causa e tempo de jogo. Estatísticas por área e por causa, e exportação para CSV.
 - **Quedas são detectadas automaticamente.** Para as outras causas, escolha nas sugestões (chefes, inimigos, armadilhas…) com um clique.
 - **Contagem editável.** Quando editada, ela fica marcada no app e o número do overlay muda de cor.

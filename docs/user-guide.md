@@ -130,6 +130,9 @@ Areas are the game's maps, so a few names cover two regions (*Blighttown / Quela
 | *Cor normal* / *Cor quando a contagem foi editada* / *Cor do contorno* | Colors |
 | *Pré-visualizar o overlay agora* | Shows the overlay immediately (over the game window if it's open, otherwise over your monitor) while you adjust it |
 | *Deixar a janela do jogo sem bordas* | Makes the game window borderless and the size of your monitor |
+| *Gravar a contagem num arquivo de texto para o OBS* | Writes the count to a text file that OBS can show (off by default, see [Streaming](#7-streaming-obs)) |
+| *Texto no OBS* | What goes in that file: `{mortes}` becomes the count and `{nome}` the character name |
+| *Arquivo* / *Escolher arquivo…* / *Usar o padrão* / *Abrir pasta* / *Copiar caminho* | Where the file is written (default `%APPDATA%\DSDeathCounter\obs.txt`) |
 | *Abrir pasta de dados* | Opens the folder where your data is stored |
 
 ## 7. Streaming (OBS)
@@ -139,7 +142,29 @@ The overlay is drawn in its own window on top of the game, not inside the game, 
 - **Display Capture** in OBS shows the overlay;
 - **Game Capture** and **Window Capture** of the game **don't**.
 
-A dedicated OBS text source (a file with the current count) is planned.
+With Game Capture or Window Capture, use the OBS text file instead: the app keeps the current count in a small text file, and an OBS text source shows it. You place and style it in OBS like any other source.
+
+### Setting up the text source
+
+1. In the app, open *Configurações* → *OBS (lives)* and tick *Gravar a contagem num arquivo de texto para o OBS*. The line *Gravando: …* shows what is in the file.
+2. Optional: change *Texto no OBS* (default `Mortes: {mortes}`), for example to `Deaths: {mortes}`.
+3. Click *Copiar caminho* to copy the file's location. By default it is `%APPDATA%\DSDeathCounter\obs.txt`; *Escolher arquivo…* picks another `.txt` file and *Usar o padrão* goes back to the default.
+4. In OBS, in the **Sources** dock, click **+** and choose **Text (GDI+)**. Give it a name (e.g. "Deaths") and click **OK**.
+5. In the properties window, tick **Read from file**, click **Browse** next to **Text File (UTF-8)** and pick the file (you can paste the copied path into the file dialog). Click **OK**.
+6. Choose font, size, color and outline in that same window. Drag the source to where you want it, and keep it above the game capture in the Sources list.
+
+The file changes a moment after each death (OBS checks it about once a second). It shows the character being played; with the game closed, it keeps showing the last character you played.
+
+Placeholders for *Texto no OBS*:
+
+| Placeholder | Becomes |
+|---|---|
+| `{mortes}` (or `{deaths}`) | The death count, the same number the app shows (including manual edits) |
+| `{nome}` (or `{name}`) | The character's name |
+
+Anything else is written as typed: `{nome}: {mortes} deaths` becomes `Chosen Undead: 42 deaths`.
+
+If the app shows *Não foi possível gravar o arquivo*, the chosen folder no longer exists or can't be written to: pick another file or click *Usar o padrão*.
 
 ## 8. Your data
 
@@ -151,6 +176,8 @@ Everything is stored in one file:
 
 That file holds settings, characters and the full death history. To back it up or move to another PC, copy that file (with the app closed). Uninstalling the app keeps it.
 
+If the OBS text file is on, `obs.txt` is in the same folder by default. It only holds the text shown in OBS and is rewritten as needed, so it doesn't need a backup.
+
 ## 9. Troubleshooting
 
 **"O jogo está rodando como administrador"**: Windows doesn't let a normal program read a program running as administrator. Run the game normally, or run the counter as administrator too.
@@ -160,6 +187,8 @@ That file holds settings, characters and the full death history. To back it up o
 - press `Ctrl+Shift+D` (it may be toggled off);
 - the overlay hides when the game isn't the active window, or on the title screen (both configurable);
 - test it with *Pré-visualizar o overlay agora*.
+
+**The overlay doesn't show in OBS:** Game Capture and Window Capture don't capture it. Use the [OBS text file](#7-streaming-obs).
 
 **The count went down:** you restored an older copy of your save. The counter follows the game's own number.
 
