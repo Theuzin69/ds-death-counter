@@ -75,7 +75,7 @@ Because it's the map of the last solid ground, it is also a good answer to "wher
 | **Overlay as a separate window** | A transparent, click-through, always-on-top window drawn with GDI+ that follows the game window. Nothing is drawn inside the game. The trade-off is that exclusive fullscreen can hide it, so the app offers a "borderless window" button. |
 | **UI with Dear ImGui on Direct3D 11** | A compact, good-looking interface without heavy frameworks. |
 | **Character = save slot + name** | The game data doesn't have a unique character id. Play time going back to zero reveals a recreated character with the same name. |
-| **Cause of death** | Falls are detected from the player's height history. The game doesn't keep "who killed you" anywhere that can be read reliably and safely, so other causes are picked by the user from suggestions. |
+| **Cause of death** | Falls are detected from the player's height history, and bosses from the boss health bar (added after 1.0.0, see [step 6](#step-6-who-killed-you-after-100)). The game doesn't keep "which enemy killed you" anywhere that can be read reliably and safely, so other causes are picked by the user from suggestions. |
 | **Data in JSON** | One readable file in `%APPDATA%`, written atomically so a crash can't corrupt it. |
 
 ## Step 5: testing
@@ -84,6 +84,7 @@ What the AI checked on the development PC:
 
 - the project compiles with MSVC with **no errors and no warnings**;
 - `tests/scan_test` runs the app's own scanner against the game executable on disk and compares the result with the addresses verified by hand;
+- `tests/boss_cause_test` checks the boss health bar → cause table (also run by GitHub Actions);
 - `tests/overlay_test` draws the overlay, which was captured on screen and inspected (normal and "edited" colors);
 - the main window was rendered with sample data and captured to check the layout;
 - the installer was installed and uninstalled silently to confirm it leaves nothing behind.
@@ -93,11 +94,31 @@ What the human checked in the real game:
 - the deaths of existing saves were picked up correctly;
 - a new death in Undead Burg was counted and recorded with the correct area.
 
+Boss detection (step 6) has not been tested in the game yet.
+
 Every release is built by GitHub Actions from the public code, with checksums and build provenance attestations (see the [README](../README.md#smartscreen)).
+
+## Step 6: who killed you? (after 1.0.0)
+
+Requirement 6 also asked for *what* killed the player, and version 1.0.0 only recognized falls. The follow-up research went back to the executable, looking for any place where the game keeps the killer and that can be read safely.
+
+**Ordinary enemies: not reliably readable.** The game raises the death counter from its event script (a function called `AddDeathCount`), which knows nothing about the attacker. The code that applies damage is protected by the game's anti-tamper obfuscation, and no stored "last attacker" field turned up: hits are passed around as short-lived event messages (used by the event scripts' "damaged by" condition) and a pool of recent-hit records whose meaning can't be confirmed without attaching a debugger to the running game, which the read-only promise rules out. Guessing "the nearest enemy" would get archers, groups and poison wrong, so the app doesn't guess.
+
+**Bosses: readable and exact.** The boss health bar is a different story. The event scripts show it with instruction 2003:11 (*display boss health bar*: on/off, character, slot, name id), and the game keeps it in its `MenuMan` structure: two slots (two bars, as in Ornstein & Smough or the Bell Gargoyles) of 0x14 bytes at `MenuMan + 0x1050` in 1.01, each starting with the boss's NPC name id and its character handle. The bar is cleared when the boss dies (the script turns it off) and when the event scripts restart, which is what happens on the reload after a death. So "a bar was on screen at the last moment the player was alive" means "died in that boss fight", whatever landed the last hit.
+
+How it was checked:
+
+- The structure was found by following the game's own script function `SetBossGauge` to its implementation, then confirmed with the function that clears the bars, the constructor that initializes them, and the class name (RTTI) of the object that holds them, `NS_FRPG::MenuMan`.
+- At runtime the app reads the `MenuMan` address and the bar offset straight from two small game functions (one clears the bars, the other returns a slot). If both are found they must agree; if they disagree, or neither is found, boss detection switches itself off instead of guessing. `tests/scan_test` compares the result with the 1.01 values verified by hand.
+- The name ids come from the game's own files: every 2003:11 instruction in `event/*.emevd` was decoded (28 different name ids: 27 bars with a name, covering the 26 boss fights, plus one id in New Londo that has no name in the game files) and matched with the NPC name table in `msg/ENGLISH/item.msgbnd`. Each boss is recorded with the same wording as the cause suggestions (*Dragon Slayer Ornstein* and *Executioner Smough* both become *Chefe: Ornstein & Smough*), so the "by cause" statistics group automatic and hand-picked causes together. `tests/boss_cause_test` checks that table.
+
+A boss fight wins over the fall heuristic: falling off Taurus Demon's bridge or into Bed of Chaos' pits counts as a death to that boss. Bosses without a health bar (the Hellkite Dragon on the Undead Burg bridge, for example) are not detected.
+
+All of this comes from static analysis of the 1.01 executable. Two things still need the real game: that the bar is still set at the last moment the player is alive, and that the same code patterns exist in the 1.03.x builds. The *Diagnóstico* tab shows the live boss bar values to make both easy to check.
 
 ## Known limitations
 
-- The killer (enemy/boss) isn't detected automatically, except falls.
+- Ordinary enemies aren't detected automatically; bosses with a health bar and falls are. Bosses without a health bar (such as the Hellkite Dragon) aren't either.
 - Exclusive fullscreen may hide the overlay; windowed/borderless always works.
 - The interface is in Portuguese only (English is planned).
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.

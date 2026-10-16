@@ -98,7 +98,11 @@ A aba *Mortes* tem uma linha por morte, da mais recente para a mais antiga:
 | *Causa* | Causa da morte |
 | *Tempo de jogo* | Tempo de jogo naquele momento |
 
-- **Causa:** quedas são detectadas sozinhas (perda de mais de 10 m de altura logo antes de morrer) e marcadas como *Queda*. O jogo não guarda "quem te matou" num lugar que dê para ler com segurança; para o resto, **clique na célula da causa** e digite ou escolha uma sugestão (chefes, inimigos comuns, armadilhas, veneno, invasores…).
+- **Causa:** duas causas são preenchidas sozinhas:
+  - **Chefes.** Se a barra de vida de um chefe estava na tela quando você morreu, a causa é aquele chefe (por exemplo, *Chefe: Ornstein & Smough*), não importa o que deu o golpe final: o chefe, os ajudantes dele ou uma queda da arena. Os 26 chefes que têm barra de vida são reconhecidos. Os que não têm (como o Hellkite na ponte do Undead Burg) não são.
+  - **Quedas.** Fora isso, perder mais de 10 m de altura logo antes de morrer vira *Queda*.
+
+  O jogo não guarda "qual inimigo te matou" num lugar que dê para ler com segurança; para o resto, **clique na célula da causa** e digite ou escolha uma sugestão (inimigos comuns, armadilhas, veneno, invasores…). As causas automáticas podem ser corrigidas do mesmo jeito.
 - **Botão direito numa linha** para editar a causa, editar a área ou excluir aquele registro (excluir um registro não muda a contagem).
 - **Linhas cinzas** (*Não registrada (contador fechado)*) são mortes que aconteceram com o contador fechado. Elas contam, mas não têm detalhes.
 - **Filtro:** digite na caixa acima da lista para filtrar por área, fogueira ou causa.
@@ -161,7 +165,7 @@ Ele guarda configurações, personagens e o histórico completo. Para fazer back
 
 **Um personagem aparece duas vezes:** o personagem é identificado por slot + nome, então se ele mudou de slot (por exemplo, copiando arquivos de save), é visto como novo. Exclua a duplicata no app, se quiser.
 
-**Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição…).
+**Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição, barras de chefe…).
 
 **O antivírus reclamou:** veja a [seção sobre SmartScreen/antivírus](../README.pt-BR.md#smartscreen). O app lê a memória de outro programa, o que alguns antivírus estranham. Ele nunca escreve no jogo.
 

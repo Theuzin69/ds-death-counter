@@ -28,6 +28,7 @@ private:
         Vec3 pos;
         int mapArea, mapBlock, bonfire;
         uint32_t playTimeMs;
+        int boss[GameSnapshot::kBossSlots] = { -1, -1 };   // boss bars on screen (name ids)
     };
 
     void Activate(const GameSnapshot& s, const std::string& baseKey);

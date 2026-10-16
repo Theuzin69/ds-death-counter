@@ -76,6 +76,75 @@ std::string Ds1BonfireName(int id)
     return it == names.end() ? std::string() : std::string(it->second);
 }
 
+namespace {
+
+struct BossBar {
+    int nameId;          // NPC name id given to the health bar by the event script
+    const char* name;    // text the game shows on the bar (English)
+    const char* fight;   // fight name used for the cause, same as in the suggestions
+};
+
+// Every boss health bar set up by the game's event scripts (instruction 2003:11 in
+// event/*.emevd), checked against msg/ENGLISH/item.msgbnd (NPC names). Id 2390 is also
+// used once in New Londo, but has no name in the game files, so it stays unknown.
+const BossBar kBossBars[] = {
+    { 2232, "Asylum Demon",               "Asylum Demon" },
+    { 2231, "Stray Demon",                "Stray Demon" },
+    { 2250, "Taurus Demon",               "Taurus Demon" },
+    { 5350, "Bell Gargoyle",              "Bell Gargoyles" },
+    { 2240, "Capra Demon",                "Capra Demon" },
+    { 5260, "Gaping Dragon",              "Gaping Dragon" },
+    { 3230, "Moonlight Butterfly",        "Moonlight Butterfly" },
+    { 5210, "Great Grey Wolf Sif",        "Great Grey Wolf Sif" },
+    { 5280, "Chaos Witch Quelaag",        "Chaos Witch Quelaag" },
+    { 2320, "Iron Golem",                 "Iron Golem" },
+    { 5270, "Dragon Slayer Ornstein",     "Ornstein & Smough" },
+    { 2360, "Executioner Smough",         "Ornstein & Smough" },
+    { 5320, "Dark Sun Gwyndolin",         "Dark Sun Gwyndolin" },
+    { 2730, "Crossbreed Priscilla",       "Crossbreed Priscilla" },
+    { 3320, "Pinwheel",                   "Pinwheel" },
+    { 5220, "Gravelord Nito",             "Gravelord Nito" },
+    { 5290, "Seath the Scaleless",        "Seath the Scaleless" },
+    { 5390, "Four Kings",                 "Four Kings" },
+    { 5250, "Ceaseless Discharge",        "Ceaseless Discharge" },
+    { 2230, "Demon Firesage",             "Demon Firesage" },
+    { 5200, "Centipede Demon",            "Centipede Demon" },
+    { 5400, "Bed of Chaos",               "Bed of Chaos" },
+    { 5370, "Gwyn, Lord of Cinder",       "Gwyn, Lord of Cinder" },
+    { 3471, "Sanctuary Guardian",         "Sanctuary Guardian" },
+    { 4100, "Knight Artorias",            "Knight Artorias" },
+    { 4510, "Black Dragon Kalameet",      "Black Dragon Kalameet" },
+    { 4500, "Manus, Father of the Abyss", "Manus, Father of the Abyss" },
+};
+
+const BossBar* FindBossBar(int nameId)
+{
+    for (const auto& b : kBossBars)
+        if (b.nameId == nameId) return &b;
+    return nullptr;
+}
+
+} // namespace
+
+std::string Ds1BossBarName(int nameId)
+{
+    const BossBar* b = FindBossBar(nameId);
+    return b ? b->name : std::string();
+}
+
+std::string Ds1BossCause(const int* nameIds, int count)
+{
+    std::string cause;
+    for (int i = 0; i < count; ++i) {
+        if (nameIds[i] <= 0) continue;
+        const BossBar* b = FindBossBar(nameIds[i]);
+        std::string fight = b ? std::string(b->fight) : "id " + std::to_string(nameIds[i]);
+        if (cause.empty()) cause = "Chefe: " + fight;
+        else if (cause.find(fight) == std::string::npos) cause += " / " + fight;
+    }
+    return cause;
+}
+
 const std::vector<std::string>& Ds1CauseSuggestions()
 {
     static const std::vector<std::string> list = {

@@ -154,6 +154,8 @@ void GameReader::Detach()
     base_ = 0;
     size_ = 0;
     gameMan_ = gameDataMan_ = worldChrMan_ = 0;
+    menuMan_ = 0;
+    offBossGauge_ = 0;
     scanAttempts_ = 0;
     state_ = State::NotRunning;
 }
@@ -255,6 +257,43 @@ bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
              newLayout_ ? "1.03+" : "1.01", offSaveSlot_, offLastBonfire_, offStableMap_, offChrMapData_, offHp_);
     scanLog_ += line;
 
+    // Boss health bars (optional: only the automatic "killed by boss" cause depends on them).
+    // MenuMan keeps one slot per bar, { int nameId; int chrHandle; damage counters... }, 0x14 bytes
+    // each, at MenuMan+0x1050 in 1.01. Two small functions give the global and the offsets:
+    //   ClearBossGauge:  mov rax,[MenuMan]; xor ecx,ecx; mov qword [rax+slot0],-1; mov qword [rax+slot1],-1; ...
+    //   slot getter:     cmp ecx,1; ja; movsxd rax,ecx; lea rcx,[rax+rax*4]; mov rax,[MenuMan]; lea rax,[rax+rcx*4]; add rax,slot0
+    // Both must agree when both are found; otherwise the feature stays off rather than guess.
+    menuMan_ = 0;
+    offBossGauge_ = 0;
+    uintptr_t clearMenuMan = 0, getMenuMan = 0;
+    int clearSlot0 = 0, clearStride = 0, getSlot0 = 0;
+    auto clearHits = FindAll(img, "48 8B 05 ? ? ? ? 33 C9 48 C7 80 ? ? ? ? FF FF FF FF 48 C7 80 ? ? ? ? FF FF FF FF 48 89 88");
+    if (clearHits.size() == 1) {
+        size_t h = clearHits[0];
+        clearSlot0 = ReadI32(img, h + 12);
+        clearStride = ReadI32(img, h + 23) - clearSlot0;
+        if (clearSlot0 > 0 && clearSlot0 < 0x10000 && clearStride == 0x14)
+            clearMenuMan = base_ + h + 7 + ReadI32(img, h + 3);
+    }
+    auto getHits = FindAll(img, "83 F9 01 77 ? 48 63 C1 48 8D 0C 80 48 8B 05 ? ? ? ? 48 8D 04 88 48 05 ? ? ? ?");
+    if (getHits.size() == 1) {
+        size_t h = getHits[0];
+        getSlot0 = ReadI32(img, h + 25);
+        if (getSlot0 > 0 && getSlot0 < 0x10000)
+            getMenuMan = base_ + h + 19 + ReadI32(img, h + 15);
+    }
+    if (clearMenuMan && getMenuMan && (clearMenuMan != getMenuMan || clearSlot0 != getSlot0)) {
+        scanLog_ += "MenuMan      -> DIVERGENTE (causa por chefe desativada)\n";
+    } else if (clearMenuMan || getMenuMan) {
+        menuMan_ = clearMenuMan ? clearMenuMan : getMenuMan;
+        offBossGauge_ = clearMenuMan ? clearSlot0 : getSlot0;
+        snprintf(line, sizeof(line), "MenuMan      -> exe+%llX | barra de chefe +%X (passo %X)\n",
+                 (unsigned long long)(menuMan_ - base_), offBossGauge_, bossGaugeStride_);
+        scanLog_ += line;
+    } else {
+        scanLog_ += "MenuMan      -> NÃO ENCONTRADO (causa por chefe desativada)\n";
+    }
+
     return gameMan_ && gameDataMan_ && worldChrMan_;
 }
 
@@ -328,6 +367,19 @@ bool GameReader::Read(GameSnapshot& s)
         else {
             a = s.mapRaw & 0xFF; b = (s.mapRaw >> 8) & 0xFF;
             if (a >= 10 && a <= 18 && b <= 3) { s.mapArea = a; s.mapBlock = b; }
+        }
+    }
+
+    if (menuMan_ && offBossGauge_) {
+        if (uintptr_t mm = ReadPtr(menuMan_)) {
+            for (int i = 0; i < GameSnapshot::kBossSlots; ++i) {
+                // Empty slots hold -1/-1. Name ids come from a 16-bit field of the event script.
+                int32_t slot[2] = { -1, -1 };   // { nameId, chrHandle }
+                SIZE_T n = 0;
+                if (ReadProcessMemory(proc_, (LPCVOID)(mm + offBossGauge_ + i * bossGaugeStride_), slot, sizeof(slot), &n) &&
+                    n == sizeof(slot) && slot[0] > 0 && slot[0] <= 0x7FFF && slot[1] != -1)
+                    s.bossNameId[i] = slot[0];
+            }
         }
     }
 

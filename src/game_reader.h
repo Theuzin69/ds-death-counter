@@ -29,6 +29,11 @@ struct GameSnapshot {
     int      hp           = -1;
     bool     hasPos       = false;
     Vec3     pos;
+    // Boss health bars on screen: the NPC name id each bar shows, -1 when the slot is empty.
+    // The game fills these when a boss fight starts and clears them when the boss dies or
+    // the area reloads, so "a bar was up when the player died" means "died in that fight".
+    static constexpr int kBossSlots = 2;
+    int      bossNameId[kBossSlots] = { -1, -1 };
 };
 
 class GameReader {
@@ -56,6 +61,9 @@ public:
     uintptr_t GameManAddr() const { return gameMan_; }
     uintptr_t GameDataManAddr() const { return gameDataMan_; }
     uintptr_t WorldChrManAddr() const { return worldChrMan_; }
+    uintptr_t MenuManAddr() const { return menuMan_; }
+    int BossGaugeOffset() const { return offBossGauge_; }
+    int BossGaugeStride() const { return bossGaugeStride_; }
     const std::string& ScanLog() const { return scanLog_; }
 
 private:
@@ -79,6 +87,7 @@ private:
 
     // Addresses of the game's global pointers (static variables in the exe)
     uintptr_t gameMan_ = 0, gameDataMan_ = 0, worldChrMan_ = 0;
+    uintptr_t menuMan_ = 0;     // optional: only used for the boss health bars
 
     // Version dependent offsets
     bool newLayout_ = true;     // 1.03+ (current Steam build) vs 1.01.x
@@ -87,5 +96,7 @@ private:
     int  offStableMap_ = 0xBD0;
     int  offChrMapData_ = 0x68;
     int  offHp_ = 0x3E8;
+    int  offBossGauge_ = 0;     // MenuMan offset of boss bar slot 0 (0 = not found)
+    int  bossGaugeStride_ = 0x14;
     std::string scanLog_;
 };

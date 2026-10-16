@@ -14,10 +14,11 @@ Requirements: Windows 10/11 x64 and Visual Studio 2019/2022 with the *Desktop de
 
 ```bat
 build.bat                 :: -> build\DSDeathCounter.exe
-tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe
+tests\build_tests.bat     :: -> build\tests\scan_test.exe, boss_cause_test.exe, overlay_test.exe
 ```
 
 - `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it.
+- `build\tests\boss_cause_test.exe` checks the boss health bar → cause of death table (also run by CI).
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 
 Installer: install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run `ISCC.exe installer\DSDeathCounter.iss` (output in `dist\`).

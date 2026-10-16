@@ -36,7 +36,7 @@
 - **Never loses the count.** Close the game and counting stops; open it again and it continues where it left off. Deaths that happen while the counter is closed are still added.
 - **Overlay on top of the game** with your choice of font, size, corner, colors and outline. `Ctrl+Shift+D` shows/hides it.
 - **List of every death**: date/time, area (map), last bonfire, cause and play time. Statistics by area and by cause, plus CSV export.
-- **Falls are detected automatically.** For other causes, pick from suggestions (bosses, enemies, traps…) with one click.
+- **Bosses and falls are detected automatically.** A death while a boss health bar is on screen is recorded as that boss; a big drop just before dying is recorded as a fall. For other causes, pick from suggestions (enemies, traps…) with one click.
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.
 - **Runs quietly in the system tray** and can start with Windows: open the game and it is already counting.
 - **Read-only.** It never writes to the game, injects nothing and doesn't touch your saves (see [Is it safe?](#is-it-safe-can-i-get-banned)).

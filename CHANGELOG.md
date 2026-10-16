@@ -4,6 +4,15 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### Added / Adicionado
+
+- Automatic boss detection: a death while a boss health bar is on screen is recorded with that boss as the cause (e.g. *Chefe: Ornstein & Smough*), covering all 26 bosses that have a health bar. It reads the game's own boss bar data, located from the game's code for each version, so it stays read-only. A fall during a boss fight counts as a death to that boss. Not yet confirmed in-game.
+  *Detecção automática de chefe: morrer com a barra de vida de um chefe na tela registra aquele chefe como causa (ex.: “Chefe: Ornstein & Smough”), para os 26 chefes que têm barra de vida. Lê os dados da barra do próprio jogo, localizados a partir do código de cada versão, então continua somente leitura. Uma queda durante a luta conta como morte para o chefe. Ainda não confirmado no jogo.*
+- The *Diagnóstico* tab shows the boss health bars currently on screen.
+  *A aba Diagnóstico mostra as barras de chefe que estão na tela.*
+
 ## [1.0.0] - 2026-10-16
 
 First public release. / Primeira versão pública.
@@ -25,4 +34,5 @@ First public release. / Primeira versão pública.
 - Per-user installer (no admin rights) and portable zip, built and attested by GitHub Actions.
   *Instalador por usuário (sem administrador) e zip portátil, compilados e atestados pelo GitHub Actions.*
 
+[Unreleased]: https://github.com/Theuzin69/ds-death-counter/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/Theuzin69/ds-death-counter/releases/tag/v1.0.0

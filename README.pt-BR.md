@@ -36,7 +36,7 @@
 - **Nunca perde a contagem.** Fechou o jogo, a contagem para; abriu de novo, continua de onde parou. Mortes que acontecerem com o contador fechado também entram.
 - **Overlay por cima do jogo**, com fonte, tamanho, canto, cores e contorno à sua escolha. `Ctrl+Shift+D` mostra/oculta.
 - **Lista de todas as mortes**: data/hora, área (mapa), última fogueira, causa e tempo de jogo. Estatísticas por área e por causa, e exportação para CSV.
-- **Quedas são detectadas automaticamente.** Para as outras causas, escolha nas sugestões (chefes, inimigos, armadilhas…) com um clique.
+- **Chefes e quedas são detectados automaticamente.** Morreu com a barra de vida de um chefe na tela, a causa é aquele chefe; perdeu muita altura logo antes de morrer, é queda. Para as outras causas, escolha nas sugestões (inimigos, armadilhas…) com um clique.
 - **Contagem editável.** Quando editada, ela fica marcada no app e o número do overlay muda de cor.
 - **Fica quietinho na bandeja** e pode iniciar com o Windows: abriu o jogo, já está contando.
 - **Somente leitura.** Nunca escreve no jogo, não injeta nada e não mexe nos seus saves (veja [É seguro?](#é-seguro-posso-tomar-ban)).
