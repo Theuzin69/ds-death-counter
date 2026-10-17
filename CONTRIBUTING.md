@@ -14,11 +14,13 @@ Requirements: Windows 10/11 x64 and Visual Studio 2019/2022 with the *Desktop de
 
 ```bat
 build.bat                 :: -> build\DSDeathCounter.exe
-tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe
+tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe, bb_*.exe
 ```
 
 - `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it.
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
+- `build\tests\bb_scan_test.exe "C:\path\to\eboot.bin"` runs the Bloodborne scanner against the `eboot.bin` file the Bloodborne PC port loads.
+- `build\tests\fake_port\bbport.exe "C:\path\to\eboot.bin"` is a stand-in for the port (it maps the game image and never runs it); run `build\tests\bb_live_test.exe` next to it to watch the live reader.
 
 Installer: install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run `ISCC.exe installer\DSDeathCounter.iss` (output in `dist\`).
 
@@ -26,6 +28,7 @@ Installer: install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run `
 
 ```
 src/game_reader.*    read-only access to the game process and the byte-signature scanner
+src/games/*          other games (bloodborne.*: Bloodborne PC port)
 src/death_tracker.*  turns game snapshots into per-character counts and death records
 src/data_store.*     settings and history (JSON, %APPDATA%\DSDeathCounter\data.json)
 src/overlay.*        click-through layered window drawn over the game (GDI+)

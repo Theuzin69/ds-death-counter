@@ -1,4 +1,5 @@
 #include "game_reader.h"
+#include "games/bloodborne.h"
 #include <tlhelp32.h>
 #include <algorithm>
 #include <cmath>
@@ -104,8 +105,34 @@ bool ValidPtr(uintptr_t p) { return p >= 0x10000 && p < 0x7FFFFFFFFFFFull; }
 
 } // namespace
 
+std::vector<size_t> FindPattern(const std::vector<uint8_t>& buf, const char* pattern)
+{
+    return FindAll(buf, pattern);
+}
+
+const char* GameDisplayName(const std::string& game)
+{
+    if (game == "bb") return "Bloodborne";
+    return "Dark Souls Remastered";
+}
+
+GameReader::GameReader() : bb_(std::make_unique<bb::Reader>()) {}
+
+GameReader::~GameReader() { Detach(); }
+
+DWORD GameReader::pid() const
+{
+    return bb_->Attached() ? bb_->pid() : pid_;
+}
+
+std::string GameReader::GameId() const
+{
+    return bb_->Attached() ? "bb" : "dsr";
+}
+
 std::wstring GameReader::ProcessPath() const
 {
+    if (bb_->Attached()) return bb_->ProcessPath();
     if (!proc_) return {};
     wchar_t buf[MAX_PATH * 2];
     DWORD n = (DWORD)std::size(buf);
@@ -115,6 +142,7 @@ std::wstring GameReader::ProcessPath() const
 
 std::string GameReader::VersionName() const
 {
+    if (bb_->Attached()) return bb_->VersionName();
     if (!proc_) return "-";
     std::string fileVer;
     std::wstring path = ProcessPath();
@@ -260,6 +288,9 @@ bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 
 void GameReader::Update()
 {
+    // Bloodborne (PC port): owns the state while its process is attached.
+    if (!proc_ && bb_->Update(state_)) return;
+
     ULONGLONG now = GetTickCount64();
     if (proc_ && !ProcessAlive()) Detach();
     if (state_ == State::Ready) return;
@@ -290,6 +321,7 @@ uintptr_t GameReader::ReadPtr(uintptr_t addr) const
 
 bool GameReader::Read(GameSnapshot& s)
 {
+    if (bb_->Attached()) return state_ == State::Ready && bb_->Read(s);
     s = GameSnapshot{};
     if (state_ != State::Ready) return false;
 
@@ -355,6 +387,7 @@ bool GameReader::Read(GameSnapshot& s)
 
 std::string GameReader::DiagnosticsText() const
 {
+    if (bb_->Attached()) return bb_->DiagnosticsText(state_);
     char b[512];
     std::string t;
     const char* st = "jogo não encontrado";

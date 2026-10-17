@@ -24,7 +24,7 @@ rc /nologo /fo build\obj\app.res res\app.rc || exit /b 1
 set IMGUI=third_party\imgui
 cl /nologo /std:c++20 /O2 /MT /EHsc /utf-8 /W3 /DNDEBUG /DUNICODE /D_UNICODE /DNOMINMAX ^
    /I src /I %IMGUI% /I %IMGUI%\backends /I third_party ^
-   src\*.cpp ^
+   src\*.cpp src\games\*.cpp ^
    %IMGUI%\imgui.cpp %IMGUI%\imgui_draw.cpp %IMGUI%\imgui_tables.cpp %IMGUI%\imgui_widgets.cpp ^
    %IMGUI%\backends\imgui_impl_win32.cpp %IMGUI%\backends\imgui_impl_dx11.cpp %IMGUI%\misc\cpp\imgui_stdlib.cpp ^
    build\obj\app.res ^

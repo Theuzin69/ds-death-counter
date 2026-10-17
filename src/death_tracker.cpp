@@ -56,6 +56,7 @@ void DeathTracker::Tick(GameReader& reader)
     if (!s.charLoaded) return;
 
     std::string baseKey = (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
+    if (s.game != "dsr") baseKey = s.game + "|" + baseKey;   // other games: "bb|?|name"
     if (baseKey != candidateKey_) {
         candidateKey_ = baseKey;
         candidateSince_ = now;
@@ -108,6 +109,7 @@ void DeathTracker::Activate(const GameSnapshot& s, const std::string& baseKey)
 
     if (!p) {
         Profile np;
+        np.game = s.game;
         np.baseKey = baseKey;
         np.key = baseKey;
         for (int gen = 2; store_.Find(np.key); ++gen) np.key = baseKey + "#" + std::to_string(gen);

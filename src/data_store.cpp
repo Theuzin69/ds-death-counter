@@ -98,7 +98,7 @@ json ToJson(const Profile& p)
     json deaths = json::array();
     for (const auto& r : p.deaths) deaths.push_back(ToJson(r));
     return json{
-        { "key", p.key }, { "baseKey", p.baseKey }, { "name", p.name }, { "slot", p.slot },
+        { "game", p.game }, { "key", p.key }, { "baseKey", p.baseKey }, { "name", p.name }, { "slot", p.slot },
         { "gameDeaths", p.gameDeaths }, { "baseDeaths", p.baseDeaths }, { "offset", p.offset },
         { "edited", p.edited }, { "playTimeMs", p.playTimeMs }, { "soulLevel", p.soulLevel },
         { "ngPlus", p.ngPlus }, { "firstSeen", p.firstSeen }, { "lastSeen", p.lastSeen },
@@ -109,6 +109,7 @@ json ToJson(const Profile& p)
 Profile ProfileFromJson(const json& j)
 {
     Profile p;
+    p.game = j.value("game", std::string("dsr"));
     p.key = j.value("key", std::string());
     p.baseKey = j.value("baseKey", p.key);
     p.name = j.value("name", std::string());

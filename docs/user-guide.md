@@ -65,6 +65,17 @@ The current character's count appears in a corner of the game window (default: t
 
 Closing the window keeps the counter running in the system tray. Hover the tray icon to see the current count. Right-click it for *Abrir* (open), *Mostrar overlay* (toggle overlay) and *Sair* (quit).
 
+### Bloodborne (PC port, experimental)
+
+The counter also works with the **Bloodborne PC Windows port** (v0.5, process `bbport.exe`) running Bloodborne 1.09. Start the game the way the port tells you to; the counter finds `bbport.exe` by itself, exactly like it finds Dark Souls Remastered. (The *Iniciar Dark Souls* button only launches Dark Souls Remastered.)
+
+- Status line: *Bloodborne encontrado, preparando a leitura…*, then *Conectado ao Bloodborne (port de PC, bbport.exe). Carregue um personagem.*, then *Contando as mortes de NAME (Bloodborne)*.
+- What's read: the game's own death counter, the character's name, level, NG+ cycle and play time. Each death is recorded with date/time and play time.
+- Not available for Bloodborne yet: area, last lamp and fall detection (the area shows as *Desconhecida*). You can still type a cause or area by hand.
+- Bloodborne characters are told apart by **name** (the save slot isn't read), so two Bloodborne characters with the same name share one entry in the list.
+- The overlay works the same way: use a windowed or borderless window in the port's settings.
+- This support hasn't been confirmed in a real play session yet. If the count doesn't go up when you die, send the *Diagnóstico* text in a bug report.
+
 ## 4. Characters and counts
 
 The *Personagens* tab lists every character the counter has seen (*Saves / personagens*). The character currently being played is marked with a green dot and listed first.
@@ -164,6 +175,8 @@ That file holds settings, characters and the full death history. To back it up o
 **The count went down:** you restored an older copy of your save. The counter follows the game's own number.
 
 **A character shows up twice:** a character is identified by slot + name, so a character that moved to another slot (for example, by copying save files around) is seen as new. Delete the duplicate in the app if you want.
+
+**Bloodborne isn't detected:** the counter looks for the port's game process, `bbport.exe`, and was checked against port v0.5 with Bloodborne 1.09. Other ports, emulators and game versions aren't supported. If *Diagnóstico* shows *NÃO ENCONTRADO*, the game data wasn't recognized; please send that text in a bug report.
 
 **Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position…).
 

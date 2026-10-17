@@ -66,6 +66,12 @@ std::string SlotText(int slot)
     return slot >= 0 ? std::to_string(slot + 1) : std::string("?");
 }
 
+// "Slot 2" for Dark Souls Remastered; the game's name for the others (no slot number is read there).
+std::string SlotLabel(const Profile& p)
+{
+    return p.game == "dsr" ? "Slot " + SlotText(p.slot) : std::string(GameDisplayName(p.game));
+}
+
 std::string CsvField(const std::string& s)
 {
     std::string out = "\"";
@@ -120,7 +126,7 @@ void App::UiHeader()
     ImGui::PopFont();
     ImGui::SameLine();
     ImGui::AlignTextToFramePadding();
-    ImGui::TextDisabled("Dark Souls Remastered");
+    ImGui::TextDisabled("%s", GameDisplayName(reader_.GameId()));
 
     switch (reader_.state()) {
         case GameReader::State::NotRunning:
@@ -135,12 +141,18 @@ void App::UiHeader()
             break;
         case GameReader::State::Scanning:
             StatusDot(kYellow);
-            ImGui::TextColored(kYellow, "Dark Souls encontrado, preparando a leitura...");
+            ImGui::TextColored(kYellow, "%s encontrado, preparando a leitura...",
+                               reader_.GameId() == "dsr" ? "Dark Souls" : GameDisplayName(reader_.GameId()));
             break;
         case GameReader::State::Ready:
             StatusDot(kGreen);
-            if (active)
+            if (active && active->game != "dsr")
+                ImGui::Text("Contando as mortes de %s (%s)", active->name.c_str(), GameDisplayName(active->game));
+            else if (active)
                 ImGui::Text("Contando as mortes de %s (slot %s)", active->name.c_str(), SlotText(active->slot).c_str());
+            else if (reader_.GameId() != "dsr")
+                ImGui::Text("Conectado ao %s (%s). Carregue um personagem.", GameDisplayName(reader_.GameId()),
+                            reader_.VersionName().c_str());
             else
                 ImGui::Text("Conectado ao jogo (versão %s). Carregue um personagem.", reader_.VersionName().c_str());
             break;
@@ -227,7 +239,7 @@ void App::UiProfilesTab()
         dl->AddText(fontBold_, fontBold_->FontSize, ImVec2(a.x + pad, a.y + pad * 0.5f),
                     ImGui::GetColorU32(ImGuiCol_Text), name.c_str(), nullptr, 0.0f, &clip);
         char sub[96];
-        snprintf(sub, sizeof(sub), "Slot %s  ·  Nível %d%s%s", SlotText(p.slot).c_str(), p.soulLevel,
+        snprintf(sub, sizeof(sub), "%s  ·  Nível %d%s%s", SlotLabel(p).c_str(), p.soulLevel,
                  p.ngPlus > 0 ? "  ·  NG+" : "", p.ngPlus > 0 ? std::to_string(p.ngPlus).c_str() : "");
         bool isActive = active && active->key == p.key;
         float subX = a.x + pad;
@@ -261,7 +273,7 @@ void App::UiProfileDetail(Profile& p)
         ImGui::TextColored(kGreen, "\xE2\x97\x8F no jogo agora");
     }
     std::string cycle = p.ngPlus > 0 ? "NG+" + std::to_string(p.ngPlus) : std::string("NG");
-    ImGui::TextDisabled("Slot %s  ·  Nível %d  ·  %s  ·  Tempo de jogo %s", SlotText(p.slot).c_str(), p.soulLevel,
+    ImGui::TextDisabled("%s  ·  Nível %d  ·  %s  ·  Tempo de jogo %s", SlotLabel(p).c_str(), p.soulLevel,
                         cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
     ImGui::TextDisabled("Acompanhado desde %s  ·  visto por último em %s", p.firstSeen.c_str(), p.lastSeen.c_str());
 

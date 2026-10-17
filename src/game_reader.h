@@ -7,12 +7,16 @@
 
 #include <windows.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
+
+namespace bb { class Reader; }   // games/bloodborne.h
 
 struct Vec3 { float x = 0, y = 0, z = 0; };
 
 struct GameSnapshot {
+    std::string game      = "dsr";  // which game this came from ("dsr", "bb")
     bool     gameDataOk   = false;  // GameDataMan resolved (game finished booting)
     bool     charLoaded   = false;  // a character is loaded (name valid, play time > 0)
     bool     inWorld      = false;  // player entity exists (not main menu / loading screen)
@@ -31,11 +35,18 @@ struct GameSnapshot {
     Vec3     pos;
 };
 
+// Every match offset of a byte pattern ("48 8B 05 ? ? ? ?") inside buf.
+std::vector<size_t> FindPattern(const std::vector<uint8_t>& buf, const char* pattern);
+
+// Display name of a game id ("dsr", "bb").
+const char* GameDisplayName(const std::string& game);
+
 class GameReader {
 public:
     enum class State { NotRunning, AccessDenied, Scanning, Ready };
 
-    ~GameReader() { Detach(); }
+    GameReader();
+    ~GameReader();
 
     // Looks for the game process and resolves pointers. Cheap to call repeatedly.
     void Update();
@@ -43,8 +54,9 @@ public:
     void Detach();
 
     State state() const { return state_; }
-    DWORD pid() const { return pid_; }
+    DWORD pid() const;
     bool  IsReady() const { return state_ == State::Ready; }
+    std::string GameId() const;     // game of the attached process ("dsr" when none)
     std::wstring ProcessPath() const;
     std::string VersionName() const;
     std::string DiagnosticsText() const;
@@ -88,4 +100,7 @@ private:
     int  offChrMapData_ = 0x68;
     int  offHp_ = 0x3E8;
     std::string scanLog_;
+
+    // Bloodborne (PC port), used while no Dark Souls Remastered process is attached.
+    std::unique_ptr<bb::Reader> bb_;
 };

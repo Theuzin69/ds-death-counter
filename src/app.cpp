@@ -103,7 +103,7 @@ void App::Tick()
 {
     tracker_.Tick(reader_);
     Settings& s = store_.settings;
-    if (reader_.IsReady() && s.gameExePath.empty()) {
+    if (reader_.IsReady() && s.gameExePath.empty() && reader_.GameId() == "dsr") {   // "Iniciar Dark Souls" button
         std::wstring path = reader_.ProcessPath();
         if (!path.empty()) {
             s.gameExePath = WideToUtf8(path);

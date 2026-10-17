@@ -95,11 +95,25 @@ O que o humano conferiu no jogo de verdade:
 
 Cada release é compilado pelo GitHub Actions a partir do código público, com somas de verificação e atestados de procedência (veja o [README](../README.pt-BR.md#smartscreen)).
 
+## Bloodborne (port de PC)
+
+O suporte ao Bloodborne é para um programa específico, o **Bloodborne PC Windows port** v0.5. Antes de tudo, o Claude descobriu o que é esse programa usando só os arquivos dele: listas de arquivos, metadados PE (importações, seções, assinaturas, manifestos), o conteúdo empacotado do launcher e os scripts Python dele, que são texto puro. Nada dele foi executado. É um carregador, o `bbport.exe`, compilado com MinGW, sem assinatura digital e sem compactação. Ele roda direto o código x86-64 de PS4 do próprio jogo (`eboot.bin`), com a parte gráfica tirada do projeto [shadPS4](https://github.com/shadps4-emu/shadPS4). O launcher é um app PyInstaller + Qt que inicia o port pelo `run.bat`.
+
+O que importa para o contador é que o port coloca a imagem inteira do jogo num bloco só da memória, num endereço fixo na v0.5 (`0x800000000` = endereço 0 do jogo). Assim, o mesmo método do Dark Souls Remastered funciona:
+
+- Os scripts do jogo chamam uma função Lua chamada `AddDeathCount` quando a mensagem de morte aparece. O código dela soma 1 num campo do `GameDataMan` do jogo (deslocamento `0x88` na 1.09). Uma vizinha, `AddTrueDeathCount`, incrementa o `0x84`; nenhum script a chama, então o app só mostra esse valor no *Diagnóstico*.
+- O tempo de jogo (`0x94`, em milissegundos, com limite de 999:59:59 como nos outros jogos da FromSoftware), o ciclo de NG+ (`GetClearCount`, `0x68`) e o nível (`GetLocalPlayerSoulLv`, dados do jogador em `GameDataMan + 0x8`, nível em `+0x90`) vêm de outras funções, cada uma com a sua assinatura de bytes. As quatro assinaturas aparecem exatamente uma vez e apontam para o mesmo `GameDataMan`. Os patches de desempenho opcionais do port não mexem em nenhum desses bytes.
+- O nome do personagem não tem assinatura própria no código. Um arquivo de save guarda o mesmo bloco de dados do jogador, e os atributos batem campo a campo com os deslocamentos usados pelo código, o que coloca o nome `0x18` bytes depois do nível (`+0xA8`). O app só usa o nome para separar personagens e o valida durante a leitura.
+- Não existe um ponteiro de "jogador no mundo": o app considera que você está no jogo quando o tempo de jogo está correndo, porque ele para na tela de título.
+
+O `tests/bb_scan_test` roda o analisador num arquivo `eboot.bin` e compara o resultado com esses valores. O `tests/bb_fake_port` é um processo substituto chamado `bbport.exe`. Ele mapeia a imagem do jogo do mesmo jeito, nunca executa nada dela e segue um roteiro curto (tela de título, um personagem, três mortes, volta à tela de título). O `tests/bb_live_test` se conecta a esse substituto como o app faz. Com ele foram conferidos a conexão, a busca alternativa da imagem em outro endereço, as mortes, o nome, o nível e o NG+, e o estado "no jogo". Ainda não foi testado numa sessão de jogo de verdade.
+
 ## Limitações conhecidas
 
 - Quem matou (inimigo/chefe) não é detectado automaticamente, exceto quedas.
 - Em tela cheia exclusiva o overlay pode não aparecer; em janela/sem bordas ele sempre funciona.
 - A interface está só em português (inglês está nos planos).
+- O Bloodborne (port de PC) é experimental: sem área, lamparina ou detecção de quedas, personagens separados só pelo nome, e ainda não foi confirmado numa sessão de jogo de verdade.
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
 
 ## Ferramentas

@@ -44,7 +44,8 @@ struct DeathRecord {
 };
 
 struct Profile {
-    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character)
+    std::string game = "dsr";   // "dsr" (Dark Souls Remastered) or "bb" (Bloodborne)
+    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character); "bb|..." for Bloodborne
     std::string baseKey;        // "slot|name"
     std::string name;
     int slot = -1;
