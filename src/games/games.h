@@ -1,0 +1,25 @@
+#pragma once
+// The games the counter recognizes. Dark Souls Remastered ("dsr") is the original game of
+// the app; every other game registers a GameInfo here and implements a GameModule.
+
+#include <memory>
+#include <string>
+#include <vector>
+#include "game_module.h"
+
+struct GameInfo {
+    const char*    id;          // stored in Profile::game; prefix of the profile keys ("ds2|slot|name"), except "dsr"
+    const wchar_t* exe;         // process / module name
+    const char*    name;        // full name for the UI
+    const char*    shortName;   // tag shown next to each character
+    std::unique_ptr<GameModule> (*create)();   // nullptr = GameReader's own DSR code
+    std::string (*bonfireName)(int id);        // "" when unknown
+    const std::vector<std::string>& (*allMapNames)();       // suggestions when editing an area
+    const std::vector<std::string>& (*causeSuggestions)();  // suggestions when editing a cause
+};
+
+const std::vector<const GameInfo*>& AllGames();
+// Unknown or empty ids fall back to Dark Souls Remastered (data saved by 1.0.0 has no game id).
+const GameInfo& GameById(const std::string& id);
+// "Dark Souls Remastered e Dark Souls II: ..." for texts that list the supported games.
+std::string SupportedGamesText();

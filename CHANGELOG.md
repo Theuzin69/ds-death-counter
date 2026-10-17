@@ -4,6 +4,17 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### Added / Adicionado
+
+- Dark Souls II: Scholar of the First Sin support (64-bit, checked against the 1.02 executable): the game's own death total per character, plus name, save slot, level, NG+ cycle, play time, current map and last bonfire. The original 32-bit Dark Souls II is detected and reported as not supported.
+  *Suporte ao Dark Souls II: Scholar of the First Sin (64 bits, conferido no executável 1.02): o total de mortes que o próprio jogo guarda por personagem, mais nome, slot do save, nível, ciclo de NG+, tempo de jogo, mapa atual e última fogueira. O Dark Souls II original de 32 bits é detectado e o app avisa que não é suportado.*
+- Each character shows which game it belongs to (*DSR* / *DS2*); characters of different games never mix. Data from 1.0.0 keeps working unchanged (it's Dark Souls Remastered).
+  *Cada personagem mostra de qual jogo ele é (*DSR* / *DS2*); personagens de jogos diferentes nunca se misturam. Os dados da 1.0.0 continuam funcionando sem mudança (são do Dark Souls Remastered).*
+- Diagnostics shows the attached game and, for Dark Souls II, every signature it found (a `*` marks a fallback value).
+  *O Diagnóstico mostra o jogo conectado e, no Dark Souls II, cada assinatura encontrada (um `*` marca um valor de reserva).*
+
 ## [1.0.0] - 2026-10-16
 
 First public release. / Primeira versão pública.

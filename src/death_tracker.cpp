@@ -49,13 +49,14 @@ void DeathTracker::Tick(GameReader& reader)
     // Remember where the player was while alive. HP 0 freezes the history at the moment of death.
     bool alive = s.inWorld && s.hasPos && s.hp != 0;
     if (alive) {
-        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs });
+        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName });
         while (!history_.empty() && now - history_.front().t > 10000) history_.pop_front();
     }
 
     if (!s.charLoaded) return;
 
     std::string baseKey = (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
+    if (s.game != "dsr") baseKey = s.game + "|" + baseKey;   // DSR keys stay as in 1.0.0
     if (baseKey != candidateKey_) {
         candidateKey_ = baseKey;
         candidateSince_ = now;
@@ -108,6 +109,7 @@ void DeathTracker::Activate(const GameSnapshot& s, const std::string& baseKey)
 
     if (!p) {
         Profile np;
+        np.game = s.game;
         np.baseKey = baseKey;
         np.key = baseKey;
         for (int gen = 2; store_.Find(np.key); ++gen) np.key = baseKey + "#" + std::to_string(gen);
@@ -174,7 +176,8 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
         r.playTimeMs = snap_.playTimeMs;
         r.mapArea = haveSample ? last.mapArea : snap_.mapArea;
         r.mapBlock = haveSample ? last.mapBlock : snap_.mapBlock;
-        r.area = AreaLabel(r.mapArea, r.mapBlock);
+        std::string area = haveSample ? last.area : snap_.areaName;
+        r.area = area.empty() ? AreaLabel(r.mapArea, r.mapBlock) : area;
         r.bonfire = haveSample ? last.bonfire : snap_.lastBonfire;
         if (haveSample) {
             r.hasPos = true;

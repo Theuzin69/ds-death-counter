@@ -30,7 +30,7 @@ O app não tem assinatura digital, então na primeira vez o Windows mostra **"O 
 
 A tela *Bem-vindo ao DS Death Counter* pede duas coisas:
 
-1. **Vincular ao jogo.** O app procura o Dark Souls Remastered nas bibliotecas da Steam. Se não achar, clique em *Procurar DarkSoulsRemastered.exe…* e selecione o executável do jogo. O caminho só é usado pelo botão *Iniciar Dark Souls*: o contador reconhece o jogo aberto sozinho de qualquer jeito.
+1. **Vincular ao jogo.** O app procura o Dark Souls Remastered nas bibliotecas da Steam. Se não achar, clique em *Procurar DarkSoulsRemastered.exe…* e selecione o executável do jogo. O caminho só é usado pelo botão *Iniciar Dark Souls*: o contador reconhece o jogo aberto sozinho de qualquer jeito. O Dark Souls II não precisa ser vinculado (veja [Dark Souls II](#dark-souls-ii-scholar-of-the-first-sin)).
 2. **Sempre ligado.** Deixe marcado *Iniciar com o Windows, minimizado na bandeja*. Assim o app abre junto com o Windows, fica na bandeja, e suas mortes são contadas sempre que você abrir o jogo, sem precisar lembrar de abrir o contador.
 
 Clique em *Começar*.
@@ -43,8 +43,9 @@ No topo da janela:
 
 | Status | Significado |
 |---|---|
-| *Aguardando o Dark Souls Remastered abrir…* | O jogo não está aberto. *Iniciar Dark Souls* abre o jogo. |
-| *Dark Souls encontrado, preparando a leitura…* | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
+| *Aguardando o jogo abrir…* | Nenhum jogo compatível está aberto. *Iniciar Dark Souls* abre o jogo definido em *Configurações*. |
+| *(jogo) encontrado, preparando a leitura…* | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
+| *Versão do jogo não suportada (…)* | Uma versão de 32 bits do jogo está aberta, como o Dark Souls II original. Só as versões de 64 bits são lidas. |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Conectado; você está no menu principal. |
 | *Contando as mortes de NOME (slot N)* | Contando. |
 | *O jogo está rodando como administrador…* | O Windows bloqueou o acesso. Veja [Problemas comuns](#9-problemas-comuns). |
@@ -80,6 +81,15 @@ A aba *Personagens* lista todos os personagens que o contador já viu (*Saves / 
 
 *Voltar à contagem do jogo* remove o ajuste. O contador do próprio jogo nunca é alterado.
 
+### Dark Souls II: Scholar of the First Sin
+
+O Dark Souls II é reconhecido do mesmo jeito: abra o jogo (`DarkSoulsII.exe`) e carregue um personagem. Não há nada para vincular ou configurar.
+
+- Cada personagem mostra uma etiqueta do jogo na lista (*DSR* ou *DS2*), e personagens de jogos diferentes nunca se misturam, mesmo com o mesmo nome e slot.
+- A contagem é o contador total de mortes que o próprio jogo guarda para o personagem, o mesmo número que fica no save, então as mortes de antes de você instalar o app entram no total.
+- O nível, o ciclo de NG+ e o tempo de jogo também vêm do jogo. O tempo de jogo é o mesmo do menu de carregar do jogo (ao segundo).
+- Só o **Scholar of the First Sin** (64 bits, a versão vendida na Steam) é suportado. O Dark Souls II original, de 2014, é um programa de 32 bits com outra organização da memória: o app mostra *Versão do jogo não suportada (DS2 de 32 bits)* em vez de chutar.
+
 ### Outras ações
 
 - *Exportar CSV…* salva a lista de mortes do personagem como planilha (separada por `;`, UTF-8, abre no Excel).
@@ -104,7 +114,7 @@ A aba *Mortes* tem uma linha por morte, da mais recente para a mais antiga:
 - **Filtro:** digite na caixa acima da lista para filtrar por área, fogueira ou causa.
 - *Por área* / *Por causa* mostram onde e como você mais morre, com porcentagens.
 
-As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). Se uma morte caiu no mapa errado, corrija com botão direito → *Editar área*.
+As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). No Dark Souls II é igual (*The Lost Bastille / Sinners' Rise / Belfry Luna*, *Harvest Valley / Earthen Peak*…); um mapa que o app ainda não conhece aparece como *Mapa mAA_BB*. Se uma morte caiu no mapa errado, corrija com botão direito → *Editar área*.
 
 ## 6. Configurações
 
@@ -160,6 +170,8 @@ Ele guarda configurações, personagens e o histórico completo. Para fazer back
 **A contagem diminuiu:** você restaurou uma cópia antiga do save. O contador segue o número do próprio jogo.
 
 **Um personagem aparece duas vezes:** o personagem é identificado por slot + nome, então se ele mudou de slot (por exemplo, copiando arquivos de save), é visto como novo. Exclua a duplicata no app, se quiser.
+
+**O Dark Souls II mostra *Versão do jogo não suportada (DS2 de 32 bits)*:** você está jogando o Dark Souls II original, de 2014. Só o Scholar of the First Sin é suportado.
 
 **Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição…).
 

@@ -95,11 +95,38 @@ O que o humano conferiu no jogo de verdade:
 
 Cada release é compilado pelo GitHub Actions a partir do código público, com somas de verificação e atestados de procedência (veja o [README](../README.pt-BR.md#smartscreen)).
 
+## Dark Souls II: Scholar of the First Sin
+
+O suporte ao Dark Souls II veio depois, numa sessão separada do Claude Code, com o mesmo método e as mesmas regras: o executável do jogo só foi lido como arquivo, nada da pasta do jogo foi executado ou extraído, e o app continua chamando só `ReadProcessMemory`.
+
+**Qual executável.** O `DarkSoulsII.exe` disponível para o desenvolvimento é o *Scholar of the First Sin* (SotFS), 64 bits, versão de arquivo 1.0.2.0 (o patch 1.02, módulo de tamanho `0x20B6000`). A Steam vende hoje o SotFS 1.03, que não estava disponível, então o app acha tudo por assinaturas de bytes em vez de endereços fixos. O Dark Souls II original, de 2014, é um programa de 32 bits com outra organização. O app detecta um processo de 32 bits (`IsWow64Process`) e avisa que não é suportado em vez de chutar.
+
+**Estrutura principal.** Quase tudo sai de um global só, o `GameManagerImp`. Duas assinaturas de projetos diferentes ([SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) e [DS2S-META](https://github.com/Nordgaren/DS2S-META)) batem exatamente uma vez cada e levam ao mesmo endereço, `exe+0x160B8D0`. O endereço fixo do DSDeaths (`0x16148F0`) não é usado em lugar nenhum da 1.02, então deve ser o da 1.03. Isso confirma que a 1.03 mudou os globais de lugar, e é por isso que o app usa assinaturas.
+
+**O contador de mortes.** As ferramentas públicas discordavam. O DSDeaths lê `PlayerParam + 0x104` (com `PlayerParam = [[GameManagerImp] + 0xD0] + 0x490`), e o DS2S-META chama `PlayerParam + 0x1A4` de "TotalDeaths". A função que carrega o `PlayerParam` do save explica o porquê. `+0x1A4` é um total único, limitado a 99.999.999. `+0x104` é o primeiro de um vetor de 20 contadores do mesmo tipo. Para tirar a dúvida, o Claude decifrou cópias dos saves de DS2 do próprio desenvolvedor (cópias só de leitura numa pasta temporária; os saves usam uma chave AES conhecida publicamente). Nos três personagens (463, 381 e 17 mortes) os dois campos têm o mesmo número, e o nome, as almas e a soul memory estão onde o código diz. O app conta pelo total (`+0x1A4`) e mostra o outro na aba *Diagnóstico* para comparar no jogo.
+
+**Nome, slot e tempo de jogo.** Foram achados seguindo o código que grava os resumos dos slots do menu de carregar:
+
+- nome em `[[GameManagerImp + 0xA8] + 0xC0] + 0x24`, classe em `+0x64`, ciclo de NG em `+0x68`, guardado como 1 na primeira jornada;
+- o slot ativo em `[[GameManagerImp + 0xA8] + 0xD8] + 0x1368`;
+- dez resumos de 0x1F0 bytes, com o tempo de jogo em segundos em `+0x1CC`.
+
+O DS2 não tem um contador de tempo correndo. A própria função *GetPlayTimeSeconds* do jogo soma o tempo desde que o resumo foi gravado, medido com `QueryPerformanceCounter`, e o app faz igual: esse contador vale para o sistema inteiro, então a marca de tempo do jogo significa o mesmo nos dois processos. Os dados do menu decifrados bateram com esse formato (91h27m e 20h19m).
+
+**Área e fogueira.**
+
+- **Mapa atual.** O gerenciador de mapas (`GameManagerImp + 0x38`) guarda o índice do mapa atual em `+0x170`, que aponta para uma tabela de ids de mapa (`mAA_BB`, em `0xAABB0000`).
+- **Nomes das áreas.** Vêm dos ids de área da lista de fogueiras do DS2S-META, então um mapa sem fogueira aparece como *Mapa mAA_BB*.
+- **Última fogueira.** Fica em `[GameManagerImp + 0x70] + 0x16C`, com os nomes da mesma lista (licença MIT).
+
+**Assinaturas conferidas.** O app usa 13 assinaturas. Cada uma tem que bater exatamente uma vez no executável 1.02, e os deslocamentos que elas contêm são lidos do código em tempo real. Se uma não for encontrada (num patch futuro, por exemplo), o app usa o valor da 1.02 e a aba *Diagnóstico* marca com `*`. O `tests/scan_test` reconhece o `DarkSoulsII.exe` e compara cada valor com os conferidos à mão. Não conferidos estaticamente: a posição do jogador (`[PlayerCtrl + 0x100] + 0x80`, do SoulSplitter, usada só na detecção de quedas) e a regra de "está no mundo" (o `PlayerCtrl` existe, como no DS2S-META). Os dois estão na lista para confirmar no jogo.
+
 ## Limitações conhecidas
 
 - Quem matou (inimigo/chefe) não é detectado automaticamente, exceto quedas.
 - Em tela cheia exclusiva o overlay pode não aparecer; em janela/sem bordas ele sempre funciona.
 - A interface está só em português (inglês está nos planos).
+- Dark Souls II: só o Scholar of the First Sin (64 bits) é suportado; a versão atual da Steam (1.03) é encontrada pelas assinaturas, mas ainda não foi confirmada no jogo.
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
 
 ## Ferramentas

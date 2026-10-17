@@ -17,7 +17,7 @@ build.bat                 :: -> build\DSDeathCounter.exe
 tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe
 ```
 
-- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it.
+- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` (or `DarkSoulsII.exe`) runs the app's signature scanner against a game executable on disk; the game is picked from the file name. Use it to check a game version without launching it.
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 
 Installer: install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run `ISCC.exe installer\DSDeathCounter.iss` (output in `dist\`).
@@ -31,6 +31,7 @@ src/data_store.*     settings and history (JSON, %APPDATA%\DSDeathCounter\data.j
 src/overlay.*        click-through layered window drawn over the game (GDI+)
 src/app*.cpp         main window (Win32 + Direct3D 11 + Dear ImGui), tray, hotkey
 src/ds1_data.*       map names, bonfire names, cause suggestions
+src/games/           the other games: registry (games.*), GameModule interface, one module per game (ds2.*, ds2_data.cpp)
 src/platform.*       start with Windows, Steam lookup, game window helpers, dialogs
 src/version.h        the version number (single source)
 installer/           Inno Setup script

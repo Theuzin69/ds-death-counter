@@ -32,7 +32,7 @@ The app isn't code-signed, so the first time you run it Windows shows **"Windows
 
 A welcome screen (*Bem-vindo ao DS Death Counter*) asks for two things:
 
-1. **Link to the game** (*Vincular ao jogo*). The app looks for Dark Souls Remastered in your Steam libraries. If it doesn't find it, click *Procurar DarkSoulsRemastered.exe…* and select the game's exe. This path is only used by the *Iniciar Dark Souls* (launch game) button: the counter recognizes the running game by itself either way.
+1. **Link to the game** (*Vincular ao jogo*). The app looks for Dark Souls Remastered in your Steam libraries. If it doesn't find it, click *Procurar DarkSoulsRemastered.exe…* and select the game's exe. This path is only used by the *Iniciar Dark Souls* (launch game) button: the counter recognizes the running game by itself either way. Dark Souls II needs no linking (see [Dark Souls II](#dark-souls-ii-scholar-of-the-first-sin)).
 2. **Always on** (*Sempre ligado*). Keep *Iniciar com o Windows, minimizado na bandeja* checked. The app then starts with Windows in the system tray, so your deaths are counted whenever you open the game, without you having to remember to open the counter.
 
 Click *Começar* (start).
@@ -45,8 +45,9 @@ At the top of the window:
 
 | Status | Meaning |
 |---|---|
-| *Aguardando o Dark Souls Remastered abrir…* | The game isn't running. *Iniciar Dark Souls* launches it. |
-| *Dark Souls encontrado, preparando a leitura…* | The game was found and the counter is locating its data (takes a moment). |
+| *Aguardando o jogo abrir…* | No supported game is running. *Iniciar Dark Souls* launches the game set in *Configurações*. |
+| *(game) encontrado, preparando a leitura…* | The game was found and the counter is locating its data (takes a moment). |
+| *Versão do jogo não suportada (…)* | A 32-bit version of the game is running, e.g. the original Dark Souls II. Only 64-bit versions are read. |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Connected; you're on the title screen. |
 | *Contando as mortes de NAME (slot N)* | Counting. |
 | *O jogo está rodando como administrador…* | Windows blocked access. See [Troubleshooting](#9-troubleshooting). |
@@ -82,6 +83,15 @@ The *Personagens* tab lists every character the counter has seen (*Saves / perso
 
 *Voltar à contagem do jogo* removes the adjustment. The game's own counter is never modified.
 
+### Dark Souls II: Scholar of the First Sin
+
+Dark Souls II is recognized the same way: start the game (`DarkSoulsII.exe`) and load a character. There is nothing to link or configure.
+
+- Each character shows a game tag in the list (*DSR* or *DS2*), and characters from different games are never mixed, even with the same name and slot.
+- The count is the game's own total death counter for the character, the same number the save keeps, so deaths from before you installed the app are included.
+- The level, NG+ cycle and play time come from the game too. The play time is the one shown in the game's load menu (to the second).
+- Only **Scholar of the First Sin** (64-bit, the version Steam sells) is supported. The original Dark Souls II from 2014 is a 32-bit program with a different memory layout: the app shows *Versão do jogo não suportada (DS2 de 32 bits)* instead of guessing.
+
 ### Other actions
 
 - *Exportar CSV…* saves the character's death list as a spreadsheet file (`;`-separated, UTF-8, opens in Excel).
@@ -106,7 +116,7 @@ The *Mortes* tab shows one row per death, newest first:
 - **Filter:** type in the box above the list to filter by area, bonfire or cause.
 - *Por área* / *Por causa* show where and how you die the most, with percentages.
 
-Areas are the game's maps, so a few names cover two regions (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). If a death landed on the wrong map, fix it with right-click → *Editar área*.
+Areas are the game's maps, so a few names cover two regions (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). Dark Souls II works the same way (*The Lost Bastille / Sinners' Rise / Belfry Luna*, *Harvest Valley / Earthen Peak*…); a map the app doesn't know yet shows as *Mapa mAA_BB*. If a death landed on the wrong map, fix it with right-click → *Editar área*.
 
 ## 6. Settings
 
@@ -164,6 +174,8 @@ That file holds settings, characters and the full death history. To back it up o
 **The count went down:** you restored an older copy of your save. The counter follows the game's own number.
 
 **A character shows up twice:** a character is identified by slot + name, so a character that moved to another slot (for example, by copying save files around) is seen as new. Delete the duplicate in the app if you want.
+
+**Dark Souls II says *Versão do jogo não suportada (DS2 de 32 bits)*:** you are running the original 2014 Dark Souls II. Only Scholar of the First Sin is supported.
 
 **Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position…).
 

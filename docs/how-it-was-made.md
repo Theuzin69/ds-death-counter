@@ -95,11 +95,38 @@ What the human checked in the real game:
 
 Every release is built by GitHub Actions from the public code, with checksums and build provenance attestations (see the [README](../README.md#smartscreen)).
 
+## Dark Souls II: Scholar of the First Sin
+
+Dark Souls II support was added later, in a separate Claude Code session, with the same method and the same rules: the game's executable was only read as a file, nothing from the game folder was run or extracted, and the app still only calls `ReadProcessMemory`.
+
+**Which executable.** The `DarkSoulsII.exe` available for development is *Scholar of the First Sin* (SotFS), 64-bit, file version 1.0.2.0 (the 1.02 patch, module size `0x20B6000`). Steam sells SotFS 1.03 today, which wasn't available, so the app finds everything through byte signatures instead of fixed addresses. The original 2014 Dark Souls II is a 32-bit program with a different layout. The app detects a 32-bit process (`IsWow64Process`) and says it isn't supported instead of guessing.
+
+**Main structure.** Almost everything hangs off one global, `GameManagerImp`. Two signatures from different projects ([SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) and [DS2S-META](https://github.com/Nordgaren/DS2S-META)) each match exactly once and resolve to the same address, `exe+0x160B8D0`. DSDeaths' fixed address (`0x16148F0`) isn't referenced anywhere in 1.02, so it must be the 1.03 address. That confirms 1.03 moved the globals, which is why the app uses signatures.
+
+**The death counter.** The public tools disagreed. DSDeaths reads `PlayerParam + 0x104` (with `PlayerParam = [[GameManagerImp] + 0xD0] + 0x490`), while DS2S-META names `PlayerParam + 0x1A4` "TotalDeaths". The function that loads `PlayerParam` from the save explains why. `+0x1A4` is a single total, clamped to 99,999,999. `+0x104` is the first of an array of 20 such counters. To settle it, Claude decrypted copies of the developer's own DS2 save files (read-only copies in a temporary folder; the saves use a publicly known AES key). For all three characters (463, 381 and 17 deaths) both fields hold the same number, and the character name, souls and soul memory sit where the code says. The app counts with the total (`+0x1A4`) and shows the other one in the *Diagnóstico* tab so it can be compared in-game.
+
+**Name, slot and play time.** These were found by following the code that writes the load menu's slot summaries:
+
+- name at `[[GameManagerImp + 0xA8] + 0xC0] + 0x24`, class at `+0x64`, NG cycle at `+0x68`, stored as 1 for the first playthrough;
+- the active save slot at `[[GameManagerImp + 0xA8] + 0xD8] + 0x1368`;
+- ten 0x1F0-byte summaries, with the play time in seconds at `+0x1CC`.
+
+DS2 has no running play-time counter. The game's own *GetPlayTimeSeconds* adds the time since the summary was last stored, measured with `QueryPerformanceCounter`, and the app does the same: that counter is system-wide, so the game's time stamp means the same in both processes. The decrypted menu data matched this layout (91h27m and 20h19m).
+
+**Area and bonfire.**
+
+- **Current map.** The map manager (`GameManagerImp + 0x38`) keeps the current map index at `+0x170`, which points into a table of map ids (`mAA_BB`, packed as `0xAABB0000`).
+- **Area names.** They come from the area ids in DS2S-META's bonfire list, so a map without a bonfire shows as *Mapa mAA_BB*.
+- **Last bonfire.** It's at `[GameManagerImp + 0x70] + 0x16C`, with names from the same list (MIT license).
+
+**Signatures checked.** The app uses 13 signatures. Each one must match exactly once in the 1.02 executable, and the offsets they contain are read from the code at runtime. If one isn't found (for example in a future patch), the 1.02 value is used and the *Diagnóstico* tab marks it with `*`. `tests/scan_test` recognizes `DarkSoulsII.exe` and compares every value with the ones checked by hand. Not verified statically: the player position (`[PlayerCtrl + 0x100] + 0x80`, from SoulSplitter, only used for fall detection) and the "in the world" rule (`PlayerCtrl` exists, as in DS2S-META). Both are on the list to confirm in the game.
+
 ## Known limitations
 
 - The killer (enemy/boss) isn't detected automatically, except falls.
 - Exclusive fullscreen may hide the overlay; windowed/borderless always works.
 - The interface is in Portuguese only (English is planned).
+- Dark Souls II: only Scholar of the First Sin (64-bit) is supported; the current Steam build (1.03) is found by signatures but hasn't been confirmed in-game yet.
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
 
 ## Tools

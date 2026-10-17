@@ -44,8 +44,9 @@ struct DeathRecord {
 };
 
 struct Profile {
-    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character)
-    std::string baseKey;        // "slot|name"
+    std::string game = "dsr";   // game id (games/games.h); data saved by 1.0.0 is Dark Souls Remastered
+    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character); other games: "ds2|slot|name"
+    std::string baseKey;        // "slot|name" (other games: "ds2|slot|name")
     std::string name;
     int slot = -1;
     int gameDeaths = 0;         // last value read from the game

@@ -9,8 +9,6 @@
 
 namespace {
 
-const wchar_t* kGameExe = L"DarkSoulsRemastered.exe";
-
 // Module sizes of the 1.01.x builds (from DSR-Gadget). Anything else is treated
 // as 1.03 / 1.03.1, the build Steam distributes today.
 bool IsOldLayout(uint32_t moduleSize)
@@ -87,14 +85,15 @@ int32_t ReadI32(const std::vector<uint8_t>& buf, size_t at)
     return v;
 }
 
-DWORD FindGamePid()
+DWORD FindGamePid(const GameInfo** game)
 {
     DWORD pid = 0;
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE) return 0;
     PROCESSENTRY32W pe{ sizeof(pe) };
-    for (BOOL ok = Process32FirstW(snap, &pe); ok; ok = Process32NextW(snap, &pe)) {
-        if (_wcsicmp(pe.szExeFile, kGameExe) == 0) { pid = pe.th32ProcessID; break; }
+    for (BOOL ok = Process32FirstW(snap, &pe); ok && !pid; ok = Process32NextW(snap, &pe)) {
+        for (const GameInfo* g : AllGames())
+            if (_wcsicmp(pe.szExeFile, g->exe) == 0) { pid = pe.th32ProcessID; *game = g; break; }
     }
     CloseHandle(snap);
     return pid;
@@ -103,6 +102,19 @@ DWORD FindGamePid()
 bool ValidPtr(uintptr_t p) { return p >= 0x10000 && p < 0x7FFFFFFFFFFFull; }
 
 } // namespace
+
+std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern)
+{
+    return FindAll(img, pattern);
+}
+
+void GameReader::SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId)
+{
+    base_ = base;
+    size_ = size;
+    game_ = &GameById(gameId);
+    module_ = game_->create ? game_->create() : nullptr;
+}
 
 std::wstring GameReader::ProcessPath() const
 {
@@ -131,6 +143,11 @@ std::string GameReader::VersionName() const
             fileVer = b;
         }
     }
+    if (module_) {
+        std::string label = module_->VersionLabel(size_);
+        if (label.empty()) label = "?";
+        return label + (fileVer.empty() ? "" : " (exe " + fileVer + ")");
+    }
     const char* label = "1.03.x";
     switch (size_) {
         case 0x4869400: label = "1.01"; break;
@@ -156,22 +173,36 @@ void GameReader::Detach()
     gameMan_ = gameDataMan_ = worldChrMan_ = 0;
     scanAttempts_ = 0;
     state_ = State::NotRunning;
+    game_ = &GameById("dsr");
+    module_.reset();
+    unsupported_.clear();
 }
 
-bool GameReader::OpenGame(DWORD pid)
+bool GameReader::OpenGame(DWORD pid, const GameInfo& game)
 {
+    game_ = &game;
     proc_ = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, pid);
     if (!proc_) {
         state_ = (GetLastError() == ERROR_ACCESS_DENIED) ? State::AccessDenied : State::NotRunning;
         return false;
     }
     pid_ = pid;
+    module_ = game.create ? game.create() : nullptr;
+
+    // Every supported game is a 64-bit build. A 32-bit process with the same name (e.g. the
+    // original Dark Souls II) has a different memory layout: say so instead of guessing.
+    BOOL wow64 = FALSE;
+    if (IsWow64Process(proc_, &wow64) && wow64) {
+        unsupported_ = std::string(game.shortName) + " de 32 bits";
+        state_ = State::Unsupported;
+        return false;
+    }
 
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
     if (snap == INVALID_HANDLE_VALUE) { Detach(); return false; }   // game still starting, retry later
     MODULEENTRY32W me{ sizeof(me) };
     for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {
-        if (_wcsicmp(me.szModule, kGameExe) == 0) {
+        if (_wcsicmp(me.szModule, game.exe) == 0) {
             base_ = (uintptr_t)me.modBaseAddr;
             size_ = me.modBaseSize;
             break;
@@ -203,6 +234,7 @@ bool GameReader::ScanPatterns()
 bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 {
     scanLog_.clear();
+    if (module_) return module_->Analyze(img, base_, size_, scanLog_);
     char line[256];
     // Resolves "mov reg, [rip+rel32]" style references to the address of a global.
     auto resolve = [&](const char* name, std::initializer_list<const char*> patterns, int relOff, int instrLen) -> uintptr_t {
@@ -262,14 +294,15 @@ void GameReader::Update()
 {
     ULONGLONG now = GetTickCount64();
     if (proc_ && !ProcessAlive()) Detach();
-    if (state_ == State::Ready) return;
+    if (state_ == State::Ready || state_ == State::Unsupported) return;   // Unsupported: wait until it closes
     if (now < nextTry_) return;
     nextTry_ = now + 2000;
 
     if (!proc_) {
-        DWORD pid = FindGamePid();
+        const GameInfo* game = nullptr;
+        DWORD pid = FindGamePid(&game);
         if (!pid) { state_ = State::NotRunning; return; }
-        if (!OpenGame(pid)) return;
+        if (!OpenGame(pid, *game)) return;
     }
     state_ = State::Scanning;
     if (ScanPatterns()) {
@@ -292,6 +325,8 @@ bool GameReader::Read(GameSnapshot& s)
 {
     s = GameSnapshot{};
     if (state_ != State::Ready) return false;
+    s.game = game_->id;
+    if (module_) return module_->Read(proc_, s);
 
     if (uintptr_t gdm = ReadPtr(gameDataMan_)) {
         s.gameDataOk = true;
@@ -360,13 +395,16 @@ std::string GameReader::DiagnosticsText() const
     const char* st = "jogo não encontrado";
     switch (state_) {
         case State::AccessDenied: st = "acesso negado (o jogo está rodando como administrador?)"; break;
+        case State::Unsupported:  st = "versão não suportada"; break;
         case State::Scanning:     st = "analisando o executável..."; break;
         case State::Ready:        st = "conectado"; break;
         default: break;
     }
-    snprintf(b, sizeof(b), "Estado: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
-             st, pid_, (unsigned long long)base_, size_, VersionName().c_str(), scanAttempts_);
+    snprintf(b, sizeof(b), "Jogo: %s\nEstado: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
+             game_->name, st, pid_, (unsigned long long)base_, size_, VersionName().c_str(), scanAttempts_);
     t += b;
+    if (!unsupported_.empty()) t += "Não suportado: " + unsupported_ + "\n";
     t += scanLog_;
+    if (module_ && state_ == State::Ready) t += module_->LiveDiagnostics();
     return t;
 }

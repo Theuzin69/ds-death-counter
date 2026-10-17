@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>.<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Dark Souls II: Scholar of the First Sin</b>.<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -93,7 +93,7 @@ Some antivirus programs may also flag it heuristically, because it reads another
 ## Quick start
 
 1. Install (or unzip) and open **DS Death Counter**. Expect the [SmartScreen warning](#smartscreen) above.
-2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked.
+2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked. Dark Souls II needs no setup: it is recognized whenever `DarkSoulsII.exe` is running.
 3. Set the game to **Windowed** (or borderless) mode. The overlay can't always draw over exclusive fullscreen. There's a button in *Configurações › Janela do jogo* that makes the game window borderless, so it looks just like fullscreen.
 4. Load a character and play. The count shows up in the corner of the game, and every death goes to the list.
 
@@ -117,6 +117,7 @@ No third-party tool can honestly promise zero risk, but read-only memory access 
 |---|---|
 | Windows | 10 or 11, 64-bit |
 | Dark Souls Remastered | Supports the original 1.01 release and the 1.03.x builds (current Steam version). The game version is detected automatically. |
+| Dark Souls II | **Scholar of the First Sin** (64-bit), new in the next version. Checked against the 1.02 executable; the current Steam build (1.03) is found by the same byte signatures but has not been confirmed in-game yet. The original 32-bit Dark Souls II (2014) is **not** supported: the app says so instead of counting. |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
 | Interface language | Brazilian Portuguese (English planned) |
 
@@ -143,7 +144,7 @@ This produces `build\DSDeathCounter.exe`, statically linked with no extra DLLs. 
 
 - Idea, requirements and in-game testing: **MatheusMuzzi**
 - Code, reverse-engineering and docs: **Claude** (Anthropic), via Claude Code. See [How it was made](docs/how-it-was-made.md).
-- Memory offsets and signatures build on public community research: [DSDeaths](https://github.com/quidrex/DSDeaths), [SoulSplitter](https://github.com/FrankvdStam/SoulSplitter), [DSR-Gadget](https://github.com/JKAnderson/DSR-Gadget) and [DS-Gadget](https://github.com/JKAnderson/DS-Gadget).
+- Memory offsets and signatures build on public community research: [DSDeaths](https://github.com/quidrex/DSDeaths), [SoulSplitter](https://github.com/FrankvdStam/SoulSplitter), [DSR-Gadget](https://github.com/JKAnderson/DSR-Gadget), [DS-Gadget](https://github.com/JKAnderson/DS-Gadget) and [DS2S-META](https://github.com/Nordgaren/DS2S-META).
 - Libraries: [Dear ImGui](https://github.com/ocornut/imgui) and [nlohmann/json](https://github.com/nlohmann/json), both MIT. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License

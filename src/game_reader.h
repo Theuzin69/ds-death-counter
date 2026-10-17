@@ -1,5 +1,6 @@
 #pragma once
-// Read-only access to DarkSoulsRemastered.exe memory.
+// Read-only access to the game's memory (DarkSoulsRemastered.exe here; the other games
+// in src/games/ plug in through GameModule).
 //
 // Only ReadProcessMemory is used: nothing is written to the game, nothing is
 // injected and no hooks are installed. The game cannot tell the difference
@@ -7,12 +8,15 @@
 
 #include <windows.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
+#include "games/games.h"
 
 struct Vec3 { float x = 0, y = 0, z = 0; };
 
 struct GameSnapshot {
+    std::string game      = "dsr";  // id of the game this came from (games/games.h)
     bool     gameDataOk   = false;  // GameDataMan resolved (game finished booting)
     bool     charLoaded   = false;  // a character is loaded (name valid, play time > 0)
     bool     inWorld      = false;  // player entity exists (not main menu / loading screen)
@@ -29,11 +33,12 @@ struct GameSnapshot {
     int      hp           = -1;
     bool     hasPos       = false;
     Vec3     pos;
+    std::string areaName;           // UTF-8 area label from the game module ("" = DSR: from mapArea/mapBlock)
 };
 
 class GameReader {
 public:
-    enum class State { NotRunning, AccessDenied, Scanning, Ready };
+    enum class State { NotRunning, AccessDenied, Unsupported, Scanning, Ready };
 
     ~GameReader() { Detach(); }
 
@@ -48,18 +53,21 @@ public:
     std::wstring ProcessPath() const;
     std::string VersionName() const;
     std::string DiagnosticsText() const;
+    const GameInfo& game() const { return *game_; }
+    const std::string& UnsupportedReason() const { return unsupported_; }
 
     // Resolves globals and offsets from a copy of the exe image (base/size must be set).
     // Public so it can be exercised against the exe file on disk.
     bool AnalyzeImage(const std::vector<uint8_t>& img);
-    void SetModuleForAnalysis(uintptr_t base, uint32_t size) { base_ = base; size_ = size; }
+    void SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId = "dsr");
+    GameModule* module() const { return module_.get(); }
     uintptr_t GameManAddr() const { return gameMan_; }
     uintptr_t GameDataManAddr() const { return gameDataMan_; }
     uintptr_t WorldChrManAddr() const { return worldChrMan_; }
     const std::string& ScanLog() const { return scanLog_; }
 
 private:
-    bool OpenGame(DWORD pid);
+    bool OpenGame(DWORD pid, const GameInfo& game);
     bool ScanPatterns();
     bool ProcessAlive() const;
 
@@ -70,6 +78,9 @@ private:
     }
 
     State     state_ = State::NotRunning;
+    const GameInfo* game_ = &GameById("dsr");
+    std::unique_ptr<GameModule> module_;   // games other than DSR
+    std::string unsupported_;
     HANDLE    proc_ = nullptr;
     DWORD     pid_ = 0;
     uintptr_t base_ = 0;
