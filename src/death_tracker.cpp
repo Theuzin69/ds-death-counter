@@ -49,13 +49,15 @@ void DeathTracker::Tick(GameReader& reader)
     // Remember where the player was while alive. HP 0 freezes the history at the moment of death.
     bool alive = s.inWorld && s.hasPos && s.hp != 0;
     if (alive) {
-        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs });
+        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName });
         while (!history_.empty() && now - history_.front().t > 10000) history_.pop_front();
     }
 
     if (!s.charLoaded) return;
 
-    std::string baseKey = (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
+    // DSR keys stay "slot|name" so existing data keeps working; other games get their id in front.
+    std::string baseKey = (s.game == "dsr" ? std::string() : s.game + "|") +
+                          (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
     if (baseKey != candidateKey_) {
         candidateKey_ = baseKey;
         candidateSince_ = now;
@@ -108,6 +110,7 @@ void DeathTracker::Activate(const GameSnapshot& s, const std::string& baseKey)
 
     if (!p) {
         Profile np;
+        np.game = s.game;
         np.baseKey = baseKey;
         np.key = baseKey;
         for (int gen = 2; store_.Find(np.key); ++gen) np.key = baseKey + "#" + std::to_string(gen);
@@ -158,8 +161,9 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
     if (haveSample) last = history_.back();
 
     // Fall heuristic: lost more than 10 m of height in the 4 seconds before dying.
+    // Not for Sekiro: big drops are harmless there (no fall damage), only pits hurt.
     bool fell = false;
-    if (haveSample) {
+    if (haveSample && p.game != "sekiro") {
         float peak = last.pos.y;
         for (const auto& h : history_)
             if (last.t - h.t <= 4000) peak = std::max(peak, h.pos.y);
@@ -174,7 +178,8 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
         r.playTimeMs = snap_.playTimeMs;
         r.mapArea = haveSample ? last.mapArea : snap_.mapArea;
         r.mapBlock = haveSample ? last.mapBlock : snap_.mapBlock;
-        r.area = AreaLabel(r.mapArea, r.mapBlock);
+        const std::string& moduleArea = haveSample ? last.areaName : snap_.areaName;
+        r.area = !moduleArea.empty() ? moduleArea : AreaLabel(r.mapArea, r.mapBlock);
         r.bonfire = haveSample ? last.bonfire : snap_.lastBonfire;
         if (haveSample) {
             r.hasPos = true;

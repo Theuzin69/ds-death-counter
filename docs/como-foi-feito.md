@@ -95,12 +95,40 @@ O que o humano conferiu no jogo de verdade:
 
 Cada release é compilado pelo GitHub Actions a partir do código público, com somas de verificação e atestados de procedência (veja o [README](../README.pt-BR.md#smartscreen)).
 
+<a id="sekiro"></a>
+
+## Adicionando o Sekiro: Shadows Die Twice
+
+O suporte ao Sekiro veio depois, do mesmo jeito, numa sessão separada do Claude Code (outras sessões adicionavam outros jogos em paralelo). O executável disponível era o `sekiro.exe` **1.06**, a versão atual da Steam. Essa cópia já estava sem a camada de DRM da Steam, então o código dela é exatamente o que a versão 1.06 da Steam executa depois de carregada. Ela só foi lida como arquivo para análise, nunca executada.
+
+**O contador de mortes.** O DSDeaths lê o contador do Sekiro em `GameDataMan + 0x90`. Em vez de confiar nisso, o Claude seguiu a função de script do próprio jogo, `AddDeathCount`: a tabela de funções de script do jogo liga esse nome a uma função pequena que termina num `+1` com limite em `GameDataMan + 0x90`. O jogo usa o mesmo `+1` para dois contadores que sobraram do multiplayer (`+0x80` e `+0x84`), então só o formato do código não diferencia um do outro. Em tempo real, o app segue o nome `AddDeathCount` pela tabela até o contador certo.
+
+**Ressurreição ou morte de verdade?** O único código que chama `AddDeathCount` é o tratador de morte do jogador. Ele é registrado no evento de morte do jogador (entidade 10000), e é também quem faz as verificações da penalidade de morte e mostra o texto grande de morte na tela. Ressuscitar não passa por ele. Então o contador do jogo, e o número que o app mostra, conta **só as mortes de verdade**: morrer para valer, não cair e ressuscitar. Essa conclusão vem da leitura do código e ainda precisa ser confirmada no jogo. Daria para separar as duas coisas (HP chegar a 0 sem o contador subir é uma ressurreição), mas o app não conta ressurreições.
+
+**Todo o resto** também foi lido do código do jogo. Cada estrutura é encontrada em tempo real por uma assinatura, e os deslocamentos são tirados das próprias instruções:
+
+| Dado | Onde (1.06) | Como foi confirmado |
+|---|---|---|
+| Tempo de jogo | `GameDataMan + 0x9C` | o código do relógio soma o tempo de cada quadro ali e limita em 999:59:59 |
+| Ciclo de NG+ | `GameDataMan + 0x70` | aumenta de um em um, com limite em 9999 |
+| Slot do save | `GameMan + 0xAE4` | a rotina de salvar usa esse valor quando nenhum slot é informado, e recusa valores acima de 9 (10 slots) |
+| No mundo, HP, posição | `WorldChrMan + 0x88` (jogador) → módulos `+0x1FF8` → módulo de dados `+0x18` (HP `+0x130`, máximo `+0x134`) e módulo de física `+0x68` (posição `+0x70`) | o `SetHp` do jogo (que limita pelo HP máximo logo depois), o código que monta os módulos (módulo 3 = dados, 13 = física) e a função que devolve a posição |
+| Mapa atual | `FieldArea + 0x28` (índice do bloco) na lista de blocos do mundo em `[FieldArea + 0x18] + 0x20` (itens de 0xB0 bytes, id do mapa em `+0x8`) | o código por trás da função de script `GetCurrentMapAreaNo` |
+| Último ídolo (ponto de retorno) | `GameMan + 0xB4C`, substituído por `+0xB50` enquanto este for ≥ 0 | gravado pela função de script `SetReturnPointEntityId` e ao descansar; lido pelo código de renascimento |
+
+Os nomes dos mapas vieram de cruzar os ids dos mapas com as flags de evento dos Ídolos do Escultor, que usam a mesma numeração (`1AAB…` pertence ao mapa `mAA_0B`; por exemplo, os ídolos do Ashina Castle, `1111000x`, ficam no `m11_01`). O ponto de retorno é um id de entidade, que diz o mapa do ídolo mas não qual ídolo é. Os nomes dos ídolos ficam nos arquivos de dados do jogo, que não foram extraídos, então o app mostra a área do ídolo.
+
+As assinaturas foram escritas do zero para este app; as ferramentas da comunidade (algumas são GPL) serviram só como fonte de fatos. Cada assinatura aparece exatamente uma vez na 1.06. O `GameDataMan` é confirmado por três trechos de código independentes, e o `GameMan`, o `WorldChrMan` e o `FieldArea` por dois cada. Se dois deles discordarem, aquela função é desligada e a aba *Diagnóstico* mostra *DIVERGENTE*, em vez de ler o lugar errado. O `tests/scan_test` reconhece o `sekiro.exe` e confere cada assinatura com os endereços achados à mão na 1.06.
+
+O Sekiro não tem nome nem nível de personagem, então um personagem do Sekiro é identificado pelo slot do save, e as chaves dele no `data.json` começam com `sekiro|`, para nunca se misturarem com personagens do Dark Souls. O Sekiro não tem dano de queda fora dos abismos, então a heurística de queda fica desligada para ele.
+
 ## Limitações conhecidas
 
 - Quem matou (inimigo/chefe) não é detectado automaticamente, exceto quedas.
 - Em tela cheia exclusiva o overlay pode não aparecer; em janela/sem bordas ele sempre funciona.
 - A interface está só em português (inglês está nos planos).
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
+- O Sekiro foi conferido só no executável 1.06; versões anteriores não foram testadas. O comportamento dentro do jogo (ressurreições não contam, troca de slot, área e ídolo) ainda precisa ser confirmado jogando. Os nomes dos ídolos não são conhecidos, só a área do ídolo.
 
 ## Ferramentas
 

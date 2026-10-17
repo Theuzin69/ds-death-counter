@@ -9,7 +9,16 @@
 
 namespace {
 
-const wchar_t* kGameExe = L"DarkSoulsRemastered.exe";
+struct SupportedGame {
+    const wchar_t* exe;
+    const char* id;
+    const char* name;
+    const char* shortName;
+};
+const SupportedGame kGames[] = {
+    { L"DarkSoulsRemastered.exe", "dsr", "Dark Souls Remastered", "DSR" },
+    { L"sekiro.exe", "sekiro", "Sekiro", "Sekiro" },
+};
 
 // Module sizes of the 1.01.x builds (from DSR-Gadget). Anything else is treated
 // as 1.03 / 1.03.1, the build Steam distributes today.
@@ -87,14 +96,18 @@ int32_t ReadI32(const std::vector<uint8_t>& buf, size_t at)
     return v;
 }
 
-DWORD FindGamePid()
+// First running process of a supported game; `exe` receives its exe name.
+DWORD FindGamePid(std::wstring& exe)
 {
     DWORD pid = 0;
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE) return 0;
     PROCESSENTRY32W pe{ sizeof(pe) };
-    for (BOOL ok = Process32FirstW(snap, &pe); ok; ok = Process32NextW(snap, &pe)) {
-        if (_wcsicmp(pe.szExeFile, kGameExe) == 0) { pid = pe.th32ProcessID; break; }
+    for (BOOL ok = Process32FirstW(snap, &pe); ok && !pid; ok = Process32NextW(snap, &pe)) {
+        if (GameIdFromExeName(pe.szExeFile)) {
+            pid = pe.th32ProcessID;
+            exe = pe.szExeFile;
+        }
     }
     CloseHandle(snap);
     return pid;
@@ -103,6 +116,46 @@ DWORD FindGamePid()
 bool ValidPtr(uintptr_t p) { return p >= 0x10000 && p < 0x7FFFFFFFFFFFull; }
 
 } // namespace
+
+const char* GameIdFromExeName(const wchar_t* exeName)
+{
+    for (const auto& g : kGames)
+        if (_wcsicmp(exeName, g.exe) == 0) return g.id;
+    return nullptr;
+}
+
+const char* GameDisplayName(const std::string& gameId)
+{
+    for (const auto& g : kGames)
+        if (gameId == g.id) return g.name;
+    return gameId.c_str();
+}
+
+const char* GameShortName(const std::string& gameId)
+{
+    for (const auto& g : kGames)
+        if (gameId == g.id) return g.shortName;
+    return gameId.c_str();
+}
+
+std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern)
+{
+    return FindAll(img, pattern);
+}
+
+bool PatternAt(const std::vector<uint8_t>& img, size_t at, const char* pattern)
+{
+    Pattern p = ParsePattern(pattern);
+    if (at > img.size() || img.size() - at < p.bytes.size()) return false;
+    for (size_t k = 0; k < p.bytes.size(); ++k)
+        if (p.fixed[k] && img[at + k] != p.bytes[k]) return false;
+    return true;
+}
+
+int32_t ImageI32(const std::vector<uint8_t>& img, size_t at)
+{
+    return at + 4 <= img.size() ? ReadI32(img, at) : 0;
+}
 
 std::wstring GameReader::ProcessPath() const
 {
@@ -131,6 +184,8 @@ std::string GameReader::VersionName() const
             fileVer = b;
         }
     }
+    std::string exeVer = fileVer.empty() ? "" : " (exe " + fileVer + ")";
+    if (game_ == "sekiro") return "Sekiro " + SekiroReader::VersionLabel(size_) + exeVer;
     const char* label = "1.03.x";
     switch (size_) {
         case 0x4869400: label = "1.01"; break;
@@ -138,7 +193,7 @@ std::string GameReader::VersionName() const
         case 0x37CB400: label = "1.01.2"; break;
         case 0x3817800: label = "1.03"; break;
     }
-    return std::string(label) + (fileVer.empty() ? "" : " (exe " + fileVer + ")");
+    return std::string(label) + exeVer;
 }
 
 bool GameReader::ProcessAlive() const
@@ -154,6 +209,9 @@ void GameReader::Detach()
     base_ = 0;
     size_ = 0;
     gameMan_ = gameDataMan_ = worldChrMan_ = 0;
+    sekiro_.Reset();
+    game_ = "dsr";
+    exeName_.clear();
     scanAttempts_ = 0;
     state_ = State::NotRunning;
 }
@@ -171,7 +229,7 @@ bool GameReader::OpenGame(DWORD pid)
     if (snap == INVALID_HANDLE_VALUE) { Detach(); return false; }   // game still starting, retry later
     MODULEENTRY32W me{ sizeof(me) };
     for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {
-        if (_wcsicmp(me.szModule, kGameExe) == 0) {
+        if (_wcsicmp(me.szModule, exeName_.c_str()) == 0) {
             base_ = (uintptr_t)me.modBaseAddr;
             size_ = me.modBaseSize;
             break;
@@ -203,6 +261,7 @@ bool GameReader::ScanPatterns()
 bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 {
     scanLog_.clear();
+    if (game_ == "sekiro") return sekiro_.Analyze(img, base_, scanLog_);
     char line[256];
     // Resolves "mov reg, [rip+rel32]" style references to the address of a global.
     auto resolve = [&](const char* name, std::initializer_list<const char*> patterns, int relOff, int instrLen) -> uintptr_t {
@@ -267,8 +326,11 @@ void GameReader::Update()
     nextTry_ = now + 2000;
 
     if (!proc_) {
-        DWORD pid = FindGamePid();
+        std::wstring exe;
+        DWORD pid = FindGamePid(exe);
         if (!pid) { state_ = State::NotRunning; return; }
+        exeName_ = exe;
+        game_ = GameIdFromExeName(exe.c_str());
         if (!OpenGame(pid)) return;
     }
     state_ = State::Scanning;
@@ -292,6 +354,8 @@ bool GameReader::Read(GameSnapshot& s)
 {
     s = GameSnapshot{};
     if (state_ != State::Ready) return false;
+    s.game = game_;
+    if (game_ == "sekiro") return sekiro_.Read(proc_, s);
 
     if (uintptr_t gdm = ReadPtr(gameDataMan_)) {
         s.gameDataOk = true;

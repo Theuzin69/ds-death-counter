@@ -238,7 +238,7 @@ void App::UpdateTrayTip()
     if (Profile* p = tracker_.active())
         tip += L"\n" + Utf8ToWide(p->name) + L": " + std::to_wstring(p->Shown()) + L" mortes";
     else if (reader_.state() == GameReader::State::NotRunning)
-        tip += L"\nAguardando o Dark Souls";
+        tip += L"\nAguardando o jogo";
     if (tip == trayTip_) return;
     trayTip_ = tip;
     wcsncpy_s(nid_.szTip, tip.c_str(), _TRUNCATE);

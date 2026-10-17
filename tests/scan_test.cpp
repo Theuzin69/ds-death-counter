@@ -1,6 +1,7 @@
-// Runs the counter's pattern scanner against a DarkSoulsRemastered.exe on disk.
+// Runs the counter's pattern scanner against a game exe on disk (DarkSoulsRemastered.exe or sekiro.exe).
 // Useful to check a new game version without launching it:
 //   build\tests\scan_test.exe "C:\...\DarkSoulsRemastered.exe"
+// The game is chosen by the file name, like the counter does with the running process.
 #include "game_reader.h"
 #include <cstdio>
 #include <cstring>
@@ -11,9 +12,18 @@
 int wmain(int argc, wchar_t** argv)
 {
     if (argc < 2) {
-        fwprintf(stderr, L"uso: scan_test <DarkSoulsRemastered.exe>\n");
+        fwprintf(stderr, L"uso: scan_test <DarkSoulsRemastered.exe | sekiro.exe>\n");
         return 2;
     }
+    const wchar_t* fileName = argv[1];
+    for (const wchar_t* c = argv[1]; *c; ++c)
+        if (*c == L'\\' || *c == L'/') fileName = c + 1;
+    const char* game = GameIdFromExeName(fileName);
+    if (!game) {
+        fwprintf(stderr, L"%ls nao e um jogo suportado\n", fileName);
+        return 2;
+    }
+
     std::ifstream f(argv[1], std::ios::binary);
     std::vector<uint8_t> file((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
     if (file.size() < 0x400) { fwprintf(stderr, L"arquivo invalido\n"); return 2; }
@@ -35,17 +45,30 @@ int wmain(int argc, wchar_t** argv)
     }
 
     GameReader reader;
-    reader.SetModuleForAnalysis((uintptr_t)imageBase, sizeOfImage);
+    reader.SetModuleForAnalysis((uintptr_t)imageBase, sizeOfImage, game);
     bool ok = reader.AnalyzeImage(img);
-    printf("SizeOfImage: %X\n%s", sizeOfImage, reader.ScanLog().c_str());
-    printf("Resultado: %s\n", ok ? "OK" : "FALHOU");
+    printf("Jogo: %s | SizeOfImage: %X\n%s", GameDisplayName(game), sizeOfImage, reader.ScanLog().c_str());
 
-    if (sizeOfImage == 0x4869400) {   // 1.01: compare with the addresses found by hand
+    if (strcmp(game, "sekiro") == 0) {
+        // Every Sekiro signature must resolve (exactly one match, independent ones agreeing).
+        const std::string& log = reader.ScanLog();
+        bool all = log.find("NÃO ENCONTRADO") == std::string::npos && log.find("DIVERGENTE") == std::string::npos;
+        printf("Todas as assinaturas: %s\n", all ? "OK" : "FALTANDO");
+        ok = ok && all;
+        if (sizeOfImage == 0x42D2000) {   // 1.05/1.06: compare with the addresses found by hand in 1.06
+            const SekiroReader& s = reader.Sekiro();
+            bool match = s.GameDataManAddr() - imageBase == 0x3D5AAC0 && s.GameManAddr() - imageBase == 0x3D5C0D0 &&
+                         s.WorldChrManAddr() - imageBase == 0x3D7A1E0 && s.FieldAreaAddr() - imageBase == 0x3D5C0A0;
+            printf("Conferencia 1.06: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    } else if (sizeOfImage == 0x4869400) {   // DSR 1.01: compare with the addresses found by hand
         bool match = reader.GameManAddr() - imageBase == 0x1CEA4B8 &&
                      reader.GameDataManAddr() - imageBase == 0x1D00F50 &&
                      reader.WorldChrManAddr() - imageBase == 0x1CEE830;
         printf("Conferencia 1.01: %s\n", match ? "OK" : "DIFERENTE");
         ok = ok && match;
     }
+    printf("Resultado: %s\n", ok ? "OK" : "FALHOU");
     return ok ? 0 : 1;
 }

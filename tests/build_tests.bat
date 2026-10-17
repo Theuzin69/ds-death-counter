@@ -11,7 +11,7 @@ if not exist build\tests\obj mkdir build\tests\obj
 
 set FLAGS=/nologo /std:c++20 /O2 /MT /EHsc /utf-8 /W3 /DUNICODE /D_UNICODE /DNOMINMAX /I src /Fobuild\tests\obj\
 
-cl %FLAGS% tests\scan_test.cpp src\game_reader.cpp /Fe:build\tests\scan_test.exe /link /SUBSYSTEM:CONSOLE || exit /b 1
+cl %FLAGS% tests\scan_test.cpp src\game_reader.cpp src\games\*.cpp /Fe:build\tests\scan_test.exe /link /SUBSYSTEM:CONSOLE || exit /b 1
 cl %FLAGS% tests\overlay_test.cpp src\overlay.cpp src\util.cpp /Fe:build\tests\overlay_test.exe ^
    /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib shell32.lib ole32.lib || exit /b 1
 echo Testes compilados em build\tests\

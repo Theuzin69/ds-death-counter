@@ -4,6 +4,17 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### Added / Adicionado
+
+- **Sekiro: Shadows Die Twice** support (1.06, the current Steam version; older versions untested). The counter recognizes `sekiro.exe` by itself and reads the game's own death counter, which only goes up on real deaths: resurrecting doesn't count. Each save slot is a character (Sekiro has no names); the list shows the area and the area of the last Sculptor's Idol, with Sekiro's bosses as cause suggestions. See the [user guide](docs/user-guide.md#sekiro).
+  *Suporte ao **Sekiro: Shadows Die Twice** (1.06, a versão atual da Steam; versões anteriores não testadas). O contador reconhece o `sekiro.exe` sozinho e lê o contador de mortes do próprio jogo, que só sobe nas mortes de verdade: ressuscitar não conta. Cada slot de save é um personagem (o Sekiro não tem nomes); a lista mostra a área e a área do último Ídolo do Escultor, com os chefes do Sekiro nas sugestões de causa. Veja o [guia do usuário](docs/guia-do-usuario.md#sekiro).*
+- The character list shows which game each character belongs to (*DSR* / *Sekiro*). Existing data is kept as Dark Souls Remastered.
+  *A lista de personagens mostra de qual jogo é cada personagem (DSR / Sekiro). Os dados existentes continuam como Dark Souls Remastered.*
+- `tests/scan_test` also accepts `sekiro.exe` and checks every Sekiro signature.
+  *O `tests/scan_test` também aceita o `sekiro.exe` e confere todas as assinaturas do Sekiro.*
+
 ## [1.0.0] - 2026-10-16
 
 First public release. / Primeira versão pública.

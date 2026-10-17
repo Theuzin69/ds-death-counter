@@ -1,6 +1,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "app.h"
 #include "ds1_data.h"
+#include "games/sekiro_data.h"
 #include "platform.h"
 #include "util.h"
 #include "version.h"
@@ -66,6 +67,23 @@ std::string SlotText(int slot)
     return slot >= 0 ? std::to_string(slot + 1) : std::string("?");
 }
 
+// Name of the "last bonfire" value of a death: DSR bonfire, or the Sekiro idol's area.
+std::string CheckpointName(const Profile& p, int id)
+{
+    if (p.game == "sekiro") return SekiroIdolArea(id);
+    return p.game == "dsr" ? Ds1BonfireName(id) : std::string();
+}
+
+const std::vector<std::string>& CauseSuggestions(const Profile& p)
+{
+    return p.game == "sekiro" ? SekiroCauseSuggestions() : Ds1CauseSuggestions();
+}
+
+const std::vector<std::string>& AreaSuggestions(const Profile& p)
+{
+    return p.game == "sekiro" ? SekiroAllMapNames() : Ds1AllMapNames();
+}
+
 std::string CsvField(const std::string& s)
 {
     std::string out = "\"";
@@ -120,12 +138,14 @@ void App::UiHeader()
     ImGui::PopFont();
     ImGui::SameLine();
     ImGui::AlignTextToFramePadding();
-    ImGui::TextDisabled("Dark Souls Remastered");
+    bool attached = reader_.state() == GameReader::State::Scanning || reader_.state() == GameReader::State::Ready;
+    const char* gameName = GameDisplayName(reader_.GameId());
+    ImGui::TextDisabled("%s", attached ? gameName : "Dark Souls Remastered  ·  Sekiro");
 
     switch (reader_.state()) {
         case GameReader::State::NotRunning:
             StatusDot(ImVec4(0.55f, 0.52f, 0.48f, 1));
-            ImGui::TextDisabled("Aguardando o Dark Souls Remastered abrir...");
+            ImGui::TextDisabled("Aguardando o Dark Souls Remastered ou o Sekiro abrir...");
             ImGui::SameLine();
             if (ImGui::SmallButton("Iniciar Dark Souls")) LaunchGame(Utf8ToWide(s.gameExePath));
             break;
@@ -135,12 +155,13 @@ void App::UiHeader()
             break;
         case GameReader::State::Scanning:
             StatusDot(kYellow);
-            ImGui::TextColored(kYellow, "Dark Souls encontrado, preparando a leitura...");
+            ImGui::TextColored(kYellow, "%s encontrado, preparando a leitura...", gameName);
             break;
         case GameReader::State::Ready:
             StatusDot(kGreen);
             if (active)
-                ImGui::Text("Contando as mortes de %s (slot %s)", active->name.c_str(), SlotText(active->slot).c_str());
+                ImGui::Text("Contando as mortes de %s (%s, slot %s)", active->name.c_str(), GameShortName(active->game),
+                            SlotText(active->slot).c_str());
             else
                 ImGui::Text("Conectado ao jogo (versão %s). Carregue um personagem.", reader_.VersionName().c_str());
             break;
@@ -183,8 +204,8 @@ void App::UiProfilesTab()
         ImGui::Spacing();
         ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x * 0.8f);
         ImGui::TextUnformatted("Nenhum personagem ainda.");
-        ImGui::TextDisabled("Abra o Dark Souls Remastered e carregue um save: o personagem aparece aqui sozinho "
-                            "e cada save ganha a sua própria contagem.");
+        ImGui::TextDisabled("Abra o Dark Souls Remastered ou o Sekiro e carregue um save: o personagem aparece aqui "
+                            "sozinho e cada save ganha a sua própria contagem.");
         ImGui::PopTextWrapPos();
         return;
     }
@@ -226,9 +247,9 @@ void App::UiProfilesTab()
         std::string name = p.name.empty() ? "(sem nome)" : p.name;
         dl->AddText(fontBold_, fontBold_->FontSize, ImVec2(a.x + pad, a.y + pad * 0.5f),
                     ImGui::GetColorU32(ImGuiCol_Text), name.c_str(), nullptr, 0.0f, &clip);
-        char sub[96];
-        snprintf(sub, sizeof(sub), "Slot %s  ·  Nível %d%s%s", SlotText(p.slot).c_str(), p.soulLevel,
-                 p.ngPlus > 0 ? "  ·  NG+" : "", p.ngPlus > 0 ? std::to_string(p.ngPlus).c_str() : "");
+        std::string sub = std::string(GameShortName(p.game)) + "  ·  Slot " + SlotText(p.slot);
+        if (p.game != "sekiro") sub += "  ·  Nível " + std::to_string(p.soulLevel);   // Sekiro has no level
+        if (p.ngPlus > 0) sub += "  ·  NG+" + std::to_string(p.ngPlus);
         bool isActive = active && active->key == p.key;
         float subX = a.x + pad;
         if (isActive) {
@@ -236,7 +257,7 @@ void App::UiProfilesTab()
             subX += line * 0.8f;
         }
         dl->AddText(fontUi_, fontUi_->FontSize, ImVec2(subX, a.y + pad * 0.5f + line),
-                    ImGui::GetColorU32(ImGuiCol_TextDisabled), sub, nullptr, 0.0f, &clip);
+                    ImGui::GetColorU32(ImGuiCol_TextDisabled), sub.c_str(), nullptr, 0.0f, &clip);
         ImGui::PopID();
     }
     ImGui::EndChild();
@@ -261,8 +282,9 @@ void App::UiProfileDetail(Profile& p)
         ImGui::TextColored(kGreen, "\xE2\x97\x8F no jogo agora");
     }
     std::string cycle = p.ngPlus > 0 ? "NG+" + std::to_string(p.ngPlus) : std::string("NG");
-    ImGui::TextDisabled("Slot %s  ·  Nível %d  ·  %s  ·  Tempo de jogo %s", SlotText(p.slot).c_str(), p.soulLevel,
-                        cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
+    std::string level = p.game == "sekiro" ? std::string() : "  ·  Nível " + std::to_string(p.soulLevel);
+    ImGui::TextDisabled("%s  ·  Slot %s%s  ·  %s  ·  Tempo de jogo %s", GameDisplayName(p.game), SlotText(p.slot).c_str(),
+                        level.c_str(), cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
     ImGui::TextDisabled("Acompanhado desde %s  ·  visto por último em %s", p.firstSeen.c_str(), p.lastSeen.c_str());
 
     ImVec4 col = Argb(p.edited ? s.colorEdited : s.colorNormal);
@@ -322,7 +344,9 @@ void App::UiProfileDetail(Profile& p)
 void App::UiDeathTable(Profile& p)
 {
     ImGui::SetNextItemWidth(300 * dpiScale_);
-    ImGui::InputTextWithHint("##filter", "Filtrar por área, fogueira ou causa...", &deathFilter_);
+    bool sekiro = p.game == "sekiro";
+    ImGui::InputTextWithHint("##filter", sekiro ? "Filtrar por área, ídolo ou causa..." : "Filtrar por área, fogueira ou causa...",
+                             &deathFilter_);
     ImGui::SameLine();
     ImGui::TextDisabled("Clique na causa para editar  ·  botão direito na linha para mais opções");
 
@@ -330,7 +354,7 @@ void App::UiDeathTable(Profile& p)
     std::vector<int> rows;
     for (int i = (int)p.deaths.size() - 1; i >= 0; --i) {
         const DeathRecord& r = p.deaths[i];
-        if (Contains(r.area, needle) || Contains(r.cause, needle) || Contains(Ds1BonfireName(r.bonfire), needle))
+        if (Contains(r.area, needle) || Contains(r.cause, needle) || Contains(CheckpointName(p, r.bonfire), needle))
             rows.push_back(i);
     }
     if (p.deaths.empty()) {
@@ -347,7 +371,7 @@ void App::UiDeathTable(Profile& p)
         ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 56 * dpiScale_);
         ImGui::TableSetupColumn("Data / hora", ImGuiTableColumnFlags_WidthFixed, 150 * dpiScale_);
         ImGui::TableSetupColumn("Área", ImGuiTableColumnFlags_WidthStretch, 2.2f);
-        ImGui::TableSetupColumn("Última fogueira", ImGuiTableColumnFlags_WidthStretch, 1.6f);
+        ImGui::TableSetupColumn(sekiro ? "Último ídolo (área)" : "Última fogueira", ImGuiTableColumnFlags_WidthStretch, 1.6f);
         ImGui::TableSetupColumn("Causa", ImGuiTableColumnFlags_WidthStretch, 1.6f);
         ImGui::TableSetupColumn("Tempo de jogo", ImGuiTableColumnFlags_WidthFixed, 100 * dpiScale_);
         ImGui::TableHeadersRow();
@@ -385,9 +409,12 @@ void App::UiDeathTable(Profile& p)
                     ImGui::SetItemTooltip("Mapa m%02d_%02d  ·  posição %.1f, %.1f, %.1f", r.mapArea, r.mapBlock, r.x, r.y, r.z);
 
                 ImGui::TableSetColumnIndex(3);
-                std::string bonfire = Ds1BonfireName(r.bonfire);
+                std::string bonfire = CheckpointName(p, r.bonfire);
                 if (bonfire.empty() && r.bonfire > 0) bonfire = "#" + std::to_string(r.bonfire);
                 ImGui::TextUnformatted(bonfire.empty() ? "-" : bonfire.c_str());
+                if (sekiro && r.bonfire > 0)
+                    ImGui::SetItemTooltip("Ponto de retorno do jogo: entidade %d (o nome exato do ídolo ainda não é conhecido)",
+                                          r.bonfire);
 
                 ImGui::TableSetColumnIndex(4);
                 bool emptyCause = r.cause.empty();
@@ -547,7 +574,7 @@ void App::UiPopups()
                                                   ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::TextDisabled("Sugestões:");
             ImGui::BeginChild("##sugg", ImVec2(0, 220 * dpiScale_), ImGuiChildFlags_Borders);
-            const auto& list = editingArea_ ? Ds1AllMapNames() : Ds1CauseSuggestions();
+            const auto& list = editingArea_ ? AreaSuggestions(*p) : CauseSuggestions(*p);
             bool exact = std::find(list.begin(), list.end(), editBuffer_) != list.end();
             std::string needle = exact ? std::string() : Lower(editBuffer_);
             for (const auto& sug : list) {
@@ -589,8 +616,9 @@ void App::UiWelcome()
         ImGui::PushFont(fontTitle_);
         ImGui::TextColored(kAccent, "Bem-vindo ao DS Death Counter");
         ImGui::PopFont();
-        ImGui::TextUnformatted("Ele conta suas mortes no Dark Souls Remastered (uma contagem para cada save/personagem) "
-                               "e mostra o número por cima do jogo. Só lê a memória do jogo: não modifica nada.");
+        ImGui::TextUnformatted("Ele conta suas mortes no Dark Souls Remastered e no Sekiro (uma contagem para cada "
+                               "save/personagem) e mostra o número por cima do jogo. Só lê a memória do jogo: não "
+                               "modifica nada.");
 
         ImGui::SeparatorText("1. Vincular ao jogo");
         if (!s.gameExePath.empty()) {
@@ -733,13 +761,16 @@ void App::UiDiagnosticsTab()
     if (tracker_.hasSnapshot()) {
         const GameSnapshot& s = tracker_.snapshot();
         snprintf(b, sizeof(b),
-                 "\nPersonagem carregado: %s | No mundo: %s\nNome: %s | Slot: %d | Mortes (jogo): %d | Tempo: %s | NG+: %d | Nível: %d\n",
-                 s.charLoaded ? "sim" : "não", s.inWorld ? "sim" : "não", WideToUtf8(s.name).c_str(), s.saveSlot,
+                 "\nJogo: %s | Personagem carregado: %s | No mundo: %s\nNome: %s | Slot: %d | Mortes (jogo): %d | Tempo: %s | NG+: %d | Nível: %d\n",
+                 GameDisplayName(s.game), s.charLoaded ? "sim" : "não", s.inWorld ? "sim" : "não", WideToUtf8(s.name).c_str(), s.saveSlot,
                  s.deaths, FormatPlayTime(s.playTimeMs).c_str(), s.ngPlus, s.soulLevel);
         t += b;
-        std::string map = s.mapArea >= 0 ? Ds1MapName(s.mapArea, s.mapBlock) : "?";
-        snprintf(b, sizeof(b), "Mapa: 0x%08X -> m%02d_%02d (%s)\nÚltima fogueira: %d (%s)\nHP: %d | Posição: %s%.2f, %.2f, %.2f\n",
-                 s.mapRaw, s.mapArea, s.mapBlock, map.c_str(), s.lastBonfire, Ds1BonfireName(s.lastBonfire).c_str(),
+        bool sekiro = s.game == "sekiro";
+        std::string map = !s.areaName.empty() ? s.areaName : s.mapArea >= 0 ? Ds1MapName(s.mapArea, s.mapBlock) : "?";
+        std::string checkpoint = sekiro ? SekiroIdolArea(s.lastBonfire) : Ds1BonfireName(s.lastBonfire);
+        snprintf(b, sizeof(b), "Mapa: 0x%08X -> m%02d_%02d (%s)\n%s: %d (%s)\nHP: %d | Posição: %s%.2f, %.2f, %.2f\n",
+                 s.mapRaw, s.mapArea, s.mapBlock, map.c_str(),
+                 sekiro ? "Ponto de retorno (último ídolo)" : "Última fogueira", s.lastBonfire, checkpoint.c_str(),
                  s.hp, s.hasPos ? "" : "(indisponível) ", s.pos.x, s.pos.y, s.pos.z);
         t += b;
     }
@@ -761,7 +792,8 @@ void App::UiAboutTab()
     ImGui::PushFont(fontTitle_);
     ImGui::Text("DS Death Counter %s", DSDC_VERSION_STRING);
     ImGui::PopFont();
-    ImGui::TextDisabled("Contador de mortes com overlay para Dark Souls Remastered. Código aberto (licença MIT).");
+    ImGui::TextDisabled("Contador de mortes com overlay para Dark Souls Remastered e Sekiro: Shadows Die Twice. "
+                        "Código aberto (licença MIT).");
     if (ImGui::Button("Página do projeto no GitHub")) OpenFolder(Utf8ToWide(DSDC_REPO_URL));
     ImGui::SameLine();
     if (ImGui::Button("Baixar versões novas")) OpenFolder(Utf8ToWide(std::string(DSDC_REPO_URL) + "/releases"));
@@ -777,6 +809,9 @@ void App::UiAboutTab()
     ImGui::BulletText("Cada save/personagem tem a sua contagem e a sua lista de mortes.");
     ImGui::BulletText("Quando você morre, o app anota a hora, o mapa em que você estava, a última fogueira usada e, "
                       "se percebeu uma queda grande, marca a causa como \"Queda\". As outras causas você define na lista.");
+    ImGui::BulletText("No Sekiro, o contador do jogo só sobe nas mortes de verdade (quando aparece a tela de morte): "
+                      "ressuscitar não conta. "
+                      "Em vez da fogueira, o app anota a área do último Ídolo do Escultor.");
     ImGui::BulletText("Editar a contagem só altera o número mostrado por este app; o contador do jogo não é tocado.");
 
     ImGui::SeparatorText("Por que não arrisca banimento");
@@ -784,7 +819,7 @@ void App::UiAboutTab()
                       "usados há anos pela comunidade. Não escreve nada, não injeta DLL e não altera arquivos ou saves.");
     ImGui::BulletText("O overlay é uma janela separada por cima do jogo; nada é desenhado dentro dele.");
     ImGui::BulletText("Os banimentos do Dark Souls vêm de dados de personagem impossíveis enviados aos servidores, "
-                      "coisa que este app não toca.");
+                      "coisa que este app não toca. O Sekiro não tem modo online.");
 
     ImGui::SeparatorText("Dados");
     ImGui::TextDisabled("%s", WideToUtf8(store_.FilePath()).c_str());
@@ -806,7 +841,7 @@ void App::ExportCsv(const Profile& p)
         char pos[96] = ";;";
         if (r.hasPos) snprintf(pos, sizeof(pos), "%.2f;%.2f;%.2f", r.x, r.y, r.z);
         out += (r.gameCount > 0 ? std::to_string(r.gameCount) : std::string()) + ";" + CsvField(r.time) + ";" +
-               CsvField(r.area) + ";" + CsvField(Ds1BonfireName(r.bonfire)) + ";" + CsvField(r.cause) + ";" +
+               CsvField(r.area) + ";" + CsvField(CheckpointName(p, r.bonfire)) + ";" + CsvField(r.cause) + ";" +
                (r.untracked ? std::string() : FormatPlayTime(r.playTimeMs)) + ";" + pos + ";" +
                (r.untracked ? "nao" : "sim") + "\r\n";
     }
