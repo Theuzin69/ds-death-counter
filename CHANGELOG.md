@@ -20,6 +20,10 @@ All notable changes to this project are listed here. The format follows [Keep a 
   *A lista de personagens mostra de qual jogo é cada personagem (DSR / Sekiro). Os dados existentes continuam como Dark Souls Remastered.*
 - `tests/scan_test` also accepts `sekiro.exe` and checks every Sekiro signature.
   *O `tests/scan_test` também aceita o `sekiro.exe` e confere todas as assinaturas do Sekiro.*
+- Experimental Bloodborne support for the Bloodborne PC Windows port v0.5 (`bbport.exe`, Bloodborne 1.09): reads the game's own death counter, character name, level, NG+ cycle and play time, read-only like Dark Souls Remastered. No area or fall detection for Bloodborne yet; characters are told apart by name. Profiles now store which game they belong to (`game` in `data.json`; existing ones are Dark Souls Remastered).
+  *Suporte experimental ao Bloodborne no Bloodborne PC Windows port v0.5 (`bbport.exe`, Bloodborne 1.09): lê o contador de mortes do próprio jogo, o nome, o nível, o ciclo de NG+ e o tempo de jogo, só lendo a memória, como no Dark Souls Remastered. Ainda sem área nem detecção de quedas no Bloodborne; os personagens são separados pelo nome. Os perfis agora guardam de qual jogo são (`game` no `data.json`; os já existentes são do Dark Souls Remastered).*
+- Tests: `bb_scan_test` (scanner on an `eboot.bin` file), `bb_fake_port` + `bb_live_test` (live reader against a stand-in process that never runs game code).
+  *Testes: `bb_scan_test` (analisador num arquivo `eboot.bin`), `bb_fake_port` + `bb_live_test` (leitor ao vivo contra um processo substituto que nunca executa código do jogo).*
 
 ## [1.0.0] - 2026-10-16
 

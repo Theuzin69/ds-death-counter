@@ -67,6 +67,17 @@ A contagem do personagem atual aparece num canto da janela do jogo (padrão: can
 
 Fechar a janela mantém o contador rodando na bandeja. Passe o mouse no ícone para ver a contagem atual. Botão direito: *Abrir*, *Mostrar overlay* e *Sair*.
 
+### Bloodborne (port de PC, experimental)
+
+O contador também funciona com o **Bloodborne PC Windows port** (v0.5, processo `bbport.exe`) rodando o Bloodborne 1.09. Abra o jogo do jeito que o port indica; o contador encontra o `bbport.exe` sozinho, do mesmo jeito que encontra o Dark Souls Remastered. (O botão *Iniciar Dark Souls* só abre o Dark Souls Remastered.)
+
+- Linha de status: *Bloodborne encontrado, preparando a leitura…*, depois *Conectado ao Bloodborne (port de PC, bbport.exe). Carregue um personagem.* e então *Contando as mortes de NOME (Bloodborne)*.
+- O que é lido: o contador de mortes do próprio jogo, o nome do personagem, o nível, o ciclo de NG+ e o tempo de jogo. Cada morte fica registrada com data/hora e tempo de jogo.
+- Ainda não disponível no Bloodborne: área, última lamparina e detecção de quedas (a área aparece como *Desconhecida*). Você ainda pode digitar a causa ou a área.
+- Os personagens do Bloodborne são separados pelo **nome** (o slot do save não é lido), então dois personagens do Bloodborne com o mesmo nome ficam numa entrada só.
+- O overlay funciona igual: use janela ou janela sem bordas nas configurações do port.
+- Esse suporte ainda não foi confirmado numa sessão de jogo de verdade. Se a contagem não subir quando você morrer, mande o texto do *Diagnóstico* num relato de bug.
+
 ## 4. Personagens e contagens
 
 A aba *Personagens* lista todos os personagens que o contador já viu (*Saves / personagens*). O que está sendo jogado agora tem uma bolinha verde e fica no topo.
@@ -187,6 +198,7 @@ Ele guarda configurações, personagens e o histórico completo. Para fazer back
 **Um personagem aparece duas vezes:** o personagem é identificado por slot + nome, então se ele mudou de slot (por exemplo, copiando arquivos de save), é visto como novo. Exclua a duplicata no app, se quiser.
 
 **O Dark Souls II mostra *Versão do jogo não suportada (DS2 de 32 bits)*:** você está jogando o Dark Souls II original, de 2014. Só o Scholar of the First Sin é suportado.
+**O Bloodborne não é detectado:** o contador procura o processo do jogo no port, `bbport.exe`, e foi conferido com o port v0.5 e o Bloodborne 1.09. Outros ports, emuladores e versões do jogo não são suportados. Se o *Diagnóstico* mostrar *NÃO ENCONTRADO*, os dados do jogo não foram reconhecidos; mande esse texto num relato de bug.
 
 **Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição…).
 

@@ -146,6 +146,18 @@ Map names came from matching map ids with the Sculptor's Idol event flags, which
 The signatures were written from scratch for this app; the community tools (some are GPL) were used for facts only. Each signature matches exactly once in 1.06. `GameDataMan` is confirmed by three independent pieces of code, and `GameMan`, `WorldChrMan` and `FieldArea` by two each. If two of them ever disagree, that feature is switched off and the *Diagnóstico* tab says *DIVERGENTE* instead of reading the wrong place. `tests/scan_test` recognizes `sekiro.exe` and checks every signature against the addresses found by hand in 1.06.
 
 Sekiro has no character names or levels, so a Sekiro character is identified by its save slot, and its keys in `data.json` start with `sekiro|` so they never mix with Dark Souls characters. Sekiro has no fall damage outside bottomless pits, so the fall heuristic is off for it.
+## Bloodborne (PC port)
+
+Bloodborne support targets one specific program, the **Bloodborne PC Windows port** v0.5. Before anything else, Claude worked out what that program is using only its files: file listings, PE metadata (imports, sections, signatures, manifests), the launcher's packaged contents and its plain Python scripts. Nothing from it was run. It turned out to be a loader, `bbport.exe`, built with MinGW, unsigned and not packed. It runs the game's own PS4 x86-64 code (`eboot.bin`) directly, with graphics code taken from the [shadPS4](https://github.com/shadps4-emu/shadPS4) project. The launcher is a PyInstaller + Qt app that starts it through `run.bat`.
+
+What matters for the counter is that the port puts the whole game image in one block of memory, at a fixed address in v0.5 (`0x800000000` = game address 0). So the same approach as for Dark Souls Remastered works:
+
+- The game's scripts call a Lua function named `AddDeathCount` when the death message appears. Its native code adds 1 to a field of the game's `GameDataMan` (offset `0x88` in 1.09). A neighbouring `AddTrueDeathCount` increments `0x84`; no script calls it, so the app only shows it in *Diagnóstico*.
+- The play time (`0x94`, milliseconds, capped at 999:59:59 like the other FromSoftware games), the NG+ cycle (`GetClearCount`, `0x68`) and the level (`GetLocalPlayerSoulLv`, player data at `GameDataMan + 0x8`, level `+0x90`) come from other functions with their own byte signatures. All four signatures match exactly once and point to the same `GameDataMan`. The port's optional performance patches don't touch any of those bytes.
+- The character name has no code signature of its own. A save file stores the same player data block, and its stats line up field by field with the offsets used by the code, which puts the name `0x18` bytes after the level (`+0xA8`). The app only uses the name to tell characters apart, and it validates it while reading.
+- There is no "player is in the world" pointer: the app treats "play time is running" as in game, because play time stops on the title screen.
+
+`tests/bb_scan_test` runs the scanner on an `eboot.bin` file and compares the result with these values. `tests/bb_fake_port` is a stand-in process named `bbport.exe`. It maps the game image the same way, never runs any of it, and plays a short script (title screen, a character, three deaths, back to the title screen). `tests/bb_live_test` connects to that stand-in like the app does. It was used to check the connection, the fallback search for the image at another address, the deaths, name, level and NG+, and the in-game state. It hasn't been tested in a real play session yet.
 
 ## Known limitations
 
@@ -153,6 +165,7 @@ Sekiro has no character names or levels, so a Sekiro character is identified by 
 - Exclusive fullscreen may hide the overlay; windowed/borderless always works.
 - The interface is in Portuguese only (English is planned).
 - Dark Souls II: only Scholar of the First Sin (64-bit) is supported; the current Steam build (1.03) is found by signatures but hasn't been confirmed in-game yet.
+- Bloodborne (PC port) is experimental: no area, lamp or fall detection, characters are told apart by name only, and it hasn't been confirmed in a real play session yet.
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
 - Sekiro was checked against the 1.06 executable only; older versions haven't been tested. The in-game behavior (resurrections not counted, slot switching, area and idol) still has to be confirmed by playing. Idol names aren't known, only the idol's area.
 
