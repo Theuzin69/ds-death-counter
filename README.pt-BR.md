@@ -38,6 +38,7 @@
 - **Overlay por cima do jogo**, com fonte, tamanho, canto, cores e contorno à sua escolha. `Ctrl+Shift+D` mostra/oculta.
 - **Lista de todas as mortes**: data/hora, área (mapa), última fogueira (no Sekiro, a área do último Ídolo do Escultor), causa e tempo de jogo. Estatísticas por área e por causa, e exportação para CSV.
 - **Quedas são detectadas automaticamente** (Dark Souls). Para as outras causas, escolha nas sugestões (chefes, inimigos, armadilhas…) com um clique.
+- **Fonte de texto para o OBS, para quem faz live.** Se quiser, grava a contagem num arquivo de texto que uma fonte **Texto (GDI+)** do OBS lê, então funciona com Captura de jogo e Captura de janela. Você escolhe o texto, ex.: `Mortes: {mortes}` ([como configurar](docs/guia-do-usuario.md#7-lives-obs)).
 - **Lista de todas as mortes**: data/hora, área (mapa), última fogueira, causa e tempo de jogo. Estatísticas por área e por causa, e exportação para CSV.
 - **Chefes e quedas são detectados automaticamente.** Morreu com a barra de vida de um chefe na tela, a causa é aquele chefe; perdeu muita altura logo antes de morrer, é queda. Para as outras causas, escolha nas sugestões (inimigos, armadilhas…) com um clique.
 - **Contagem editável.** Quando editada, ela fica marcada no app e o número do overlay muda de cor.

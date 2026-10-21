@@ -38,6 +38,7 @@
 - **Overlay on top of the game** with your choice of font, size, corner, colors and outline. `Ctrl+Shift+D` shows/hides it.
 - **List of every death**: date/time, area (map), last bonfire (in Sekiro, the area of the last Sculptor's Idol), cause and play time. Statistics by area and by cause, plus CSV export.
 - **Falls are detected automatically** (Dark Souls). For other causes, pick from suggestions (bosses, enemies, traps…) with one click.
+- **OBS text source for streamers.** Optionally writes the count to a text file that an OBS **Text (GDI+)** source reads, so it works with Game Capture and Window Capture. You pick the text, e.g. `Deaths: {mortes}` ([how to set it up](docs/user-guide.md#7-streaming-obs)).
 - **List of every death**: date/time, area (map), last bonfire, cause and play time. Statistics by area and by cause, plus CSV export.
 - **Bosses and falls are detected automatically.** A death while a boss health bar is on screen is recorded as that boss; a big drop just before dying is recorded as a fall. For other causes, pick from suggestions (enemies, traps…) with one click.
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.

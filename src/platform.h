@@ -20,4 +20,5 @@ bool MakeWindowBorderless(HWND hwnd);
 
 std::wstring BrowseForExe(HWND owner, const std::wstring& initial);
 std::wstring BrowseSaveCsv(HWND owner, const std::wstring& suggestedName);
+std::wstring BrowseSaveTxt(HWND owner, const std::wstring& initialPath);
 void OpenFolder(const std::wstring& path);
