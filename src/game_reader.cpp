@@ -1,4 +1,5 @@
 #include "game_reader.h"
+#include "games/bloodborne.h"
 #include <tlhelp32.h>
 #include <algorithm>
 #include <cmath>
@@ -93,7 +94,7 @@ DWORD FindGamePid(const GameInfo** game)
     PROCESSENTRY32W pe{ sizeof(pe) };
     for (BOOL ok = Process32FirstW(snap, &pe); ok && !pid; ok = Process32NextW(snap, &pe)) {
         for (const GameInfo* g : AllGames())
-            if (_wcsicmp(pe.szExeFile, g->exe) == 0) { pid = pe.th32ProcessID; *game = g; break; }
+            if (!g->customReader && _wcsicmp(pe.szExeFile, g->exe) == 0) { pid = pe.th32ProcessID; *game = g; break; }
     }
     CloseHandle(snap);
     return pid;
@@ -122,6 +123,20 @@ int32_t ImageI32(const std::vector<uint8_t>& img, size_t at)
     return at + 4 <= img.size() ? ReadI32(img, at) : 0;
 }
 
+GameReader::GameReader() : bb_(std::make_unique<bb::Reader>()) {}
+
+GameReader::~GameReader() { Detach(); }
+
+DWORD GameReader::pid() const
+{
+    return bb_->Attached() ? bb_->pid() : pid_;
+}
+
+const GameInfo& GameReader::game() const
+{
+    return bb_->Attached() ? GameById("bb") : *game_;
+}
+
 void GameReader::SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId)
 {
     base_ = base;
@@ -132,6 +147,7 @@ void GameReader::SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::
 
 std::wstring GameReader::ProcessPath() const
 {
+    if (bb_->Attached()) return bb_->ProcessPath();
     if (!proc_) return {};
     wchar_t buf[MAX_PATH * 2];
     DWORD n = (DWORD)std::size(buf);
@@ -141,6 +157,7 @@ std::wstring GameReader::ProcessPath() const
 
 std::string GameReader::VersionName() const
 {
+    if (bb_->Attached()) return bb_->VersionName();
     if (!proc_) return "-";
     std::string fileVer;
     std::wstring path = ProcessPath();
@@ -306,6 +323,9 @@ bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 
 void GameReader::Update()
 {
+    // Bloodborne (PC port): owns the state while its process is attached.
+    if (!proc_ && bb_->Update(state_)) return;
+
     ULONGLONG now = GetTickCount64();
     if (proc_ && !ProcessAlive()) Detach();
     if (state_ == State::Ready || state_ == State::Unsupported) return;   // Unsupported: wait until it closes
@@ -338,6 +358,7 @@ uintptr_t GameReader::ReadPtr(uintptr_t addr) const
 bool GameReader::Read(GameSnapshot& s)
 {
     s = GameSnapshot{};
+    if (bb_->Attached()) return state_ == State::Ready && bb_->Read(s);
     if (state_ != State::Ready) return false;
     s.game = game_->id;
     if (module_) return module_->Read(proc_, s);
@@ -404,6 +425,7 @@ bool GameReader::Read(GameSnapshot& s)
 
 std::string GameReader::DiagnosticsText() const
 {
+    if (bb_->Attached()) return bb_->DiagnosticsText(state_);
     char b[512];
     std::string t;
     const char* st = "jogo não encontrado";

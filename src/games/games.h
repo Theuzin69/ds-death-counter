@@ -19,6 +19,7 @@ struct GameInfo {
     const char*    checkpointLabel;  // column title for bonfireName ("Última fogueira", "Último ídolo (área)")
     bool           hasLevel;         // the character has a level worth showing
     bool           fallHeuristic;    // big height loss before dying means a fall death
+    bool           customReader;     // attached by its own reader (Bloodborne port), not by GameReader's scan
 };
 
 const std::vector<const GameInfo*>& AllGames();

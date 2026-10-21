@@ -278,5 +278,5 @@ std::unique_ptr<GameModule> CreateDs2() { return std::make_unique<ds2::Module>()
 
 const GameInfo kDs2Info = {
     "ds2", L"DarkSoulsII.exe", "Dark Souls II: Scholar of the First Sin", "DS2", CreateDs2,
-    ds2::BonfireName, ds2::AllMapNames, ds2::CauseSuggestions, "Última fogueira", true, true,
+    ds2::BonfireName, ds2::AllMapNames, ds2::CauseSuggestions, "Última fogueira", true, true, false,
 };

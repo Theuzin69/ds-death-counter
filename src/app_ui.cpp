@@ -239,7 +239,7 @@ void App::UiProfilesTab()
         dl->AddText(fontBold_, fontBold_->FontSize, ImVec2(a.x + pad, a.y + pad * 0.5f),
                     ImGui::GetColorU32(ImGuiCol_Text), name.c_str(), nullptr, 0.0f, &clip);
         const GameInfo& pg = GameById(p.game);
-        std::string subText = std::string(pg.shortName) + "  ·  Slot " + SlotText(p.slot);
+        std::string subText = std::string(pg.shortName) + (p.slot >= 0 ? "  ·  Slot " + SlotText(p.slot) : std::string());
         if (pg.hasLevel) subText += "  ·  Nível " + std::to_string(p.soulLevel);
         if (p.ngPlus > 0) subText += "  ·  NG+" + std::to_string(p.ngPlus);
         const char* sub = subText.c_str();
@@ -276,7 +276,8 @@ void App::UiProfileDetail(Profile& p)
     }
     std::string cycle = p.ngPlus > 0 ? "NG+" + std::to_string(p.ngPlus) : std::string("NG");
     std::string level = GameById(p.game).hasLevel ? "  ·  Nível " + std::to_string(p.soulLevel) : std::string();
-    ImGui::TextDisabled("%s  ·  Slot %s%s  ·  %s  ·  Tempo de jogo %s", GameById(p.game).name, SlotText(p.slot).c_str(),
+    std::string slot = p.slot >= 0 ? "  ·  Slot " + SlotText(p.slot) : std::string();
+    ImGui::TextDisabled("%s%s%s  ·  %s  ·  Tempo de jogo %s", GameById(p.game).name, slot.c_str(),
                         level.c_str(), cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
     ImGui::TextDisabled("Acompanhado desde %s  ·  visto por último em %s", p.firstSeen.c_str(), p.lastSeen.c_str());
 

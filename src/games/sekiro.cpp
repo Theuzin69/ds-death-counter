@@ -359,6 +359,6 @@ std::unique_ptr<GameModule> CreateSekiro() { return std::make_unique<SekiroModul
 // The respawn point is the last Sculptor's Idol; its exact name isn't known, only its area.
 const GameInfo kSekiroInfo = {
     "sekiro", L"sekiro.exe", "Sekiro: Shadows Die Twice", "Sekiro", CreateSekiro,
-    SekiroIdolArea, SekiroAllMapNames, SekiroCauseSuggestions, "Último ídolo (área)", false, false,
+    SekiroIdolArea, SekiroAllMapNames, SekiroCauseSuggestions, "Último ídolo (área)", false, false, false,
 };
 

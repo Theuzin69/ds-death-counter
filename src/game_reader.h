@@ -13,6 +13,8 @@
 #include <vector>
 #include "games/games.h"
 
+namespace bb { class Reader; }   // games/bloodborne.h
+
 struct Vec3 { float x = 0, y = 0, z = 0; };
 
 struct GameSnapshot {
@@ -40,7 +42,8 @@ class GameReader {
 public:
     enum class State { NotRunning, AccessDenied, Unsupported, Scanning, Ready };
 
-    ~GameReader() { Detach(); }
+    GameReader();
+    ~GameReader();
 
     // Looks for the game process and resolves pointers. Cheap to call repeatedly.
     void Update();
@@ -48,12 +51,13 @@ public:
     void Detach();
 
     State state() const { return state_; }
-    DWORD pid() const { return pid_; }
+    DWORD pid() const;
     bool  IsReady() const { return state_ == State::Ready; }
     std::wstring ProcessPath() const;
     std::string VersionName() const;
     std::string DiagnosticsText() const;
-    const GameInfo& game() const { return *game_; }
+    const GameInfo& game() const;
+    std::string GameId() const { return game().id; }
     const std::string& UnsupportedReason() const { return unsupported_; }
 
     // Resolves globals and offsets from a copy of the exe image (base/size must be set).
@@ -80,6 +84,7 @@ private:
     State     state_ = State::NotRunning;
     const GameInfo* game_ = &GameById("dsr");
     std::unique_ptr<GameModule> module_;   // games other than DSR
+    std::unique_ptr<bb::Reader> bb_;       // Bloodborne PC port: its own reader, used while no other game is attached
     std::string unsupported_;
     HANDLE    proc_ = nullptr;
     DWORD     pid_ = 0;
