@@ -9,6 +9,7 @@ The app's interface is in Brazilian Portuguese. This guide quotes the on-screen 
 - [3. While you play](#3-while-you-play)
 - [4. Characters and counts](#4-characters-and-counts)
 - [5. The death list](#5-the-death-list)
+- [Sekiro: Shadows Die Twice](#sekiro)
 - [6. Settings](#6-settings)
 - [7. Streaming (OBS)](#7-streaming-obs)
 - [8. Your data](#8-your-data)
@@ -48,8 +49,10 @@ At the top of the window:
 | *Aguardando o jogo abrir…* | No supported game is running. *Iniciar Dark Souls* launches the game set in *Configurações*. |
 | *(game) encontrado, preparando a leitura…* | The game was found and the counter is locating its data (takes a moment). |
 | *Versão do jogo não suportada (…)* | A 32-bit version of the game is running, e.g. the original Dark Souls II. Only 64-bit versions are read. |
+| *Aguardando o Dark Souls Remastered ou o Sekiro abrir…* | No supported game is running. *Iniciar Dark Souls* launches the game set in *Configurações*. |
+| *Dark Souls Remastered encontrado, preparando a leitura…* (or *Sekiro encontrado…*) | The game was found and the counter is locating its data (takes a moment). |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Connected; you're on the title screen. |
-| *Contando as mortes de NAME (slot N)* | Counting. |
+| *Contando as mortes de NAME (DSR, slot N)* | Counting (*DSR* or *Sekiro*: the game this character belongs to). |
 | *O jogo está rodando como administrador…* | Windows blocked access. See [Troubleshooting](#9-troubleshooting). |
 
 ### The overlay
@@ -70,7 +73,7 @@ Closing the window keeps the counter running in the system tray. Hover the tray 
 
 The *Personagens* tab lists every character the counter has seen (*Saves / personagens*). The character currently being played is marked with a green dot and listed first.
 
-- **How characters are told apart:** by save slot and character name. If you delete a character and create a new one with the same name in the same slot, the counter notices that the play time went back to zero and starts a new count.
+- **How characters are told apart:** by game, save slot and character name (in Sekiro, by save slot only). Each character in the list is tagged with its game (*DSR* or *Sekiro*). If you delete a character and create a new one with the same name in the same slot, the counter notices that the play time went back to zero and starts a new count.
 - **Where the number comes from:** the game keeps a death counter per character inside the save. The app reads it, so the count is exact even for deaths that happened before you installed the app, or while it was closed.
 - *N morte(s) aconteceram antes do contador conhecer este personagem* means N deaths happened before the app first saw this character. They're included in the total but have no details in the list.
 
@@ -117,6 +120,18 @@ The *Mortes* tab shows one row per death, newest first:
 - *Por área* / *Por causa* show where and how you die the most, with percentages.
 
 Areas are the game's maps, so a few names cover two regions (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). Dark Souls II works the same way (*The Lost Bastille / Sinners' Rise / Belfry Luna*, *Harvest Valley / Earthen Peak*…); a map the app doesn't know yet shows as *Mapa mAA_BB*. If a death landed on the wrong map, fix it with right-click → *Editar área*.
+
+<a id="sekiro"></a>
+
+## Sekiro: Shadows Die Twice
+
+The counter also recognizes **Sekiro** (`sekiro.exe`, version 1.06, the current Steam version; older versions probably work but haven't been tested). Just open the game: everything above works the same way, with these differences.
+
+- **Real deaths only.** Sekiro's own death counter goes up when the death screen appears, not when you go down. Resurrecting doesn't change the count; dying for real (choosing *Die*, or going down with no resurrection left) does. This is the counter the game itself keeps, the same one other death counters such as DSDeaths show.
+- **One character per save slot.** Sekiro has no character names, so each slot is one character, shown as *Personagem do slot N* and tagged *Sekiro*. Its line shows the play time and the NG+ cycle (there's no character level).
+- **Area** is the map you were on: *Hirata Estate*, *Ashina Outskirts* (also the Dilapidated Temple), *Ashina Castle*, *Ashina Reservoir*, *Abandoned Dungeon*, *Sunken Valley / Ashina Depths* (Sunken Valley, Gun Fort, Poison Pool…), *Ashina Depths (Hidden Forest / Mibu Village)*, *Senpou Temple, Mt. Kongo* and *Fountainhead Palace*.
+- **Last idol:** instead of *Última fogueira* the list has *Último ídolo (área)*: the area of the Sculptor's Idol you'll come back to (the game's respawn point). The game keeps that idol only as a number, so the app shows its area, not the idol's name; hover the cell to see the number.
+- **No automatic fall detection:** in Sekiro big drops are harmless and only bottomless pits hurt, so *Queda* is never filled in automatically. The cause suggestions list Sekiro's bosses and mini-bosses.
 
 ## 6. Settings
 

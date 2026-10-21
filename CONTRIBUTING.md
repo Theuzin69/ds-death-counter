@@ -18,6 +18,7 @@ tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe
 ```
 
 - `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` (or `DarkSoulsII.exe`) runs the app's signature scanner against a game executable on disk; the game is picked from the file name. Use it to check a game version without launching it.
+- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it. It also takes `sekiro.exe` (the game is picked by the file name); game-specific code lives in `src/games/`.
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 
 Installer: install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run `ISCC.exe installer\DSDeathCounter.iss` (output in `dist\`).

@@ -120,6 +120,32 @@ DS2 has no running play-time counter. The game's own *GetPlayTimeSeconds* adds t
 - **Last bonfire.** It's at `[GameManagerImp + 0x70] + 0x16C`, with names from the same list (MIT license).
 
 **Signatures checked.** The app uses 13 signatures. Each one must match exactly once in the 1.02 executable, and the offsets they contain are read from the code at runtime. If one isn't found (for example in a future patch), the 1.02 value is used and the *Diagnóstico* tab marks it with `*`. `tests/scan_test` recognizes `DarkSoulsII.exe` and compares every value with the ones checked by hand. Not verified statically: the player position (`[PlayerCtrl + 0x100] + 0x80`, from SoulSplitter, only used for fall detection) and the "in the world" rule (`PlayerCtrl` exists, as in DS2S-META). Both are on the list to confirm in the game.
+<a id="sekiro"></a>
+
+## Adding Sekiro: Shadows Die Twice
+
+Sekiro support was added later in the same way, by a separate Claude Code session (other sessions were adding other games in parallel). The executable available was `sekiro.exe` **1.06**, the current Steam version. That copy already had Steam's DRM layer removed, so its code is exactly what the Steam 1.06 build runs once it's loaded. It was only read as a file for analysis, never run.
+
+**The death counter.** DSDeaths reads Sekiro's counter at `GameDataMan + 0x90`. Instead of trusting that, Claude followed the game's own `AddDeathCount` script function: the game's script binding table pairs that name with a small function that ends in a saturating `+1` on `GameDataMan + 0x90`. The game uses the same `+1` helper for two leftover multiplayer counters (`+0x80` and `+0x84`), so code shape alone can't tell them apart. At runtime the app follows the `AddDeathCount` name through the binding table to the right one.
+
+**Resurrection or real death?** The only code that calls `AddDeathCount` is the game's player-death handler. It is registered on the death event of the player (entity 10000), and it is also the handler that runs the death-penalty checks and the big on-screen death text. Resurrecting doesn't go through it. So the game's counter, and the number the app shows, counts **real deaths only**: dying for good, not going down and resurrecting. This conclusion comes from reading the code and still has to be confirmed in the game. The two could in principle be told apart (HP reaching 0 while the counter stays put is a resurrection), but the app doesn't count resurrections.
+
+**Everything else** was also read from the game's code. Every structure is located at runtime by a signature, and the offsets are taken from the instructions themselves:
+
+| Data | Where (1.06) | How it was confirmed |
+|---|---|---|
+| Play time | `GameDataMan + 0x9C` | the timer code adds the frame time there and caps it at 999:59:59 |
+| NG+ cycle | `GameDataMan + 0x70` | incremented by one and capped at 9999 |
+| Save slot | `GameMan + 0xAE4` | the save routine falls back to it when no slot is given, and rejects values above 9 (10 slots) |
+| In world, HP, position | `WorldChrMan + 0x88` (player) → modules `+0x1FF8` → data module `+0x18` (HP `+0x130`, max `+0x134`) and physics module `+0x68` (position `+0x70`) | the game's `SetHp` (which clamps to the max HP right after it), the module setup code (module 3 = data, 13 = physics) and the position getter |
+| Current map | `FieldArea + 0x28` (block index) into the world block list at `[FieldArea + 0x18] + 0x20` (0xB0-byte entries, map id at `+0x8`) | the code behind the `GetCurrentMapAreaNo` script function |
+| Last idol (respawn point) | `GameMan + 0xB4C`, overridden by `+0xB50` while that is ≥ 0 | set by the `SetReturnPointEntityId` script function and when resting; read by the respawn code |
+
+Map names came from matching map ids with the Sculptor's Idol event flags, which use the same numbering (`1AAB…` belongs to map `mAA_0B`, e.g. the Ashina Castle idols `1111000x` are in `m11_01`). The respawn point is an entity id, which tells the idol's map but not which idol it is. Idol names live in the game's data archives, which weren't extracted, so the app shows the idol's area instead.
+
+The signatures were written from scratch for this app; the community tools (some are GPL) were used for facts only. Each signature matches exactly once in 1.06. `GameDataMan` is confirmed by three independent pieces of code, and `GameMan`, `WorldChrMan` and `FieldArea` by two each. If two of them ever disagree, that feature is switched off and the *Diagnóstico* tab says *DIVERGENTE* instead of reading the wrong place. `tests/scan_test` recognizes `sekiro.exe` and checks every signature against the addresses found by hand in 1.06.
+
+Sekiro has no character names or levels, so a Sekiro character is identified by its save slot, and its keys in `data.json` start with `sekiro|` so they never mix with Dark Souls characters. Sekiro has no fall damage outside bottomless pits, so the fall heuristic is off for it.
 
 ## Known limitations
 
@@ -128,6 +154,7 @@ DS2 has no running play-time counter. The game's own *GetPlayTimeSeconds* adds t
 - The interface is in Portuguese only (English is planned).
 - Dark Souls II: only Scholar of the First Sin (64-bit) is supported; the current Steam build (1.03) is found by signatures but hasn't been confirmed in-game yet.
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
+- Sekiro was checked against the 1.06 executable only; older versions haven't been tested. The in-game behavior (resurrections not counted, slot switching, area and idol) still has to be confirmed by playing. Idol names aren't known, only the idol's area.
 
 ## Tools
 

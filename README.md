@@ -6,6 +6,7 @@
 
 <p align="center">
   Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Dark Souls II: Scholar of the First Sin</b>.<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Sekiro: Shadows Die Twice</b>.<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -35,8 +36,8 @@
 - **One count per save/character**, each with its own history.
 - **Never loses the count.** Close the game and counting stops; open it again and it continues where it left off. Deaths that happen while the counter is closed are still added.
 - **Overlay on top of the game** with your choice of font, size, corner, colors and outline. `Ctrl+Shift+D` shows/hides it.
-- **List of every death**: date/time, area (map), last bonfire, cause and play time. Statistics by area and by cause, plus CSV export.
-- **Falls are detected automatically.** For other causes, pick from suggestions (bosses, enemies, traps…) with one click.
+- **List of every death**: date/time, area (map), last bonfire (in Sekiro, the area of the last Sculptor's Idol), cause and play time. Statistics by area and by cause, plus CSV export.
+- **Falls are detected automatically** (Dark Souls). For other causes, pick from suggestions (bosses, enemies, traps…) with one click.
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.
 - **Runs quietly in the system tray** and can start with Windows: open the game and it is already counting.
 - **Read-only.** It never writes to the game, injects nothing and doesn't touch your saves (see [Is it safe?](#is-it-safe-can-i-get-banned)).
@@ -107,7 +108,7 @@ The counter was designed to stay away from anything that could get you flagged:
 - It **never writes** to the game, **injects no DLL**, installs **no hooks** and doesn't modify game files or saves.
 - The overlay is a **separate window** on top of the game; nothing is drawn inside the game.
 - Editing your count only changes the number stored by this app. The game's own counter is never touched.
-- Dark Souls bans (the "soft ban") come from impossible character data being sent to the servers, which this app doesn't touch.
+- Dark Souls bans (the "soft ban") come from impossible character data being sent to the servers, which this app doesn't touch. Sekiro has no online mode at all.
 
 No third-party tool can honestly promise zero risk, but read-only memory access is as safe as it gets.
 
@@ -118,6 +119,7 @@ No third-party tool can honestly promise zero risk, but read-only memory access 
 | Windows | 10 or 11, 64-bit |
 | Dark Souls Remastered | Supports the original 1.01 release and the 1.03.x builds (current Steam version). The game version is detected automatically. |
 | Dark Souls II | **Scholar of the First Sin** (64-bit), new in the next version. Checked against the 1.02 executable; the current Steam build (1.03) is found by the same byte signatures but has not been confirmed in-game yet. The original 32-bit Dark Souls II (2014) is **not** supported: the app says so instead of counting. |
+| Sekiro: Shadows Die Twice | **1.06** (current Steam version), checked against the game's exe. The memory layout is read from the game's own code, so older versions (1.02–1.05) will probably work too, but they haven't been tested. Counts **real deaths only**: resurrecting doesn't count (see the [user guide](docs/user-guide.md#sekiro)). Sekiro has no character names, so each save slot is one character. |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
 | Interface language | Brazilian Portuguese (English planned) |
 
@@ -151,4 +153,4 @@ This produces `build\DSDeathCounter.exe`, statically linked with no extra DLLs. 
 
 [MIT](LICENSE) © 2026 MatheusMuzzi
 
-*DARK SOULS is a trademark of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by them.*
+*DARK SOULS is a trademark of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE is a trademark of FromSoftware, Inc. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by any of them.*

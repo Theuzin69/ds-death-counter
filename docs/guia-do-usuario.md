@@ -7,6 +7,7 @@
 - [3. Enquanto você joga](#3-enquanto-você-joga)
 - [4. Personagens e contagens](#4-personagens-e-contagens)
 - [5. A lista de mortes](#5-a-lista-de-mortes)
+- [Sekiro: Shadows Die Twice](#sekiro)
 - [6. Configurações](#6-configurações)
 - [7. Lives (OBS)](#7-lives-obs)
 - [8. Seus dados](#8-seus-dados)
@@ -46,8 +47,10 @@ No topo da janela:
 | *Aguardando o jogo abrir…* | Nenhum jogo compatível está aberto. *Iniciar Dark Souls* abre o jogo definido em *Configurações*. |
 | *(jogo) encontrado, preparando a leitura…* | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
 | *Versão do jogo não suportada (…)* | Uma versão de 32 bits do jogo está aberta, como o Dark Souls II original. Só as versões de 64 bits são lidas. |
+| *Aguardando o Dark Souls Remastered ou o Sekiro abrir…* | Nenhum jogo compatível está aberto. *Iniciar Dark Souls* abre o jogo definido em *Configurações*. |
+| *Dark Souls Remastered encontrado, preparando a leitura…* (ou *Sekiro encontrado…*) | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Conectado; você está no menu principal. |
-| *Contando as mortes de NOME (slot N)* | Contando. |
+| *Contando as mortes de NOME (DSR, slot N)* | Contando (*DSR* ou *Sekiro*: o jogo desse personagem). |
 | *O jogo está rodando como administrador…* | O Windows bloqueou o acesso. Veja [Problemas comuns](#9-problemas-comuns). |
 
 ### O overlay
@@ -68,7 +71,7 @@ Fechar a janela mantém o contador rodando na bandeja. Passe o mouse no ícone p
 
 A aba *Personagens* lista todos os personagens que o contador já viu (*Saves / personagens*). O que está sendo jogado agora tem uma bolinha verde e fica no topo.
 
-- **Como os personagens são separados:** pelo slot do save e pelo nome. Se você apagar um personagem e criar outro com o mesmo nome no mesmo slot, o contador percebe que o tempo de jogo voltou a zero e começa uma contagem nova.
+- **Como os personagens são separados:** pelo jogo, pelo slot do save e pelo nome (no Sekiro, só pelo slot). Cada personagem da lista mostra o jogo dele (*DSR* ou *Sekiro*). Se você apagar um personagem e criar outro com o mesmo nome no mesmo slot, o contador percebe que o tempo de jogo voltou a zero e começa uma contagem nova.
 - **De onde vem o número:** o jogo guarda um contador de mortes por personagem dentro do save. O app lê esse contador, então o número é exato mesmo para mortes de antes de instalar o app ou de quando ele estava fechado.
 - *N morte(s) aconteceram antes do contador conhecer este personagem*: N mortes aconteceram antes de o app ver esse personagem pela primeira vez. Elas entram no total, mas sem detalhes na lista.
 
@@ -115,6 +118,18 @@ A aba *Mortes* tem uma linha por morte, da mais recente para a mais antiga:
 - *Por área* / *Por causa* mostram onde e como você mais morre, com porcentagens.
 
 As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). No Dark Souls II é igual (*The Lost Bastille / Sinners' Rise / Belfry Luna*, *Harvest Valley / Earthen Peak*…); um mapa que o app ainda não conhece aparece como *Mapa mAA_BB*. Se uma morte caiu no mapa errado, corrija com botão direito → *Editar área*.
+
+<a id="sekiro"></a>
+
+## Sekiro: Shadows Die Twice
+
+O contador também reconhece o **Sekiro** (`sekiro.exe`, versão 1.06, a atual da Steam; versões anteriores provavelmente funcionam, mas não foram testadas). É só abrir o jogo: tudo o que está acima funciona igual, com estas diferenças.
+
+- **Só mortes de verdade.** O contador de mortes do próprio Sekiro sobe quando aparece a tela de morte, não quando você cai. Ressuscitar não muda a contagem; morrer de verdade (escolher morrer em vez de ressuscitar, ou cair sem nenhuma ressurreição sobrando) muda. É o contador que o próprio jogo guarda, o mesmo que outros contadores, como o DSDeaths, mostram.
+- **Um personagem por slot.** O Sekiro não tem nome de personagem, então cada slot é um personagem, mostrado como *Personagem do slot N* e marcado como *Sekiro*. A linha dele mostra o tempo de jogo e o ciclo de NG+ (não existe nível de personagem).
+- **Área** é o mapa em que você estava: *Hirata Estate*, *Ashina Outskirts* (inclui o Dilapidated Temple), *Ashina Castle*, *Ashina Reservoir*, *Abandoned Dungeon*, *Sunken Valley / Ashina Depths* (Sunken Valley, Gun Fort, Poison Pool…), *Ashina Depths (Hidden Forest / Mibu Village)*, *Senpou Temple, Mt. Kongo* e *Fountainhead Palace*.
+- **Último ídolo:** no lugar de *Última fogueira* a lista tem *Último ídolo (área)*: a área do Ídolo do Escultor para onde você volta (o ponto de retorno do jogo). O jogo guarda esse ídolo só como um número, então o app mostra a área, não o nome do ídolo; passe o mouse na célula para ver o número.
+- **Sem detecção automática de queda:** no Sekiro as quedas grandes não machucam, só os abismos, então *Queda* nunca é preenchida sozinha. As sugestões de causa trazem os chefes e subchefes do Sekiro.
 
 ## 6. Configurações
 
