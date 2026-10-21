@@ -1,7 +1,9 @@
 #include "death_tracker.h"
 #include "ds1_data.h"
+#include "games/games.h"
 #include "util.h"
 #include <algorithm>
+#include <iterator>
 
 namespace {
 
@@ -49,15 +51,16 @@ void DeathTracker::Tick(GameReader& reader)
     // Remember where the player was while alive. HP 0 freezes the history at the moment of death.
     bool alive = s.inWorld && s.hasPos && s.hp != 0;
     if (alive) {
-        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName });
+        Sample sample{ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName };
+        std::copy(std::begin(s.bossNameId), std::end(s.bossNameId), sample.boss);
+        history_.push_back(sample);
         while (!history_.empty() && now - history_.front().t > 10000) history_.pop_front();
     }
 
     if (!s.charLoaded) return;
 
-    // Dark Souls Remastered keeps the 1.0.0 keys ("slot|name"); other games get a prefix ("ds3|slot|name").
-    std::string baseKey = (s.game == "dsr" ? std::string() : s.game + "|") +
-                          (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
+    std::string baseKey = (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
+    if (s.game != "dsr") baseKey = s.game + "|" + baseKey;   // DSR keys stay as in 1.0.0
     if (baseKey != candidateKey_) {
         candidateKey_ = baseKey;
         candidateSince_ = now;
@@ -161,13 +164,20 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
     if (haveSample) last = history_.back();
 
     // Fall heuristic: lost more than 10 m of height in the 4 seconds before dying.
+    // Only where falls hurt (not Sekiro: big drops are harmless there, only pits kill).
     bool fell = false;
-    if (haveSample) {
+    if (haveSample && GameById(p.game).fallHeuristic) {
         float peak = last.pos.y;
         for (const auto& h : history_)
             if (last.t - h.t <= 4000) peak = std::max(peak, h.pos.y);
         fell = peak - last.pos.y > 10.0f;
     }
+
+    // A boss health bar on screen at the last moment alive means the death happened in that
+    // fight. The game removes the bar when the boss dies and when the area reloads, so it can't
+    // be left over from an older fight. It wins over the fall heuristic: falling off Taurus
+    // Demon's bridge or into Bed of Chaos' pits is still a death to that boss.
+    std::string bossCause = haveSample ? Ds1BossCause(last.boss, GameSnapshot::kBossSlots) : std::string();
 
     for (int i = 0; i < count; ++i) {
         DeathRecord r;
@@ -177,18 +187,14 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
         r.playTimeMs = snap_.playTimeMs;
         r.mapArea = haveSample ? last.mapArea : snap_.mapArea;
         r.mapBlock = haveSample ? last.mapBlock : snap_.mapBlock;
-        if (snap_.game == "dsr") {
-            r.area = AreaLabel(r.mapArea, r.mapBlock);
-        } else {   // the game modules name the area themselves
-            const std::string& name = haveSample ? last.areaName : snap_.areaName;
-            r.area = name.empty() ? "Desconhecida" : name;
-        }
+        std::string area = haveSample ? last.area : snap_.areaName;
+        r.area = area.empty() ? AreaLabel(r.mapArea, r.mapBlock) : area;
         r.bonfire = haveSample ? last.bonfire : snap_.lastBonfire;
         if (haveSample) {
             r.hasPos = true;
             r.x = last.pos.x; r.y = last.pos.y; r.z = last.pos.z;
         }
-        r.cause = fell ? "Queda" : "";
+        r.cause = !bossCause.empty() ? bossCause : fell ? "Queda" : "";
         p.deaths.push_back(std::move(r));
     }
     history_.clear();

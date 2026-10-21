@@ -1,4 +1,5 @@
 #include "game_reader.h"
+#include "games/bloodborne.h"
 #include <tlhelp32.h>
 #include <algorithm>
 #include <cmath>
@@ -8,12 +9,6 @@
 #pragma comment(lib, "version.lib")
 
 namespace {
-
-// One row per supported game. The first one is the default (profiles from 1.0.0 belong to it).
-const GameInfo kGames[] = {
-    { "dsr", L"DarkSoulsRemastered.exe", "Dark Souls Remastered", "DSR" },
-    { "ds3", L"DarkSoulsIII.exe",        "Dark Souls III",        "DS3" },
-};
 
 // Module sizes of the 1.01.x builds (from DSR-Gadget). Anything else is treated
 // as 1.03 / 1.03.1, the build Steam distributes today.
@@ -91,14 +86,15 @@ int32_t ReadI32(const std::vector<uint8_t>& buf, size_t at)
     return v;
 }
 
-DWORD FindGamePid(const GameInfo*& game)
+DWORD FindGamePid(const GameInfo** game)
 {
     DWORD pid = 0;
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE) return 0;
     PROCESSENTRY32W pe{ sizeof(pe) };
-    for (BOOL ok = Process32FirstW(snap, &pe); ok; ok = Process32NextW(snap, &pe)) {
-        if (const GameInfo* g = FindGameByExe(pe.szExeFile)) { pid = pe.th32ProcessID; game = g; break; }
+    for (BOOL ok = Process32FirstW(snap, &pe); ok && !pid; ok = Process32NextW(snap, &pe)) {
+        for (const GameInfo* g : AllGames())
+            if (!g->customReader && _wcsicmp(pe.szExeFile, g->exe) == 0) { pid = pe.th32ProcessID; *game = g; break; }
     }
     CloseHandle(snap);
     return pid;
@@ -108,39 +104,50 @@ bool ValidPtr(uintptr_t p) { return p >= 0x10000 && p < 0x7FFFFFFFFFFFull; }
 
 } // namespace
 
-const GameInfo* FindGameById(const std::string& id)
-{
-    for (const auto& g : kGames)
-        if (id == g.id) return &g;
-    return nullptr;
-}
-
-const GameInfo* FindGameByExe(const std::wstring& exeFileName)
-{
-    size_t slash = exeFileName.find_last_of(L"\\/");
-    std::wstring file = slash == std::wstring::npos ? exeFileName : exeFileName.substr(slash + 1);
-    for (const auto& g : kGames)
-        if (_wcsicmp(file.c_str(), g.exe) == 0) return &g;
-    return nullptr;
-}
-
-std::string SupportedGamesText()
-{
-    std::string t;
-    for (size_t i = 0; i < std::size(kGames); ++i) {
-        if (i) t += (i + 1 == std::size(kGames)) ? " ou " : ", ";
-        t += kGames[i].title;
-    }
-    return t;
-}
-
 std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern)
 {
     return FindAll(img, pattern);
 }
 
+bool PatternAt(const std::vector<uint8_t>& img, size_t at, const char* pattern)
+{
+    Pattern p = ParsePattern(pattern);
+    if (at > img.size() || img.size() - at < p.bytes.size()) return false;
+    for (size_t k = 0; k < p.bytes.size(); ++k)
+        if (p.fixed[k] && img[at + k] != p.bytes[k]) return false;
+    return true;
+}
+
+int32_t ImageI32(const std::vector<uint8_t>& img, size_t at)
+{
+    return at + 4 <= img.size() ? ReadI32(img, at) : 0;
+}
+
+GameReader::GameReader() : bb_(std::make_unique<bb::Reader>()) {}
+
+GameReader::~GameReader() { Detach(); }
+
+DWORD GameReader::pid() const
+{
+    return bb_->Attached() ? bb_->pid() : pid_;
+}
+
+const GameInfo& GameReader::game() const
+{
+    return bb_->Attached() ? GameById("bb") : *game_;
+}
+
+void GameReader::SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId)
+{
+    base_ = base;
+    size_ = size;
+    game_ = &GameById(gameId);
+    module_ = game_->create ? game_->create() : nullptr;
+}
+
 std::wstring GameReader::ProcessPath() const
 {
+    if (bb_->Attached()) return bb_->ProcessPath();
     if (!proc_) return {};
     wchar_t buf[MAX_PATH * 2];
     DWORD n = (DWORD)std::size(buf);
@@ -150,6 +157,7 @@ std::wstring GameReader::ProcessPath() const
 
 std::string GameReader::VersionName() const
 {
+    if (bb_->Attached()) return bb_->VersionName();
     if (!proc_) return "-";
     std::string fileVer;
     std::wstring path = ProcessPath();
@@ -166,7 +174,11 @@ std::string GameReader::VersionName() const
             fileVer = b;
         }
     }
-    if (IsDs3()) return fileVer.empty() ? "?" : fileVer;   // DS3 file versions match the game version (1.15.0.0)
+    if (module_) {
+        std::string label = module_->VersionLabel(size_);
+        if (label.empty()) label = "?";
+        return label + (fileVer.empty() ? "" : " (exe " + fileVer + ")");
+    }
     const char* label = "1.03.x";
     switch (size_) {
         case 0x4869400: label = "1.01"; break;
@@ -190,25 +202,40 @@ void GameReader::Detach()
     base_ = 0;
     size_ = 0;
     gameMan_ = gameDataMan_ = worldChrMan_ = 0;
-    ds3_ = Ds3Reader{};
+    menuMan_ = 0;
+    offBossGauge_ = 0;
     scanAttempts_ = 0;
     state_ = State::NotRunning;
+    game_ = &GameById("dsr");
+    module_.reset();
+    unsupported_.clear();
 }
 
-bool GameReader::OpenGame(DWORD pid)
+bool GameReader::OpenGame(DWORD pid, const GameInfo& game)
 {
+    game_ = &game;
     proc_ = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, pid);
     if (!proc_) {
         state_ = (GetLastError() == ERROR_ACCESS_DENIED) ? State::AccessDenied : State::NotRunning;
         return false;
     }
     pid_ = pid;
+    module_ = game.create ? game.create() : nullptr;
+
+    // Every supported game is a 64-bit build. A 32-bit process with the same name (e.g. the
+    // original Dark Souls II) has a different memory layout: say so instead of guessing.
+    BOOL wow64 = FALSE;
+    if (IsWow64Process(proc_, &wow64) && wow64) {
+        unsupported_ = std::string(game.shortName) + " de 32 bits";
+        state_ = State::Unsupported;
+        return false;
+    }
 
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
     if (snap == INVALID_HANDLE_VALUE) { Detach(); return false; }   // game still starting, retry later
     MODULEENTRY32W me{ sizeof(me) };
     for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {
-        if (_wcsicmp(me.szModule, game_->exe) == 0) {
+        if (_wcsicmp(me.szModule, game.exe) == 0) {
             base_ = (uintptr_t)me.modBaseAddr;
             size_ = me.modBaseSize;
             break;
@@ -240,7 +267,7 @@ bool GameReader::ScanPatterns()
 bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 {
     scanLog_.clear();
-    if (IsDs3()) return ds3_.Analyze(img, base_, scanLog_);   // src/games/ds3.cpp
+    if (module_) return module_->Analyze(img, base_, size_, scanLog_);
     char line[256];
     // Resolves "mov reg, [rip+rel32]" style references to the address of a global.
     auto resolve = [&](const char* name, std::initializer_list<const char*> patterns, int relOff, int instrLen) -> uintptr_t {
@@ -293,21 +320,62 @@ bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
              newLayout_ ? "1.03+" : "1.01", offSaveSlot_, offLastBonfire_, offStableMap_, offChrMapData_, offHp_);
     scanLog_ += line;
 
+    // Boss health bars (optional: only the automatic "killed by boss" cause depends on them).
+    // MenuMan keeps one slot per bar, { int nameId; int chrHandle; damage counters... }, 0x14 bytes
+    // each, at MenuMan+0x1050 in 1.01. Two small functions give the global and the offsets:
+    //   ClearBossGauge:  mov rax,[MenuMan]; xor ecx,ecx; mov qword [rax+slot0],-1; mov qword [rax+slot1],-1; ...
+    //   slot getter:     cmp ecx,1; ja; movsxd rax,ecx; lea rcx,[rax+rax*4]; mov rax,[MenuMan]; lea rax,[rax+rcx*4]; add rax,slot0
+    // Both must agree when both are found; otherwise the feature stays off rather than guess.
+    menuMan_ = 0;
+    offBossGauge_ = 0;
+    uintptr_t clearMenuMan = 0, getMenuMan = 0;
+    int clearSlot0 = 0, clearStride = 0, getSlot0 = 0;
+    auto clearHits = FindAll(img, "48 8B 05 ? ? ? ? 33 C9 48 C7 80 ? ? ? ? FF FF FF FF 48 C7 80 ? ? ? ? FF FF FF FF 48 89 88");
+    if (clearHits.size() == 1) {
+        size_t h = clearHits[0];
+        clearSlot0 = ReadI32(img, h + 12);
+        clearStride = ReadI32(img, h + 23) - clearSlot0;
+        if (clearSlot0 > 0 && clearSlot0 < 0x10000 && clearStride == 0x14)
+            clearMenuMan = base_ + h + 7 + ReadI32(img, h + 3);
+    }
+    auto getHits = FindAll(img, "83 F9 01 77 ? 48 63 C1 48 8D 0C 80 48 8B 05 ? ? ? ? 48 8D 04 88 48 05 ? ? ? ?");
+    if (getHits.size() == 1) {
+        size_t h = getHits[0];
+        getSlot0 = ReadI32(img, h + 25);
+        if (getSlot0 > 0 && getSlot0 < 0x10000)
+            getMenuMan = base_ + h + 19 + ReadI32(img, h + 15);
+    }
+    if (clearMenuMan && getMenuMan && (clearMenuMan != getMenuMan || clearSlot0 != getSlot0)) {
+        scanLog_ += "MenuMan      -> DIVERGENTE (causa por chefe desativada)\n";
+    } else if (clearMenuMan || getMenuMan) {
+        menuMan_ = clearMenuMan ? clearMenuMan : getMenuMan;
+        offBossGauge_ = clearMenuMan ? clearSlot0 : getSlot0;
+        snprintf(line, sizeof(line), "MenuMan      -> exe+%llX | barra de chefe +%X (passo %X)\n",
+                 (unsigned long long)(menuMan_ - base_), offBossGauge_, bossGaugeStride_);
+        scanLog_ += line;
+    } else {
+        scanLog_ += "MenuMan      -> NÃO ENCONTRADO (causa por chefe desativada)\n";
+    }
+
     return gameMan_ && gameDataMan_ && worldChrMan_;
 }
 
 void GameReader::Update()
 {
+    // Bloodborne (PC port): owns the state while its process is attached.
+    if (!proc_ && bb_->Update(state_)) return;
+
     ULONGLONG now = GetTickCount64();
     if (proc_ && !ProcessAlive()) Detach();
-    if (state_ == State::Ready) return;
+    if (state_ == State::Ready || state_ == State::Unsupported) return;   // Unsupported: wait until it closes
     if (now < nextTry_) return;
     nextTry_ = now + 2000;
 
     if (!proc_) {
-        DWORD pid = FindGamePid(game_);
+        const GameInfo* game = nullptr;
+        DWORD pid = FindGamePid(&game);
         if (!pid) { state_ = State::NotRunning; return; }
-        if (!OpenGame(pid)) return;
+        if (!OpenGame(pid, *game)) return;
     }
     state_ = State::Scanning;
     if (ScanPatterns()) {
@@ -329,9 +397,10 @@ uintptr_t GameReader::ReadPtr(uintptr_t addr) const
 bool GameReader::Read(GameSnapshot& s)
 {
     s = GameSnapshot{};
+    if (bb_->Attached()) return state_ == State::Ready && bb_->Read(s);
     if (state_ != State::Ready) return false;
     s.game = game_->id;
-    if (IsDs3()) { ds3_.Read(proc_, s); return true; }   // src/games/ds3.cpp
+    if (module_) return module_->Read(proc_, s);
 
     if (uintptr_t gdm = ReadPtr(gameDataMan_)) {
         s.gameDataOk = true;
@@ -371,6 +440,19 @@ bool GameReader::Read(GameSnapshot& s)
         }
     }
 
+    if (menuMan_ && offBossGauge_) {
+        if (uintptr_t mm = ReadPtr(menuMan_)) {
+            for (int i = 0; i < GameSnapshot::kBossSlots; ++i) {
+                // Empty slots hold -1/-1. Name ids come from a 16-bit field of the event script.
+                int32_t slot[2] = { -1, -1 };   // { nameId, chrHandle }
+                SIZE_T n = 0;
+                if (ReadProcessMemory(proc_, (LPCVOID)(mm + offBossGauge_ + i * bossGaugeStride_), slot, sizeof(slot), &n) &&
+                    n == sizeof(slot) && slot[0] > 0 && slot[0] <= 0x7FFF && slot[1] != -1)
+                    s.bossNameId[i] = slot[0];
+            }
+        }
+    }
+
     if (uintptr_t wcm = ReadPtr(worldChrMan_)) {
         if (uintptr_t pins = ReadPtr(wcm + 0x68)) {
             s.inWorld = true;
@@ -395,19 +477,22 @@ bool GameReader::Read(GameSnapshot& s)
 
 std::string GameReader::DiagnosticsText() const
 {
+    if (bb_->Attached()) return bb_->DiagnosticsText(state_);
     char b[512];
     std::string t;
     const char* st = "jogo não encontrado";
     switch (state_) {
         case State::AccessDenied: st = "acesso negado (o jogo está rodando como administrador?)"; break;
+        case State::Unsupported:  st = "versão não suportada"; break;
         case State::Scanning:     st = "analisando o executável..."; break;
         case State::Ready:        st = "conectado"; break;
         default: break;
     }
-    snprintf(b, sizeof(b), "Estado: %s\nJogo: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
-             st, state_ == State::NotRunning ? "-" : game_->title, pid_, (unsigned long long)base_, size_,
-             VersionName().c_str(), scanAttempts_);
+    snprintf(b, sizeof(b), "Jogo: %s\nEstado: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
+             game_->name, st, pid_, (unsigned long long)base_, size_, VersionName().c_str(), scanAttempts_);
     t += b;
+    if (!unsupported_.empty()) t += "Não suportado: " + unsupported_ + "\n";
     t += scanLog_;
+    if (module_ && state_ == State::Ready) t += module_->LiveDiagnostics();
     return t;
 }

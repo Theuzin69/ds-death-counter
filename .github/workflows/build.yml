@@ -36,6 +36,10 @@ jobs:
         shell: cmd
         run: tests\build_tests.bat
 
+      - name: Run tests
+        shell: cmd
+        run: build\tests\boss_cause_test.exe
+
       - name: Install Inno Setup
         shell: pwsh
         run: |
@@ -86,6 +90,8 @@ jobs:
           $changelog = Get-Content CHANGELOG.md -Raw -Encoding utf8
           $m = [regex]::Match($changelog, "(?ms)^## \[$([regex]::Escape($v))\][^\n]*\n(.*?)(?=^## \[|^\[[^\]]+\]:|\z)")
           $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "DS Death Counter $v" }
+          # Relative doc links from the changelog don't work on the release page
+          $notes = $notes.Replace('](docs/', "](https://github.com/$env:GITHUB_REPOSITORY/blob/v$v/docs/")
           $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
           $footer = Get-Content .github/release-notes-footer.md -Raw -Encoding utf8
           $footer = $footer.Replace('{{VERSION}}', $v).Replace('{{REPO}}', $env:GITHUB_REPOSITORY).Replace('{{RUN_URL}}', $runUrl)

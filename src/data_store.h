@@ -26,6 +26,11 @@ struct Settings {
     uint32_t colorNormal = 0xFFE8DFC8;  // ARGB
     uint32_t colorEdited = 0xFFFF8A2A;
     uint32_t colorOutline = 0xFF000000;
+
+    // Text file for OBS ("Text (GDI+)" source, "Read from file").
+    bool obsTextEnabled = false;
+    std::string obsTextPath;            // UTF-8; empty = %APPDATA%\DSDeathCounter\obs.txt
+    std::string obsTextFormat = "Mortes: {mortes}";
 };
 
 struct DeathRecord {
@@ -44,9 +49,9 @@ struct DeathRecord {
 };
 
 struct Profile {
-    std::string game = "dsr";   // GameInfo::id ("dsr", "ds3")
-    std::string key;            // "slot|name", "ds3|slot|name" for other games (+ "#N" when a slot was reused)
-    std::string baseKey;        // the key without "#N"
+    std::string game = "dsr";   // game id (games/games.h); data saved by 1.0.0 is Dark Souls Remastered
+    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character); other games: "ds2|slot|name"
+    std::string baseKey;        // "slot|name" (other games: "ds2|slot|name")
     std::string name;
     int slot = -1;
     int gameDeaths = 0;         // last value read from the game

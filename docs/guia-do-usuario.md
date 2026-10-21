@@ -7,6 +7,7 @@
 - [3. Enquanto você joga](#3-enquanto-você-joga)
 - [4. Personagens e contagens](#4-personagens-e-contagens)
 - [5. A lista de mortes](#5-a-lista-de-mortes)
+- [Sekiro: Shadows Die Twice](#sekiro)
 - [6. Configurações](#6-configurações)
 - [7. Lives (OBS)](#7-lives-obs)
 - [8. Seus dados](#8-seus-dados)
@@ -30,8 +31,7 @@ O app não tem assinatura digital, então na primeira vez o Windows mostra **"O 
 
 A tela *Bem-vindo ao DS Death Counter* pede duas coisas:
 
-1. **Vincular ao jogo.** O app procura o Dark Souls Remastered nas bibliotecas da Steam. Se não achar, clique em *Procurar DarkSoulsRemastered.exe…* e selecione o executável do jogo. O caminho só é usado pelo botão *Iniciar Dark Souls*: o contador reconhece o jogo aberto sozinho de qualquer jeito.
-   O **Dark Souls III** não precisa de nada aqui: sempre que o `DarkSoulsIII.exe` estiver aberto, o contador encontra o jogo sozinho.
+1. **Vincular ao jogo.** O app procura o Dark Souls Remastered nas bibliotecas da Steam. Se não achar, clique em *Procurar DarkSoulsRemastered.exe…* e selecione o executável do jogo. O caminho só é usado pelo botão *Iniciar Dark Souls*: o contador reconhece o jogo aberto sozinho de qualquer jeito. O Dark Souls II não precisa ser vinculado (veja [Dark Souls II](#dark-souls-ii-scholar-of-the-first-sin)).
 2. **Sempre ligado.** Deixe marcado *Iniciar com o Windows, minimizado na bandeja*. Assim o app abre junto com o Windows, fica na bandeja, e suas mortes são contadas sempre que você abrir o jogo, sem precisar lembrar de abrir o contador.
 
 Clique em *Começar*.
@@ -44,10 +44,13 @@ No topo da janela:
 
 | Status | Significado |
 |---|---|
-| *Aguardando o jogo abrir (Dark Souls Remastered ou Dark Souls III)…* | Nenhum jogo suportado está aberto. *Iniciar Dark Souls* abre o jogo definido em *Configurações*. |
-| *Dark Souls III encontrado, preparando a leitura…* | O jogo foi encontrado (aparece o nome dele) e o contador está localizando os dados (leva um instante). |
+| *Aguardando o jogo abrir…* | Nenhum jogo compatível está aberto. *Iniciar Dark Souls* abre o jogo definido em *Configurações*. |
+| *(jogo) encontrado, preparando a leitura…* | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
+| *Versão do jogo não suportada (…)* | Uma versão de 32 bits do jogo está aberta, como o Dark Souls II original. Só as versões de 64 bits são lidas. |
+| *Aguardando o Dark Souls Remastered ou o Sekiro abrir…* | Nenhum jogo compatível está aberto. *Iniciar Dark Souls* abre o jogo definido em *Configurações*. |
+| *Dark Souls Remastered encontrado, preparando a leitura…* (ou *Sekiro encontrado…*) | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Conectado; você está no menu principal. |
-| *Contando as mortes de NOME (slot N)* | Contando. |
+| *Contando as mortes de NOME (DSR, slot N)* | Contando (*DSR* ou *Sekiro*: o jogo desse personagem). |
 | *O jogo está rodando como administrador…* | O Windows bloqueou o acesso. Veja [Problemas comuns](#9-problemas-comuns). |
 
 ### O overlay
@@ -64,12 +67,22 @@ A contagem do personagem atual aparece num canto da janela do jogo (padrão: can
 
 Fechar a janela mantém o contador rodando na bandeja. Passe o mouse no ícone para ver a contagem atual. Botão direito: *Abrir*, *Mostrar overlay* e *Sair*.
 
+### Bloodborne (port de PC, experimental)
+
+O contador também funciona com o **Bloodborne PC Windows port** (v0.5, processo `bbport.exe`) rodando o Bloodborne 1.09. Abra o jogo do jeito que o port indica; o contador encontra o `bbport.exe` sozinho, do mesmo jeito que encontra o Dark Souls Remastered. (O botão *Iniciar Dark Souls* só abre o Dark Souls Remastered.)
+
+- Linha de status: *Bloodborne encontrado, preparando a leitura…*, depois *Conectado ao Bloodborne (port de PC, bbport.exe). Carregue um personagem.* e então *Contando as mortes de NOME (Bloodborne)*.
+- O que é lido: o contador de mortes do próprio jogo, o nome do personagem, o nível, o ciclo de NG+ e o tempo de jogo. Cada morte fica registrada com data/hora e tempo de jogo.
+- Ainda não disponível no Bloodborne: área, última lamparina e detecção de quedas (a área aparece como *Desconhecida*). Você ainda pode digitar a causa ou a área.
+- Os personagens do Bloodborne são separados pelo **nome** (o slot do save não é lido), então dois personagens do Bloodborne com o mesmo nome ficam numa entrada só.
+- O overlay funciona igual: use janela ou janela sem bordas nas configurações do port.
+- Esse suporte ainda não foi confirmado numa sessão de jogo de verdade. Se a contagem não subir quando você morrer, mande o texto do *Diagnóstico* num relato de bug.
+
 ## 4. Personagens e contagens
 
 A aba *Personagens* lista todos os personagens que o contador já viu (*Saves / personagens*). O que está sendo jogado agora tem uma bolinha verde e fica no topo.
 
-- **De qual jogo:** cada personagem mostra o jogo dele (*DSR* para Dark Souls Remastered, *DS3* para Dark Souls III) na lista e nos detalhes. Personagens de jogos diferentes nunca se misturam, mesmo com o mesmo nome e o mesmo slot.
-- **Como os personagens são separados:** pelo jogo, pelo slot do save e pelo nome. Se você apagar um personagem e criar outro com o mesmo nome no mesmo slot, o contador percebe que o tempo de jogo voltou a zero e começa uma contagem nova.
+- **Como os personagens são separados:** pelo jogo, pelo slot do save e pelo nome (no Sekiro, só pelo slot). Cada personagem da lista mostra o jogo dele (*DSR* ou *Sekiro*). Se você apagar um personagem e criar outro com o mesmo nome no mesmo slot, o contador percebe que o tempo de jogo voltou a zero e começa uma contagem nova.
 - **De onde vem o número:** o jogo guarda um contador de mortes por personagem dentro do save. O app lê esse contador, então o número é exato mesmo para mortes de antes de instalar o app ou de quando ele estava fechado.
 - *N morte(s) aconteceram antes do contador conhecer este personagem*: N mortes aconteceram antes de o app ver esse personagem pela primeira vez. Elas entram no total, mas sem detalhes na lista.
 
@@ -81,6 +94,15 @@ A aba *Personagens* lista todos os personagens que o contador já viu (*Saves / 
 - o número do overlay usa a cor de "editada".
 
 *Voltar à contagem do jogo* remove o ajuste. O contador do próprio jogo nunca é alterado.
+
+### Dark Souls II: Scholar of the First Sin
+
+O Dark Souls II é reconhecido do mesmo jeito: abra o jogo (`DarkSoulsII.exe`) e carregue um personagem. Não há nada para vincular ou configurar.
+
+- Cada personagem mostra uma etiqueta do jogo na lista (*DSR* ou *DS2*), e personagens de jogos diferentes nunca se misturam, mesmo com o mesmo nome e slot.
+- A contagem é o contador total de mortes que o próprio jogo guarda para o personagem, o mesmo número que fica no save, então as mortes de antes de você instalar o app entram no total.
+- O nível, o ciclo de NG+ e o tempo de jogo também vêm do jogo. O tempo de jogo é o mesmo do menu de carregar do jogo (ao segundo).
+- Só o **Scholar of the First Sin** (64 bits, a versão vendida na Steam) é suportado. O Dark Souls II original, de 2014, é um programa de 32 bits com outra organização da memória: o app mostra *Versão do jogo não suportada (DS2 de 32 bits)* em vez de chutar.
 
 ### Outras ações
 
@@ -100,15 +122,29 @@ A aba *Mortes* tem uma linha por morte, da mais recente para a mais antiga:
 | *Causa* | Causa da morte |
 | *Tempo de jogo* | Tempo de jogo naquele momento |
 
-- **Causa:** quedas são detectadas sozinhas (perda de mais de 10 m de altura logo antes de morrer) e marcadas como *Queda*. O jogo não guarda "quem te matou" num lugar que dê para ler com segurança; para o resto, **clique na célula da causa** e digite ou escolha uma sugestão (chefes, inimigos comuns, armadilhas, veneno, invasores…).
+- **Causa:** duas causas são preenchidas sozinhas:
+  - **Chefes.** Se a barra de vida de um chefe estava na tela quando você morreu, a causa é aquele chefe (por exemplo, *Chefe: Ornstein & Smough*), não importa o que deu o golpe final: o chefe, os ajudantes dele ou uma queda da arena. Os 26 chefes que têm barra de vida são reconhecidos. Os que não têm (como o Hellkite na ponte do Undead Burg) não são.
+  - **Quedas.** Fora isso, perder mais de 10 m de altura logo antes de morrer vira *Queda*.
+
+  O jogo não guarda "qual inimigo te matou" num lugar que dê para ler com segurança; para o resto, **clique na célula da causa** e digite ou escolha uma sugestão (inimigos comuns, armadilhas, veneno, invasores…). As causas automáticas podem ser corrigidas do mesmo jeito.
 - **Botão direito numa linha** para editar a causa, editar a área ou excluir aquele registro (excluir um registro não muda a contagem).
 - **Linhas cinzas** (*Não registrada (contador fechado)*) são mortes que aconteceram com o contador fechado. Elas contam, mas não têm detalhes.
 - **Filtro:** digite na caixa acima da lista para filtrar por área, fogueira ou causa.
 - *Por área* / *Por causa* mostram onde e como você mais morre, com porcentagens.
 
-As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). Se uma morte caiu no mapa errado, corrija com botão direito → *Editar área*.
+As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). No Dark Souls II é igual (*The Lost Bastille / Sinners' Rise / Belfry Luna*, *Harvest Valley / Earthen Peak*…); um mapa que o app ainda não conhece aparece como *Mapa mAA_BB*. Se uma morte caiu no mapa errado, corrija com botão direito → *Editar área*.
 
-**Dark Souls III:** as áreas também são os mapas do DS3, e alguns juntam duas ou três regiões (*Road of Sacrifices / Farron Keep*, *Irithyll Dungeon / Profaned Capital*). A coluna *Última fogueira* mostra o mapa da fogueira mais o id que o jogo usa para ela (por exemplo *Firelink Shrine / Cemetery of Ash / Untended Graves (#4002950)*), e não o nome exato da fogueira. As sugestões de causa trazem os chefes do DS3.
+<a id="sekiro"></a>
+
+## Sekiro: Shadows Die Twice
+
+O contador também reconhece o **Sekiro** (`sekiro.exe`, versão 1.06, a atual da Steam; versões anteriores provavelmente funcionam, mas não foram testadas). É só abrir o jogo: tudo o que está acima funciona igual, com estas diferenças.
+
+- **Só mortes de verdade.** O contador de mortes do próprio Sekiro sobe quando aparece a tela de morte, não quando você cai. Ressuscitar não muda a contagem; morrer de verdade (escolher morrer em vez de ressuscitar, ou cair sem nenhuma ressurreição sobrando) muda. É o contador que o próprio jogo guarda, o mesmo que outros contadores, como o DSDeaths, mostram.
+- **Um personagem por slot.** O Sekiro não tem nome de personagem, então cada slot é um personagem, mostrado como *Personagem do slot N* e marcado como *Sekiro*. A linha dele mostra o tempo de jogo e o ciclo de NG+ (não existe nível de personagem).
+- **Área** é o mapa em que você estava: *Hirata Estate*, *Ashina Outskirts* (inclui o Dilapidated Temple), *Ashina Castle*, *Ashina Reservoir*, *Abandoned Dungeon*, *Sunken Valley / Ashina Depths* (Sunken Valley, Gun Fort, Poison Pool…), *Ashina Depths (Hidden Forest / Mibu Village)*, *Senpou Temple, Mt. Kongo* e *Fountainhead Palace*.
+- **Último ídolo:** no lugar de *Última fogueira* a lista tem *Último ídolo (área)*: a área do Ídolo do Escultor para onde você volta (o ponto de retorno do jogo). O jogo guarda esse ídolo só como um número, então o app mostra a área, não o nome do ídolo; passe o mouse na célula para ver o número.
+- **Sem detecção automática de queda:** no Sekiro as quedas grandes não machucam, só os abismos, então *Queda* nunca é preenchida sozinha. As sugestões de causa trazem os chefes e subchefes do Sekiro.
 
 ## 6. Configurações
 
@@ -130,6 +166,9 @@ As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blig
 | *Cor normal* / *Cor quando a contagem foi editada* / *Cor do contorno* | Cores |
 | *Pré-visualizar o overlay agora* | Mostra o overlay na hora (sobre o jogo, se estiver aberto; senão sobre o monitor) enquanto você ajusta |
 | *Deixar a janela do jogo sem bordas* | Tira a borda da janela do jogo e a deixa do tamanho do monitor |
+| *Gravar a contagem num arquivo de texto para o OBS* | Grava a contagem num arquivo de texto que o OBS mostra (desligado por padrão, veja [Lives](#7-lives-obs)) |
+| *Texto no OBS* | O que vai no arquivo: `{mortes}` vira a contagem e `{nome}`, o nome do personagem |
+| *Arquivo* / *Escolher arquivo…* / *Usar o padrão* / *Abrir pasta* / *Copiar caminho* | Onde o arquivo é gravado (padrão `%APPDATA%\DSDeathCounter\obs.txt`) |
 | *Abrir pasta de dados* | Abre a pasta onde seus dados ficam |
 
 ## 7. Lives (OBS)
@@ -139,7 +178,29 @@ O overlay é desenhado numa janela própria por cima do jogo, e não dentro do j
 - **Captura de tela** (Display Capture) no OBS mostra o overlay;
 - **Captura de jogo** (Game Capture) e **Captura de janela** do jogo **não mostram**.
 
-Está nos planos uma fonte de texto para o OBS (um arquivo com a contagem atual).
+Com Captura de jogo ou Captura de janela, use o arquivo de texto para o OBS: o app mantém a contagem atual num pequeno arquivo de texto, e uma fonte de texto do OBS mostra esse arquivo. Você posiciona e estiliza a fonte no OBS como qualquer outra.
+
+### Configurando a fonte de texto
+
+1. No app, abra *Configurações* → *OBS (lives)* e marque *Gravar a contagem num arquivo de texto para o OBS*. A linha *Gravando: …* mostra o que está no arquivo.
+2. Opcional: mude o *Texto no OBS* (padrão `Mortes: {mortes}`), por exemplo para `{nome}: {mortes} mortes`.
+3. Clique em *Copiar caminho* para copiar o local do arquivo. O padrão é `%APPDATA%\DSDeathCounter\obs.txt`; *Escolher arquivo…* escolhe outro arquivo `.txt` e *Usar o padrão* volta para o padrão.
+4. No OBS, no painel **Fontes**, clique em **+** e escolha **Texto (GDI+)**. Dê um nome (ex.: "Mortes") e clique em **OK**.
+5. Na janela de propriedades, marque **Carregar do arquivo**, clique em **Procurar** ao lado de **Arquivo de texto (UTF-8)** e escolha o arquivo (dá para colar o caminho copiado na janela de seleção). Clique em **OK**.
+6. Escolha fonte, tamanho, cor e contorno nessa mesma janela. Arraste a fonte para onde quiser e deixe-a acima da captura do jogo na lista de Fontes.
+
+O arquivo muda logo depois de cada morte (o OBS confere o arquivo mais ou menos uma vez por segundo). Ele mostra o personagem que está sendo jogado; com o jogo fechado, continua mostrando o último personagem jogado.
+
+Marcadores do *Texto no OBS*:
+
+| Marcador | Vira |
+|---|---|
+| `{mortes}` (ou `{deaths}`) | A contagem de mortes, o mesmo número que o app mostra (incluindo edições manuais) |
+| `{nome}` (ou `{name}`) | O nome do personagem |
+
+O resto é gravado do jeito que você digitou: `{nome}: {mortes} mortes` vira `Chosen Undead: 42 mortes`.
+
+Se o app mostrar *Não foi possível gravar o arquivo*, a pasta escolhida não existe mais ou não aceita gravação: escolha outro arquivo ou clique em *Usar o padrão*.
 
 ## 8. Seus dados
 
@@ -151,6 +212,8 @@ Tudo fica num único arquivo:
 
 Ele guarda configurações, personagens e o histórico completo. Para fazer backup ou levar para outro PC, copie esse arquivo (com o app fechado). Desinstalar o app não apaga o arquivo.
 
+Se o arquivo de texto para o OBS estiver ligado, o `obs.txt` fica na mesma pasta (no local padrão). Ele só guarda o texto mostrado no OBS e é regravado quando preciso, então não precisa de backup.
+
 ## 9. Problemas comuns
 
 **"O jogo está rodando como administrador"**: o Windows não deixa um programa comum ler um programa aberto como administrador. Abra o jogo normalmente, ou abra o contador como administrador também.
@@ -161,13 +224,17 @@ Ele guarda configurações, personagens e o histórico completo. Para fazer back
 - o overlay some quando o jogo não é a janela ativa e no menu principal (as duas coisas são configuráveis);
 - teste com *Pré-visualizar o overlay agora*.
 
+**O overlay não aparece no OBS:** a Captura de jogo e a Captura de janela não pegam o overlay. Use o [arquivo de texto para o OBS](#7-lives-obs).
+
 **A contagem diminuiu:** você restaurou uma cópia antiga do save. O contador segue o número do próprio jogo.
 
 **Um personagem aparece duas vezes:** o personagem é identificado por slot + nome, então se ele mudou de slot (por exemplo, copiando arquivos de save), é visto como novo. Exclua a duplicata no app, se quiser.
 
-**O Dark Souls III não está contando:** o contador foi conferido com a versão 1.15.0 do DS3. Em outra versão, o *Diagnóstico* mostra quais assinaturas foram encontradas (`GameDataMan -> exe+… (3/3 assinaturas)`); `NÃO ENCONTRADO` ou `DIVERGENTE` quer dizer que essa versão ainda não é suportada. Por favor, avise mandando o texto do *Diagnóstico*.
+**O Dark Souls II mostra *Versão do jogo não suportada (DS2 de 32 bits)*:** você está jogando o Dark Souls II original, de 2014. Só o Scholar of the First Sin é suportado.
 
-**Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição…).
+**O Bloodborne não é detectado:** o contador procura o processo do jogo no port, `bbport.exe`, e foi conferido com o port v0.5 e o Bloodborne 1.09. Outros ports, emuladores e versões do jogo não são suportados. Se o *Diagnóstico* mostrar *NÃO ENCONTRADO*, os dados do jogo não foram reconhecidos; mande esse texto num relato de bug.
+
+**Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição, barras de chefe…).
 
 **O antivírus reclamou:** veja a [seção sobre SmartScreen/antivírus](../README.pt-BR.md#smartscreen). O app lê a memória de outro programa, o que alguns antivírus estranham. Ele nunca escreve no jogo.
 

@@ -1,5 +1,6 @@
 #pragma once
-// Read-only access to the game's memory (DarkSoulsRemastered.exe, DarkSoulsIII.exe).
+// Read-only access to the game's memory (DarkSoulsRemastered.exe here; the other games
+// in src/games/ plug in through GameModule).
 //
 // Only ReadProcessMemory is used: nothing is written to the game, nothing is
 // injected and no hooks are installed. The game cannot tell the difference
@@ -7,28 +8,17 @@
 
 #include <windows.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
-#include "games/ds3.h"
+#include "games/games.h"
+
+namespace bb { class Reader; }   // games/bloodborne.h
 
 struct Vec3 { float x = 0, y = 0, z = 0; };
 
-// Games the counter recognizes. `id` is stored in each Profile ("dsr" for Dark Souls Remastered).
-struct GameInfo {
-    const char*    id;
-    const wchar_t* exe;
-    const char*    title;
-    const char*    shortName;
-};
-const GameInfo* FindGameById(const std::string& id);   // nullptr if unknown
-const GameInfo* FindGameByExe(const std::wstring& exeFileName);
-std::string SupportedGamesText();                       // "Dark Souls Remastered ou Dark Souls III"
-
-// Every match offset of a byte pattern ("48 8B 05 ? ? ? ?") inside an image copy.
-std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern);
-
 struct GameSnapshot {
-    std::string game = "dsr";       // GameInfo::id of the game being read
+    std::string game      = "dsr";  // id of the game this came from (games/games.h)
     bool     gameDataOk   = false;  // GameDataMan resolved (game finished booting)
     bool     charLoaded   = false;  // a character is loaded (name valid, play time > 0)
     bool     inWorld      = false;  // player entity exists (not main menu / loading screen)
@@ -45,14 +35,20 @@ struct GameSnapshot {
     int      hp           = -1;
     bool     hasPos       = false;
     Vec3     pos;
-    std::string areaName;           // UTF-8 area name filled by the non-DSR game modules ("" = unknown)
+    std::string areaName;           // UTF-8 area label from the game module ("" = DSR: from mapArea/mapBlock)
+    // Boss health bars on screen: the NPC name id each bar shows, -1 when the slot is empty.
+    // The game fills these when a boss fight starts and clears them when the boss dies or
+    // the area reloads, so "a bar was up when the player died" means "died in that fight".
+    static constexpr int kBossSlots = 2;
+    int      bossNameId[kBossSlots] = { -1, -1 };
 };
 
 class GameReader {
 public:
-    enum class State { NotRunning, AccessDenied, Scanning, Ready };
+    enum class State { NotRunning, AccessDenied, Unsupported, Scanning, Ready };
 
-    ~GameReader() { Detach(); }
+    GameReader();
+    ~GameReader();
 
     // Looks for the game process and resolves pointers. Cheap to call repeatedly.
     void Update();
@@ -60,30 +56,30 @@ public:
     void Detach();
 
     State state() const { return state_; }
-    DWORD pid() const { return pid_; }
+    DWORD pid() const;
     bool  IsReady() const { return state_ == State::Ready; }
-    const GameInfo& game() const { return *game_; }   // the game found (or last found)
     std::wstring ProcessPath() const;
     std::string VersionName() const;
     std::string DiagnosticsText() const;
+    const GameInfo& game() const;
+    std::string GameId() const { return game().id; }
+    const std::string& UnsupportedReason() const { return unsupported_; }
 
     // Resolves globals and offsets from a copy of the exe image (base/size must be set).
     // Public so it can be exercised against the exe file on disk.
     bool AnalyzeImage(const std::vector<uint8_t>& img);
-    void SetModuleForAnalysis(uintptr_t base, uint32_t size, const GameInfo* game = nullptr)
-    {
-        base_ = base; size_ = size;
-        if (game) game_ = game;
-    }
+    void SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId = "dsr");
+    GameModule* module() const { return module_.get(); }
     uintptr_t GameManAddr() const { return gameMan_; }
     uintptr_t GameDataManAddr() const { return gameDataMan_; }
     uintptr_t WorldChrManAddr() const { return worldChrMan_; }
+    uintptr_t MenuManAddr() const { return menuMan_; }
+    int BossGaugeOffset() const { return offBossGauge_; }
+    int BossGaugeStride() const { return bossGaugeStride_; }
     const std::string& ScanLog() const { return scanLog_; }
-    const Ds3Reader& Ds3() const { return ds3_; }
 
 private:
-    bool IsDs3() const { return game_->id == std::string("ds3"); }
-    bool OpenGame(DWORD pid);
+    bool OpenGame(DWORD pid, const GameInfo& game);
     bool ScanPatterns();
     bool ProcessAlive() const;
 
@@ -94,8 +90,10 @@ private:
     }
 
     State     state_ = State::NotRunning;
-    const GameInfo* game_ = FindGameById("dsr");
-    Ds3Reader ds3_;
+    const GameInfo* game_ = &GameById("dsr");
+    std::unique_ptr<GameModule> module_;   // games other than DSR
+    std::unique_ptr<bb::Reader> bb_;       // Bloodborne PC port: its own reader, used while no other game is attached
+    std::string unsupported_;
     HANDLE    proc_ = nullptr;
     DWORD     pid_ = 0;
     uintptr_t base_ = 0;
@@ -105,6 +103,7 @@ private:
 
     // Addresses of the game's global pointers (static variables in the exe)
     uintptr_t gameMan_ = 0, gameDataMan_ = 0, worldChrMan_ = 0;
+    uintptr_t menuMan_ = 0;     // optional: only used for the boss health bars
 
     // Version dependent offsets
     bool newLayout_ = true;     // 1.03+ (current Steam build) vs 1.01.x
@@ -113,5 +112,7 @@ private:
     int  offStableMap_ = 0xBD0;
     int  offChrMapData_ = 0x68;
     int  offHp_ = 0x3E8;
+    int  offBossGauge_ = 0;     // MenuMan offset of boss bar slot 0 (0 = not found)
+    int  bossGaugeStride_ = 0x14;
     std::string scanLog_;
 };

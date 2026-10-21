@@ -30,6 +30,9 @@ json ToJson(const Settings& s)
         { "colorNormal", s.colorNormal },
         { "colorEdited", s.colorEdited },
         { "colorOutline", s.colorOutline },
+        { "obsTextEnabled", s.obsTextEnabled },
+        { "obsTextPath", s.obsTextPath },
+        { "obsTextFormat", s.obsTextFormat },
     };
 }
 
@@ -57,6 +60,9 @@ void FromJson(const json& j, Settings& s)
     s.colorNormal = j.value("colorNormal", d.colorNormal);
     s.colorEdited = j.value("colorEdited", d.colorEdited);
     s.colorOutline = j.value("colorOutline", d.colorOutline);
+    s.obsTextEnabled = j.value("obsTextEnabled", d.obsTextEnabled);
+    s.obsTextPath = j.value("obsTextPath", d.obsTextPath);
+    s.obsTextFormat = j.value("obsTextFormat", d.obsTextFormat);
 }
 
 json ToJson(const DeathRecord& r)
@@ -98,7 +104,8 @@ json ToJson(const Profile& p)
     json deaths = json::array();
     for (const auto& r : p.deaths) deaths.push_back(ToJson(r));
     return json{
-        { "game", p.game }, { "key", p.key }, { "baseKey", p.baseKey }, { "name", p.name }, { "slot", p.slot },
+        { "game", p.game },
+        { "key", p.key }, { "baseKey", p.baseKey }, { "name", p.name }, { "slot", p.slot },
         { "gameDeaths", p.gameDeaths }, { "baseDeaths", p.baseDeaths }, { "offset", p.offset },
         { "edited", p.edited }, { "playTimeMs", p.playTimeMs }, { "soulLevel", p.soulLevel },
         { "ngPlus", p.ngPlus }, { "firstSeen", p.firstSeen }, { "lastSeen", p.lastSeen },
@@ -109,7 +116,7 @@ json ToJson(const Profile& p)
 Profile ProfileFromJson(const json& j)
 {
     Profile p;
-    p.game = j.value("game", std::string("dsr"));   // 1.0.0 files only had Dark Souls Remastered
+    p.game = j.value("game", std::string("dsr"));
     p.key = j.value("key", std::string());
     p.baseKey = j.value("baseKey", p.key);
     p.name = j.value("name", std::string());
