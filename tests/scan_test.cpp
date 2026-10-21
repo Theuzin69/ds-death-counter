@@ -2,9 +2,11 @@
 // Useful to check a new game version without launching it:
 //   build\tests\scan_test.exe "C:\...\DarkSoulsRemastered.exe"
 //   build\tests\scan_test.exe "C:\...\DarkSoulsII.exe"
+//   build\tests\scan_test.exe "C:\...\sekiro.exe"
 // The game is picked from the file name (as the app does from the process name).
 #include "game_reader.h"
 #include "games/ds2.h"
+#include "games/sekiro.h"
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
@@ -75,6 +77,20 @@ int wmain(int argc, wchar_t** argv)
                          L.offMapTable == 0x10 && L.offMapCount == 0x18 && L.offMapIds == 0x20 &&
                          L.offEventMan == 0x70 && L.offBonfireArea == 0x164 && L.offBonfireId == 0x16C;
             printf("Conferencia SotFS 1.02: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    }
+    if (game->id == std::string("sekiro")) {
+        // Every signature must resolve (exactly one match, independent ones agreeing).
+        const std::string& log = reader.ScanLog();
+        bool all = log.find("NÃO ENCONTRADO") == std::string::npos && log.find("DIVERGENTE") == std::string::npos;
+        printf("Todas as assinaturas: %s\n", all ? "OK" : "FALTANDO");
+        ok = ok && all;
+        if (sizeOfImage == 0x42D2000) {   // 1.05/1.06: compare with the addresses found by hand in 1.06
+            const SekiroReader& sk = static_cast<SekiroModule*>(reader.module())->reader();
+            bool match = sk.GameDataManAddr() - imageBase == 0x3D5AAC0 && sk.GameManAddr() - imageBase == 0x3D5C0D0 &&
+                         sk.WorldChrManAddr() - imageBase == 0x3D7A1E0 && sk.FieldAreaAddr() - imageBase == 0x3D5C0A0;
+            printf("Conferencia Sekiro 1.06: %s\n", match ? "OK" : "DIFERENTE");
             ok = ok && match;
         }
     }

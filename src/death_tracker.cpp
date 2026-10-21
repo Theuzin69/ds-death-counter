@@ -1,5 +1,6 @@
 #include "death_tracker.h"
 #include "ds1_data.h"
+#include "games/games.h"
 #include "util.h"
 #include <algorithm>
 
@@ -160,8 +161,9 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
     if (haveSample) last = history_.back();
 
     // Fall heuristic: lost more than 10 m of height in the 4 seconds before dying.
+    // Only where falls hurt (not Sekiro: big drops are harmless there, only pits kill).
     bool fell = false;
-    if (haveSample) {
+    if (haveSample && GameById(p.game).fallHeuristic) {
         float peak = last.pos.y;
         for (const auto& h : history_)
             if (last.t - h.t <= 4000) peak = std::max(peak, h.pos.y);

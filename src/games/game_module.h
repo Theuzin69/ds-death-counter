@@ -27,3 +27,7 @@ public:
 
 // Every offset of `pattern` ("48 8B ? ? 05", '?' = any byte) inside `img`.
 std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern);
+// True if `pattern` matches at offset `at` of `img`.
+bool PatternAt(const std::vector<uint8_t>& img, size_t at, const char* pattern);
+// Little-endian int32 at `at` (0 if out of range).
+int32_t ImageI32(const std::vector<uint8_t>& img, size_t at);

@@ -2,12 +2,13 @@
 #include "ds1_data.h"
 
 extern const GameInfo kDs2Info;
+extern const GameInfo kSekiroInfo;
 
 namespace {
 
 const GameInfo kDsrInfo = {
     "dsr", L"DarkSoulsRemastered.exe", "Dark Souls Remastered", "DSR", nullptr,
-    Ds1BonfireName, Ds1AllMapNames, Ds1CauseSuggestions,
+    Ds1BonfireName, Ds1AllMapNames, Ds1CauseSuggestions, "Última fogueira", true, true,
 };
 
 } // namespace
@@ -17,6 +18,7 @@ const std::vector<const GameInfo*>& AllGames()
     static const std::vector<const GameInfo*> list = {
         &kDsrInfo,
         &kDs2Info,
+        &kSekiroInfo,
     };
     return list;
 }

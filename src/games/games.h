@@ -16,6 +16,9 @@ struct GameInfo {
     std::string (*bonfireName)(int id);        // "" when unknown
     const std::vector<std::string>& (*allMapNames)();       // suggestions when editing an area
     const std::vector<std::string>& (*causeSuggestions)();  // suggestions when editing a cause
+    const char*    checkpointLabel;  // column title for bonfireName ("Última fogueira", "Último ídolo (área)")
+    bool           hasLevel;         // the character has a level worth showing
+    bool           fallHeuristic;    // big height loss before dying means a fall death
 };
 
 const std::vector<const GameInfo*>& AllGames();

@@ -108,6 +108,20 @@ std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pat
     return FindAll(img, pattern);
 }
 
+bool PatternAt(const std::vector<uint8_t>& img, size_t at, const char* pattern)
+{
+    Pattern p = ParsePattern(pattern);
+    if (at > img.size() || img.size() - at < p.bytes.size()) return false;
+    for (size_t k = 0; k < p.bytes.size(); ++k)
+        if (p.fixed[k] && img[at + k] != p.bytes[k]) return false;
+    return true;
+}
+
+int32_t ImageI32(const std::vector<uint8_t>& img, size_t at)
+{
+    return at + 4 <= img.size() ? ReadI32(img, at) : 0;
+}
+
 void GameReader::SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId)
 {
     base_ = base;

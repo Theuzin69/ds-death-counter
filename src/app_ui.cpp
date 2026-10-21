@@ -238,9 +238,11 @@ void App::UiProfilesTab()
         std::string name = p.name.empty() ? "(sem nome)" : p.name;
         dl->AddText(fontBold_, fontBold_->FontSize, ImVec2(a.x + pad, a.y + pad * 0.5f),
                     ImGui::GetColorU32(ImGuiCol_Text), name.c_str(), nullptr, 0.0f, &clip);
-        char sub[96];
-        snprintf(sub, sizeof(sub), "%s  ·  Slot %s  ·  Nível %d%s%s", GameById(p.game).shortName, SlotText(p.slot).c_str(), p.soulLevel,
-                 p.ngPlus > 0 ? "  ·  NG+" : "", p.ngPlus > 0 ? std::to_string(p.ngPlus).c_str() : "");
+        const GameInfo& pg = GameById(p.game);
+        std::string subText = std::string(pg.shortName) + "  ·  Slot " + SlotText(p.slot);
+        if (pg.hasLevel) subText += "  ·  Nível " + std::to_string(p.soulLevel);
+        if (p.ngPlus > 0) subText += "  ·  NG+" + std::to_string(p.ngPlus);
+        const char* sub = subText.c_str();
         bool isActive = active && active->key == p.key;
         float subX = a.x + pad;
         if (isActive) {
@@ -273,8 +275,9 @@ void App::UiProfileDetail(Profile& p)
         ImGui::TextColored(kGreen, "\xE2\x97\x8F no jogo agora");
     }
     std::string cycle = p.ngPlus > 0 ? "NG+" + std::to_string(p.ngPlus) : std::string("NG");
-    ImGui::TextDisabled("%s  ·  Slot %s  ·  Nível %d  ·  %s  ·  Tempo de jogo %s", GameById(p.game).name, SlotText(p.slot).c_str(),
-                        p.soulLevel, cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
+    std::string level = GameById(p.game).hasLevel ? "  ·  Nível " + std::to_string(p.soulLevel) : std::string();
+    ImGui::TextDisabled("%s  ·  Slot %s%s  ·  %s  ·  Tempo de jogo %s", GameById(p.game).name, SlotText(p.slot).c_str(),
+                        level.c_str(), cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
     ImGui::TextDisabled("Acompanhado desde %s  ·  visto por último em %s", p.firstSeen.c_str(), p.lastSeen.c_str());
 
     ImVec4 col = Argb(p.edited ? s.colorEdited : s.colorNormal);
@@ -334,7 +337,7 @@ void App::UiProfileDetail(Profile& p)
 void App::UiDeathTable(Profile& p)
 {
     ImGui::SetNextItemWidth(300 * dpiScale_);
-    ImGui::InputTextWithHint("##filter", "Filtrar por área, fogueira ou causa...", &deathFilter_);
+    ImGui::InputTextWithHint("##filter", "Filtrar por área, ponto de retorno ou causa...", &deathFilter_);
     ImGui::SameLine();
     ImGui::TextDisabled("Clique na causa para editar  ·  botão direito na linha para mais opções");
 
@@ -360,7 +363,7 @@ void App::UiDeathTable(Profile& p)
         ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 56 * dpiScale_);
         ImGui::TableSetupColumn("Data / hora", ImGuiTableColumnFlags_WidthFixed, 150 * dpiScale_);
         ImGui::TableSetupColumn("Área", ImGuiTableColumnFlags_WidthStretch, 2.2f);
-        ImGui::TableSetupColumn("Última fogueira", ImGuiTableColumnFlags_WidthStretch, 1.6f);
+        ImGui::TableSetupColumn(game.checkpointLabel, ImGuiTableColumnFlags_WidthStretch, 1.6f);
         ImGui::TableSetupColumn("Causa", ImGuiTableColumnFlags_WidthStretch, 1.6f);
         ImGui::TableSetupColumn("Tempo de jogo", ImGuiTableColumnFlags_WidthFixed, 100 * dpiScale_);
         ImGui::TableHeadersRow();
