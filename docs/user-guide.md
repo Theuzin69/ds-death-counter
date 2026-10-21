@@ -106,6 +106,16 @@ Dark Souls II is recognized the same way: start the game (`DarkSoulsII.exe`) and
 - The level, NG+ cycle and play time come from the game too. The play time is the one shown in the game's load menu (to the second).
 - Only **Scholar of the First Sin** (64-bit, the version Steam sells) is supported. The original Dark Souls II from 2014 is a 32-bit program with a different memory layout: the app shows *Versão do jogo não suportada (DS2 de 32 bits)* instead of guessing.
 
+### Dark Souls III
+
+Dark Souls III (`DarkSoulsIII.exe`) is recognized the same way: start the game and load a character. There is nothing to link or configure.
+
+- Characters are tagged *DS3* and are told apart by save slot and name, like in Dark Souls Remastered. The count is the game's own per-character death counter, so deaths from before you installed the app are included.
+- **Area** is the map you were on: *High Wall of Lothric*, *Lothric Castle / Consumed King's Garden*, *Undead Settlement*, *Road of Sacrifices / Farron Keep*, *Cathedral of the Deep*, *Catacombs of Carthus / Smouldering Lake*, *Irithyll of the Boreal Valley / Anor Londo*, *Irithyll Dungeon / Profaned Capital*, *Grand Archives*, *Archdragon Peak*, *Kiln of the First Flame*, *Firelink Shrine / Cemetery of Ash / Untended Graves* and the DLC maps (*Painted World of Ariandel*, *The Dreg Heap*, *The Ringed City*, *Filianore's Rest*). Some maps cover two or three regions.
+- **Última fogueira** shows the map the bonfire belongs to plus the game's id for it (e.g. *Firelink Shrine / Cemetery of Ash / Untended Graves (#4002950)*). The game keeps the bonfire only as a number, so its exact name isn't shown.
+- Falls are detected like in Dark Souls Remastered, and the cause suggestions list Dark Souls III's bosses.
+- It was checked against version 1.15.0. On the current Steam version (1.15.1 / 1.15.2) it should work the same, since everything is found by code signatures; if the count doesn't go up, *Diagnóstico* shows `NÃO ENCONTRADO` or `DIVERGENTE` next to what's missing. Please send that text in a bug report.
+
 ### Other actions
 
 - *Exportar CSV…* saves the character's death list as a spreadsheet file (`;`-separated, UTF-8, opens in Excel).

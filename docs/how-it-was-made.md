@@ -123,6 +123,35 @@ DS2 has no running play-time counter. The game's own *GetPlayTimeSeconds* adds t
 - **Last bonfire.** It's at `[GameManagerImp + 0x70] + 0x16C`, with names from the same list (MIT license).
 
 **Signatures checked.** The app uses 13 signatures. Each one must match exactly once in the 1.02 executable, and the offsets they contain are read from the code at runtime. If one isn't found (for example in a future patch), the 1.02 value is used and the *Diagnóstico* tab marks it with `*`. `tests/scan_test` recognizes `DarkSoulsII.exe` and compares every value with the ones checked by hand. Not verified statically: the player position (`[PlayerCtrl + 0x100] + 0x80`, from SoulSplitter, only used for fall detection) and the "in the world" rule (`PlayerCtrl` exists, as in DS2S-META). Both are on the list to confirm in the game.
+
+## Adding Dark Souls III
+
+Dark Souls III support was added the same way, by another Claude Code session: static analysis of the executable (read as a file, never run), byte signatures written for this app that must match **exactly once**, and **independent signatures for the same structure that must agree**. The code is in `src/games/ds3.cpp` (signatures, offsets, reads) and `src/games/ds3_data.cpp` (map names, cause suggestions).
+
+**The executable.** The copy available was `DarkSoulsIII.exe` **1.15.0.0** (PE timestamp 2017-08-08, module size `0x63DF000`). Steam currently ships **1.15.1 / 1.15.2**, which couldn't be analyzed. DSDeaths' fixed address for the newer build (`exe+0x47572B8`) appears nowhere in 1.15.0, so the globals did move. That's why the app finds everything through signatures and reads most offsets from the game's own code.
+
+**What is read and how each value was confirmed** (1.15.0):
+
+| Value | Where | How it was confirmed |
+|---|---|---|
+| `GameDataMan` | `exe+0x4740178` | 3 signatures agree: SoulMemory's, the game's `AddDeathCount` function and the play-time update |
+| Death counter | `GameDataMan + 0x98` | The script binding `AddDeathCount` ends in a small function that adds to this field (saturating at 0xFFFFFFFF); the save loader reads it from the save and a new game zeroes it |
+| Play time (ms) | `GameDataMan + 0xA4` | Code that adds the frame time and caps it at 999:59:59 (0xD693A018) |
+| NG+ cycle | `GameDataMan + 0x78` | Read from the save and clamped to 0..9999 by the save loader |
+| Character name | `[GameDataMan + 0x10] + 0x88` | `PlayerGameData`'s save loader terminates a 16-character UTF-16 name there |
+| Soul level | `PlayerGameData + 0x70` | Copied together with souls (+0x74) and total souls (+0x78, compared against 999,999,999), in the order of the debug labels *SoulLv*, *Soul* and *Total Get Soul* |
+| `WorldChrMan` / player | `exe+0x4768E78`, `+0x80` | 2 signatures agree: SoulMemory's and a small "is the player present" function that also gives the `+0x80` |
+| `GameMan` | `exe+0x4743AB0` | 3 signatures agree: the respawn-point setter, its getter and the new-game code that stores the save slot. The constructor stores the object in that same global |
+| Save slot | `GameMan + 0xA60` | A new game stores the first free slot of 10 there (or -1) |
+| Last bonfire | `GameMan + 0xACC` | The respawn point id: the getter returns it (or a temporary override at +0xAD0); the save loader and the script bindings set it |
+| HP | `PlayerIns + 0x1F90` → `+0x18` → `+0xD8` | Callers of `SprjChrDataModule::SetHp` pass this module, and `SetHp` clamps +0xD8 to the max HP at +0xDC |
+| Position | `PlayerIns + 0x1F90` → `+0x68` → `+0x80` | The character modules are registered by index; index 13 (`+0x68`) is `SprjChrPhysicsModule`. Its update moves the previous position to +0x90 and writes the new one to +0x80 (a `float4` that starts as 0, 0, 0, 1) |
+| Current map | `PlayerIns + 0x1ABC` | Updated whenever the floor (collision) under a character changes. The game builds it from the collision's *play region* id as a decimal number `AABKCC`, where `AA` is the map area and `B` the block, so Lothric Castle (`m30_01`) gives `301xxx` |
+| Loaded map (fallback) | `FieldArea` `exe+0x4743A80`, block index `+0x20` into the world block list at `[+0x10] + 0x20` (0x70-byte entries, map id at `+0x8`) | 2 signatures agree for `FieldArea`; the code behind the game's "current map id" function gives the rest. It only changes when a map loads or the player warps, so it is used when the play region is unknown and shown in *Diagnóstico* to cross-check |
+
+Map names (`mAA_BB`) are a small table in `ds3_data.cpp`. Bonfire and respawn ids follow the game's entity id scheme `AABxxxx` (e.g. `4002950` is in `m40_00`), so the *Última fogueira* column shows the map the bonfire belongs to plus its id rather than the bonfire's exact name. Bonfire names live in the game's data archives, which weren't extracted.
+
+`tests/scan_test` recognizes `DarkSoulsIII.exe`, checks that all 14 signatures were found and compares every address and offset with the 1.15.0 values above. Dark Souls III characters are stored under keys that start with `ds3|`.
 <a id="sekiro"></a>
 
 ## Adding Sekiro: Shadows Die Twice
@@ -185,6 +214,7 @@ All of this comes from static analysis of the 1.01 executable. Two things still 
 - Exclusive fullscreen may hide the overlay; windowed/borderless always works.
 - The interface is in Portuguese only (English is planned).
 - Dark Souls II: only Scholar of the First Sin (64-bit) is supported; the current Steam build (1.03) is found by signatures but hasn't been confirmed in-game yet.
+- Dark Souls III was checked statically on 1.15.0 only. The current Steam build (1.15.1 / 1.15.2) is expected to match the same signatures, but that hasn't been confirmed. The reading of the current map from the play region id and the soul level offset still need an in-game check. Bonfire names aren't known, only the bonfire's map.
 - Bloodborne (PC port) is experimental: no area, lamp or fall detection, characters are told apart by name only, and it hasn't been confirmed in a real play session yet.
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
 - Sekiro was checked against the 1.06 executable only; older versions haven't been tested. In a first in-game test the deaths, save slot, play time, area and idol were read correctly; the player position came out wrong (it only affects the coordinates shown for each death), and resurrections not counting still has to be confirmed. Idol names aren't known, only the idol's area.

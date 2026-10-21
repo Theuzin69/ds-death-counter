@@ -2,10 +2,12 @@
 // Useful to check a new game version without launching it:
 //   build\tests\scan_test.exe "C:\...\DarkSoulsRemastered.exe"
 //   build\tests\scan_test.exe "C:\...\DarkSoulsII.exe"
+//   build\tests\scan_test.exe "C:\...\DarkSoulsIII.exe"
 //   build\tests\scan_test.exe "C:\...\sekiro.exe"
 // The game is picked from the file name (as the app does from the process name).
 #include "game_reader.h"
 #include "games/ds2.h"
+#include "games/ds3.h"
 #include "games/sekiro.h"
 #include <cstdio>
 #include <cstring>
@@ -81,6 +83,24 @@ int wmain(int argc, wchar_t** argv)
                          L.offMapTable == 0x10 && L.offMapCount == 0x18 && L.offMapIds == 0x20 &&
                          L.offEventMan == 0x70 && L.offBonfireArea == 0x164 && L.offBonfireId == 0x16C;
             printf("Conferencia SotFS 1.02: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    }
+    if (game->id == std::string("ds3")) {
+        // Every signature must match exactly once (globals: all of their signatures, agreeing).
+        const Ds3Reader& d = static_cast<Ds3Module*>(reader.module())->reader();
+        bool all = d.signaturesFound == d.signaturesTotal && d.gameMan != 0 && d.fieldArea != 0;
+        printf("Assinaturas DS3: %d/%d %s\n", d.signaturesFound, d.signaturesTotal, all ? "OK" : "FALTANDO");
+        ok = ok && all;
+        if (sizeOfImage == 0x63DF000) {   // 1.15.0: compare with the addresses and offsets found by hand
+            const auto& o = d.off;
+            bool match = d.gameDataMan - imageBase == 0x4740178 && d.worldChrMan - imageBase == 0x4768E78 &&
+                         d.gameMan - imageBase == 0x4743AB0 && d.fieldArea - imageBase == 0x4743A80 &&
+                         o.deaths == 0x98 && o.playTime == 0xA4 && o.playerIns == 0x80 && o.saveSlot == 0xA60 &&
+                         o.respawn == 0xACC && o.modules == 0x1F90 && o.dataModule == 0x18 && o.hp == 0xD8 &&
+                         o.playRegion == 0x1ABC && o.worldInfo == 0x10 && o.blockIndex == 0x20 && o.blockCount == 0x18 &&
+                         o.blockList == 0x20 && o.blockStride == 0x70 && o.blockMapId == 8;
+            printf("Conferencia DS3 1.15.0: %s\n", match ? "OK" : "DIFERENTE");
             ok = ok && match;
         }
     }

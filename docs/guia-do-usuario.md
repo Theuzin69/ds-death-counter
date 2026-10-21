@@ -104,6 +104,16 @@ O Dark Souls II é reconhecido do mesmo jeito: abra o jogo (`DarkSoulsII.exe`) e
 - O nível, o ciclo de NG+ e o tempo de jogo também vêm do jogo. O tempo de jogo é o mesmo do menu de carregar do jogo (ao segundo).
 - Só o **Scholar of the First Sin** (64 bits, a versão vendida na Steam) é suportado. O Dark Souls II original, de 2014, é um programa de 32 bits com outra organização da memória: o app mostra *Versão do jogo não suportada (DS2 de 32 bits)* em vez de chutar.
 
+### Dark Souls III
+
+O Dark Souls III (`DarkSoulsIII.exe`) é reconhecido do mesmo jeito: abra o jogo e carregue um personagem. Não há nada para vincular nem configurar.
+
+- Os personagens aparecem com a etiqueta *DS3* e são separados pelo slot do save e pelo nome, como no Dark Souls Remastered. A contagem é o contador de mortes que o próprio jogo guarda para cada personagem, então as mortes de antes de você instalar o app entram no total.
+- **Área** é o mapa em que você estava: *High Wall of Lothric*, *Lothric Castle / Consumed King's Garden*, *Undead Settlement*, *Road of Sacrifices / Farron Keep*, *Cathedral of the Deep*, *Catacombs of Carthus / Smouldering Lake*, *Irithyll of the Boreal Valley / Anor Londo*, *Irithyll Dungeon / Profaned Capital*, *Grand Archives*, *Archdragon Peak*, *Kiln of the First Flame*, *Firelink Shrine / Cemetery of Ash / Untended Graves* e os mapas das DLCs (*Painted World of Ariandel*, *The Dreg Heap*, *The Ringed City*, *Filianore's Rest*). Alguns mapas juntam duas ou três regiões.
+- **Última fogueira** mostra o mapa da fogueira mais o id que o jogo usa para ela (por exemplo *Firelink Shrine / Cemetery of Ash / Untended Graves (#4002950)*). O jogo guarda a fogueira só como um número, então o nome exato dela não aparece.
+- As quedas são detectadas como no Dark Souls Remastered, e as sugestões de causa trazem os chefes do Dark Souls III.
+- Foi conferido com a versão 1.15.0. Na versão atual da Steam (1.15.1 / 1.15.2) deve funcionar igual, porque tudo é encontrado por assinaturas no código; se a contagem não subir, o *Diagnóstico* mostra `NÃO ENCONTRADO` ou `DIVERGENTE` ao lado do que faltou. Por favor, mande esse texto num relato de bug.
+
 ### Outras ações
 
 - *Exportar CSV…* salva a lista de mortes do personagem como planilha (separada por `;`, UTF-8, abre no Excel).

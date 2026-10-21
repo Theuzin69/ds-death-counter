@@ -123,6 +123,35 @@ O DS2 não tem um contador de tempo correndo. A própria função *GetPlayTimeSe
 - **Última fogueira.** Fica em `[GameManagerImp + 0x70] + 0x16C`, com os nomes da mesma lista (licença MIT).
 
 **Assinaturas conferidas.** O app usa 13 assinaturas. Cada uma tem que bater exatamente uma vez no executável 1.02, e os deslocamentos que elas contêm são lidos do código em tempo real. Se uma não for encontrada (num patch futuro, por exemplo), o app usa o valor da 1.02 e a aba *Diagnóstico* marca com `*`. O `tests/scan_test` reconhece o `DarkSoulsII.exe` e compara cada valor com os conferidos à mão. Não conferidos estaticamente: a posição do jogador (`[PlayerCtrl + 0x100] + 0x80`, do SoulSplitter, usada só na detecção de quedas) e a regra de "está no mundo" (o `PlayerCtrl` existe, como no DS2S-META). Os dois estão na lista para confirmar no jogo.
+
+## Adicionando o Dark Souls III
+
+O suporte ao Dark Souls III veio do mesmo jeito, em outra sessão do Claude Code: análise estática do executável (lido como arquivo, nunca executado), assinaturas de bytes escritas para este app que precisam bater em **exatamente um** lugar, e **assinaturas independentes para a mesma estrutura que precisam concordar**. O código fica em `src/games/ds3.cpp` (assinaturas, deslocamentos, leituras) e `src/games/ds3_data.cpp` (nomes dos mapas, sugestões de causa).
+
+**O executável.** A cópia disponível era o `DarkSoulsIII.exe` **1.15.0.0** (data no cabeçalho PE: 08/08/2017, tamanho do módulo `0x63DF000`). A Steam distribui hoje a **1.15.1 / 1.15.2**, que não pôde ser analisada. O endereço fixo que o DSDeaths usa na versão nova (`exe+0x47572B8`) não aparece em lugar nenhum da 1.15.0, ou seja, os globais mudaram de lugar. Por isso o app encontra tudo por assinaturas e lê a maior parte dos deslocamentos do próprio código do jogo.
+
+**O que é lido e como cada valor foi confirmado** (1.15.0):
+
+| Valor | Onde | Como foi confirmado |
+|---|---|---|
+| `GameDataMan` | `exe+0x4740178` | 3 assinaturas concordam: a do SoulMemory, a função `AddDeathCount` do jogo e a atualização do tempo de jogo |
+| Contador de mortes | `GameDataMan + 0x98` | A função de script `AddDeathCount` termina numa função pequena que soma neste campo (travando em 0xFFFFFFFF); o carregador do save lê o campo do save e um jogo novo zera o campo |
+| Tempo de jogo (ms) | `GameDataMan + 0xA4` | Código que soma o tempo de cada quadro e trava o valor em 999:59:59 (0xD693A018) |
+| Ciclo NG+ | `GameDataMan + 0x78` | Lido do save e limitado a 0..9999 pelo carregador |
+| Nome do personagem | `[GameDataMan + 0x10] + 0x88` | O carregador do `PlayerGameData` termina ali um nome UTF-16 de 16 caracteres |
+| Nível | `PlayerGameData + 0x70` | Copiado junto com as almas (+0x74) e o total de almas (+0x78, comparado com 999.999.999), na mesma ordem dos textos de depuração *SoulLv*, *Soul* e *Total Get Soul* |
+| `WorldChrMan` / jogador | `exe+0x4768E78`, `+0x80` | 2 assinaturas concordam: a do SoulMemory e uma função pequena "o jogador existe?", que também dá o `+0x80` |
+| `GameMan` | `exe+0x4743AB0` | 3 assinaturas concordam: o setter do ponto de renascimento, o getter dele e o código de jogo novo que grava o slot do save. O construtor guarda o objeto nesse mesmo global |
+| Slot do save | `GameMan + 0xA60` | Um jogo novo grava ali o primeiro slot livre dos 10 (ou -1) |
+| Última fogueira | `GameMan + 0xACC` | O id do ponto de renascimento: o getter devolve esse valor (ou um substituto temporário em +0xAD0); o carregador do save e as funções de script gravam nele |
+| HP | `PlayerIns + 0x1F90` → `+0x18` → `+0xD8` | Quem chama `SprjChrDataModule::SetHp` passa esse módulo, e o `SetHp` limita +0xD8 pelo HP máximo em +0xDC |
+| Posição | `PlayerIns + 0x1F90` → `+0x68` → `+0x80` | Os módulos do personagem são registrados por índice; o índice 13 (`+0x68`) é o `SprjChrPhysicsModule`. A atualização dele passa a posição anterior para +0x90 e grava a nova em +0x80 (um `float4` que começa como 0, 0, 0, 1) |
+| Mapa atual | `PlayerIns + 0x1ABC` | Atualizado sempre que muda o chão (colisão) sob o personagem. O jogo monta o valor a partir do id de *play region* da colisão, como um número decimal `AABKCC`, em que `AA` é a área do mapa e `B` o bloco: o Lothric Castle (`m30_01`) dá `301xxx` |
+| Mapa carregado (reserva) | `FieldArea` `exe+0x4743A80`, índice do bloco em `+0x20` na lista de blocos do mundo em `[+0x10] + 0x20` (entradas de 0x70 bytes, id do mapa em `+0x8`) | 2 assinaturas concordam no `FieldArea`; o código da função "id do mapa atual" do jogo dá o resto. Ele só muda quando um mapa carrega ou o jogador viaja, então é usado quando a *play region* é desconhecida e aparece no *Diagnóstico* para comparar |
+
+Os nomes dos mapas (`mAA_BB`) são uma tabela pequena em `ds3_data.cpp`. Os ids de fogueira e de ponto de renascimento seguem o padrão de ids de entidade do jogo, `AABxxxx` (por exemplo, `4002950` fica no `m40_00`). Por isso a coluna *Última fogueira* mostra o mapa da fogueira mais o id, e não o nome exato da fogueira. Os nomes das fogueiras ficam nos arquivos de dados do jogo, que não foram extraídos.
+
+O `tests/scan_test` reconhece o `DarkSoulsIII.exe`, confere que as 14 assinaturas foram encontradas e compara cada endereço e deslocamento com os valores da 1.15.0 acima. Os personagens do Dark Souls III ficam em chaves que começam com `ds3|`.
 <a id="sekiro"></a>
 
 ## Adicionando o Sekiro: Shadows Die Twice
@@ -185,6 +214,7 @@ Tudo isso vem da análise estática do executável da 1.01. Duas coisas ainda pr
 - Em tela cheia exclusiva o overlay pode não aparecer; em janela/sem bordas ele sempre funciona.
 - A interface está só em português (inglês está nos planos).
 - Dark Souls II: só o Scholar of the First Sin (64 bits) é suportado; a versão atual da Steam (1.03) é encontrada pelas assinaturas, mas ainda não foi confirmada no jogo.
+- O Dark Souls III foi conferido estaticamente só na 1.15.0. A expectativa é que a versão atual da Steam (1.15.1 / 1.15.2) bata com as mesmas assinaturas, mas isso não foi confirmado. A leitura do mapa atual a partir do id de *play region* e o deslocamento do nível ainda precisam ser conferidos no jogo. Os nomes das fogueiras não são conhecidos, só o mapa delas.
 - O Bloodborne (port de PC) é experimental: sem área, lamparina ou detecção de quedas, personagens separados só pelo nome, e ainda não foi confirmado numa sessão de jogo de verdade.
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
 - O Sekiro foi conferido só no executável 1.06; versões anteriores não foram testadas. Num primeiro teste no jogo, as mortes, o slot do save, o tempo de jogo, a área e o ídolo foram lidos corretamente; a posição do jogador veio errada (só afeta as coordenadas mostradas em cada morte), e ainda falta confirmar que ressuscitar não conta. Os nomes dos ídolos não são conhecidos, só a área do ídolo.

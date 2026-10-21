@@ -4,6 +4,15 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### New games / Jogos novos
+
+- **Dark Souls III** (checked against the 1.15.0 executable): the game's own death counter per character, plus name, save slot, level, NG+ cycle, play time, current map and last bonfire (shown by the map it belongs to), with fall detection and Dark Souls III's bosses as cause suggestions. Read-only, like the other games. The current Steam build (1.15.1 / 1.15.2) is found by the same byte signatures but hasn't been confirmed in-game yet. See the [user guide](docs/user-guide.md#dark-souls-iii).
+  *Suporte ao **Dark Souls III** (conferido no executável 1.15.0): o contador de mortes que o próprio jogo guarda por personagem, mais nome, slot do save, nível, ciclo de NG+, tempo de jogo, mapa atual e última fogueira (mostrada pelo mapa dela), com detecção de quedas e os chefes do Dark Souls III nas sugestões de causa. Só leitura, como nos outros jogos. A versão atual da Steam (1.15.1 / 1.15.2) é encontrada pelas mesmas assinaturas de bytes, mas ainda não foi confirmada no jogo. Veja o [guia do usuário](docs/guia-do-usuario.md#dark-souls-iii).*
+- Tests: `scan_test` accepts `DarkSoulsIII.exe` and checks all 14 signatures and the 1.15.0 values.
+  *Testes: o `scan_test` aceita o `DarkSoulsIII.exe` e confere as 14 assinaturas e os valores da 1.15.0.*
+
 ## [1.1.0] - 2026-10-21
 
 Three more games, automatic boss detection in Dark Souls Remastered and an OBS text source. / Mais três jogos, detecção automática de chefes no Dark Souls Remastered e uma fonte de texto para o OBS.

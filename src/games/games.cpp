@@ -4,6 +4,7 @@
 extern const GameInfo kDs2Info;
 extern const GameInfo kSekiroInfo;
 extern const GameInfo kBloodborneInfo;
+extern const GameInfo kDs3Info;
 
 namespace {
 
@@ -19,6 +20,7 @@ const std::vector<const GameInfo*>& AllGames()
     static const std::vector<const GameInfo*> list = {
         &kDsrInfo,
         &kDs2Info,
+        &kDs3Info,
         &kSekiroInfo,
         &kBloodborneInfo,
     };

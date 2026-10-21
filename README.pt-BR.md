@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Sekiro: Shadows Die Twice</b> e <b>Bloodborne</b> (port de PC, experimental).<br>
+  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b> e <b>Bloodborne</b> (port de PC, experimental).<br>
   Para streamers e para quem quer saber quantas vezes (e onde) morreu.
 </p>
 
@@ -116,6 +116,7 @@ Nenhuma ferramenta de terceiros pode prometer risco zero com honestidade, mas le
 | Windows | 10 ou 11, 64 bits |
 | Dark Souls Remastered | Funciona na versão original 1.01 e nas versões 1.03.x (a atual da Steam). A versão do jogo é detectada automaticamente. |
 | Dark Souls II | **Scholar of the First Sin** (64 bits), desde a 1.1.0. Conferido no executável 1.02; a versão atual da Steam (1.03) é encontrada pelas mesmas assinaturas de bytes, mas ainda não foi confirmada no jogo. O Dark Souls II original de 32 bits (2014) **não** é suportado: o app avisa em vez de contar. |
+| Dark Souls III | Conferido no executável **1.15.0**: mortes, nome, slot do save, nível, NG+, tempo de jogo, mapa atual e última fogueira (mostrada pelo mapa). A versão atual da Steam (1.15.1 / 1.15.2) é encontrada pelas mesmas assinaturas de bytes, mas ainda não foi confirmada no jogo. Veja o [guia do usuário](docs/guia-do-usuario.md#dark-souls-iii). |
 | Sekiro: Shadows Die Twice | **1.06** (a versão atual da Steam), conferida no executável do jogo. O app lê a organização da memória do próprio código do jogo, então as versões anteriores (1.02 a 1.05) provavelmente funcionam, mas não foram testadas. Conta **só as mortes de verdade**: ressuscitar não conta (veja o [guia do usuário](docs/guia-do-usuario.md#sekiro)). O Sekiro não tem nome de personagem, então cada slot de save é um personagem. |
 | Bloodborne | **Experimental.** O Bloodborne PC Windows port v0.5 (`bbport.exe`) rodando o Bloodborne 1.09: mortes, nome, nível, NG+ e tempo de jogo. Ainda sem área nem detecção de quedas, e ainda não confirmado numa sessão de jogo de verdade. Veja o [guia do usuário](docs/guia-do-usuario.md#bloodborne-port-de-pc-experimental). |
 | Modo de tela | Janela / janela sem bordas. Em tela cheia exclusiva o overlay pode não aparecer. |
