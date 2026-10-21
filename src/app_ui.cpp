@@ -760,6 +760,15 @@ void App::UiDiagnosticsTab()
                  s.mapRaw, s.mapArea, s.mapBlock, map.c_str(), s.lastBonfire, GameById(s.game).bonfireName(s.lastBonfire).c_str(),
                  s.hp, s.hasPos ? "" : "(indisponível) ", s.pos.x, s.pos.y, s.pos.z);
         t += b;
+        t += "Barras de chefe:";
+        for (int i = 0; i < GameSnapshot::kBossSlots; ++i) {
+            int id = s.bossNameId[i];
+            std::string name = id > 0 ? Ds1BossBarName(id) : std::string();
+            snprintf(b, sizeof(b), " [%d] %s%s%s", i, id > 0 ? std::to_string(id).c_str() : "-",
+                     name.empty() ? "" : " ", name.c_str());
+            t += b;
+        }
+        t += "\n";
     }
     Profile* p = tracker_.active();
     t += "\nPerfil ativo: " + (p ? p->key : std::string("(nenhum)")) + "\n";
@@ -793,8 +802,9 @@ void App::UiAboutTab()
     ImGui::BulletText("O app lê o contador de mortes que o próprio jogo guarda para cada personagem. Por isso a "
                       "contagem nunca se perde: fechou o jogo, a contagem para; abriu de novo, continua de onde parou.");
     ImGui::BulletText("Cada save/personagem tem a sua contagem e a sua lista de mortes.");
-    ImGui::BulletText("Quando você morre, o app anota a hora, o mapa em que você estava, a última fogueira usada e, "
-                      "se percebeu uma queda grande, marca a causa como \"Queda\". As outras causas você define na lista.");
+    ImGui::BulletText("Quando você morre, o app anota a hora, o mapa em que você estava e a última fogueira usada. "
+                      "Se a barra de vida de um chefe estava na tela, a causa vira esse chefe; se percebeu uma queda "
+                      "grande, vira \"Queda\". As outras causas (inimigos comuns, armadilhas...) você define na lista.");
     ImGui::BulletText("Editar a contagem só altera o número mostrado por este app; o contador do jogo não é tocado.");
 
     ImGui::SeparatorText("Por que não arrisca banimento");

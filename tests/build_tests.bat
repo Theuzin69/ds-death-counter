@@ -18,6 +18,7 @@ cl %FLAGS% tests\bb_live_test.cpp %GAMESRC% /Fe:build\tests\bb_live_test.exe /li
 rem Stand-in for the Bloodborne port (same process name) to test the live reader without the game.
 if not exist build\tests\fake_port mkdir build\tests\fake_port
 cl %FLAGS% tests\bb_fake_port.cpp %GAMESRC% /Fe:build\tests\fake_port\bbport.exe /link /SUBSYSTEM:CONSOLE || exit /b 1
+cl %FLAGS% tests\boss_cause_test.cpp src\ds1_data.cpp /Fe:build\tests\boss_cause_test.exe /link /SUBSYSTEM:CONSOLE || exit /b 1
 cl %FLAGS% tests\overlay_test.cpp src\overlay.cpp src\util.cpp /Fe:build\tests\overlay_test.exe ^
    /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib shell32.lib ole32.lib || exit /b 1
 echo Testes compilados em build\tests\

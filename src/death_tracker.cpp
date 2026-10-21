@@ -3,6 +3,7 @@
 #include "games/games.h"
 #include "util.h"
 #include <algorithm>
+#include <iterator>
 
 namespace {
 
@@ -50,7 +51,9 @@ void DeathTracker::Tick(GameReader& reader)
     // Remember where the player was while alive. HP 0 freezes the history at the moment of death.
     bool alive = s.inWorld && s.hasPos && s.hp != 0;
     if (alive) {
-        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName });
+        Sample sample{ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName };
+        std::copy(std::begin(s.bossNameId), std::end(s.bossNameId), sample.boss);
+        history_.push_back(sample);
         while (!history_.empty() && now - history_.front().t > 10000) history_.pop_front();
     }
 
@@ -170,6 +173,12 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
         fell = peak - last.pos.y > 10.0f;
     }
 
+    // A boss health bar on screen at the last moment alive means the death happened in that
+    // fight. The game removes the bar when the boss dies and when the area reloads, so it can't
+    // be left over from an older fight. It wins over the fall heuristic: falling off Taurus
+    // Demon's bridge or into Bed of Chaos' pits is still a death to that boss.
+    std::string bossCause = haveSample ? Ds1BossCause(last.boss, GameSnapshot::kBossSlots) : std::string();
+
     for (int i = 0; i < count; ++i) {
         DeathRecord r;
         r.id = store_.NextRecordId();
@@ -185,7 +194,7 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
             r.hasPos = true;
             r.x = last.pos.x; r.y = last.pos.y; r.z = last.pos.z;
         }
-        r.cause = fell ? "Queda" : "";
+        r.cause = !bossCause.empty() ? bossCause : fell ? "Queda" : "";
         p.deaths.push_back(std::move(r));
     }
     history_.clear();

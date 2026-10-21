@@ -19,6 +19,11 @@ tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe, bb_
 
 - `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` (or `DarkSoulsII.exe`) runs the app's signature scanner against a game executable on disk; the game is picked from the file name. Use it to check a game version without launching it.
 - `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it. It also takes `sekiro.exe` (the game is picked by the file name); game-specific code lives in `src/games/`.
+tests\build_tests.bat     :: -> build\tests\scan_test.exe, boss_cause_test.exe, overlay_test.exe
+```
+
+- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it.
+- `build\tests\boss_cause_test.exe` checks the boss health bar → cause of death table (also run by CI).
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 - `build\tests\bb_scan_test.exe "C:\path\to\eboot.bin"` runs the Bloodborne scanner against the `eboot.bin` file the Bloodborne PC port loads.
 - `build\tests\fake_port\bbport.exe "C:\path\to\eboot.bin"` is a stand-in for the port (it maps the game image and never runs it); run `build\tests\bb_live_test.exe` next to it to watch the live reader.

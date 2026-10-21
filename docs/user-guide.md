@@ -124,7 +124,11 @@ The *Mortes* tab shows one row per death, newest first:
 | *Causa* | Cause of death |
 | *Tempo de jogo* | In-game play time at that moment |
 
-- **Cause:** falls are detected automatically (a drop of more than 10 m just before dying) and marked *Queda*. The game doesn't store "who killed you" anywhere that can be read safely, so for everything else **click the cause cell** and type it or pick a suggestion (bosses, common enemies, traps, poison, invaders…).
+- **Cause:** two causes are filled in automatically:
+  - **Bosses.** If a boss health bar was on screen when you died, the cause is that boss (e.g. *Chefe: Ornstein & Smough*), whatever finished you off: the boss itself, its adds, or a fall from its arena. All 26 bosses with a health bar are recognized. Bosses without one (the Hellkite on the Undead Burg bridge, for example) are not.
+  - **Falls.** Otherwise, a drop of more than 10 m just before dying is marked *Queda*.
+
+  The game doesn't keep "which enemy killed you" anywhere that can be read safely, so for everything else **click the cause cell** and type it or pick a suggestion (common enemies, traps, poison, invaders…). Automatic causes can be corrected the same way.
 - **Right-click a row** to edit the cause, edit the area, or delete that record (deleting a record doesn't change the count).
 - **Grey rows** (*Não registrada (contador fechado)*) are deaths that happened while the counter was closed. They count, but have no details.
 - **Filter:** type in the box above the list to filter by area, bonfire or cause.
@@ -205,6 +209,7 @@ That file holds settings, characters and the full death history. To back it up o
 **Bloodborne isn't detected:** the counter looks for the port's game process, `bbport.exe`, and was checked against port v0.5 with Bloodborne 1.09. Other ports, emulators and game versions aren't supported. If *Diagnóstico* shows *NÃO ENCONTRADO*, the game data wasn't recognized; please send that text in a bug report.
 
 **Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position…).
+**Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position, boss health bars…).
 
 **My antivirus complained:** see the [SmartScreen/antivirus section](../README.md#smartscreen). The app reads another program's memory, which some antivirus heuristics dislike. It never writes to the game.
 

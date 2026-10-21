@@ -58,7 +58,11 @@ int wmain(int argc, wchar_t** argv)
                      reader.GameDataManAddr() - imageBase == 0x1D00F50 &&
                      reader.WorldChrManAddr() - imageBase == 0x1CEE830;
         printf("Conferencia 1.01: %s\n", match ? "OK" : "DIFERENTE");
-        ok = ok && match;
+        // Boss health bars: MenuMan (RTTI NS_FRPG::MenuMan) + 0x1050, two slots of 0x14 bytes.
+        bool bossMatch = reader.MenuManAddr() - imageBase == 0x1CFF7C8 &&
+                         reader.BossGaugeOffset() == 0x1050 && reader.BossGaugeStride() == 0x14;
+        printf("Conferencia 1.01 (barra de chefe): %s\n", bossMatch ? "OK" : "DIFERENTE");
+        ok = ok && match && bossMatch;
     }
     if (game->id == std::string("ds2")) {
         // Every signature must be found (no "*" fallback) ...

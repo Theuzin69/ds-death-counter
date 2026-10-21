@@ -36,6 +36,10 @@ jobs:
         shell: cmd
         run: tests\build_tests.bat
 
+      - name: Run tests
+        shell: cmd
+        run: build\tests\boss_cause_test.exe
+
       - name: Install Inno Setup
         shell: pwsh
         run: |
