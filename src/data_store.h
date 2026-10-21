@@ -34,6 +34,7 @@ struct DeathRecord {
     std::string time;           // local time when detected
     uint32_t playTimeMs = 0;
     int mapArea = -1, mapBlock = -1;
+    uint32_t mapId = 0;         // full map id (games other than DSR; 0 = not recorded)
     std::string area;           // display name (auto or edited)
     int bonfire = 0;
     bool hasPos = false;
@@ -44,6 +45,7 @@ struct DeathRecord {
 };
 
 struct Profile {
+    std::string game = "dsr";   // "dsr", "er"; other games prefix their keys with it ("er|slot|name")
     std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character)
     std::string baseKey;        // "slot|name"
     std::string name;

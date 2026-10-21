@@ -4,6 +4,24 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### Added / Adicionado
+
+- **Elden Ring support.** The counter recognizes `eldenring.exe` and keeps one count and history per save slot, next to the Dark Souls Remastered characters; each character shows which game it belongs to.
+  *Suporte ao Elden Ring. O contador reconhece o `eldenring.exe` e mantém uma contagem e um histórico por slot do save, junto dos personagens do Dark Souls Remastered; cada personagem mostra de qual jogo é.*
+- **Easy Anti-Cheat safe.** While EAC is running (the normal Steam launch), the app never opens the game process: it reads the death counter from the save file (`ER0000.sl2`), which the game writes after every death, so the count shows up a few seconds after you die. Only when the game runs without EAC (offline launch, Seamless Co-op) does it read the game's memory, read-only, like DSR. EAC is detected from the process list, the EAC services and the game's launcher, without touching the game.
+  *Seguro com o Easy Anti-Cheat. Com o EAC rodando (o jeito normal pela Steam), o app nunca abre o processo do jogo: lê o contador de mortes do arquivo de save (`ER0000.sl2`), que o jogo grava depois de cada morte, então a contagem aparece alguns segundos depois da morte. Só quando o jogo roda sem o EAC (modo offline, Seamless Co-op) ele lê a memória, somente leitura, como no DSR. O EAC é detectado pela lista de processos, pelos serviços do EAC e pelo lançador do jogo, sem tocar no jogo.*
+- Elden Ring deaths record the area (legacy dungeons, dungeons and open-world regions, from the map id, or from the bloodstain in save-file mode) and the area of the last Site of Grace. *Por área* groups Elden Ring deaths by region.
+  *As mortes no Elden Ring registram a área (dungeons, masmorras e regiões do mundo aberto, pelo id do mapa, ou pela mancha de sangue no modo de arquivo de save) e a área da última graça. A aba "Por área" agrupa as mortes do Elden Ring por região.*
+- `tests/er_save_test` (reads a save and simulates the game writing deaths on a temporary copy); `tests/scan_test` also checks `eldenring.exe`.
+  *`tests/er_save_test` (lê um save e simula o jogo gravando mortes numa cópia temporária); o `tests/scan_test` também confere o `eldenring.exe`.*
+
+### Changed / Alterado
+
+- Profiles store their game (`"game"`, `"dsr"` for existing data); Elden Ring keys are prefixed (`er|slot|name`), so existing Dark Souls Remastered data keeps working unchanged.
+  *Os perfis guardam o jogo (`"game"`, `"dsr"` nos dados existentes); as chaves do Elden Ring têm prefixo (`er|slot|nome`), então os dados do Dark Souls Remastered continuam funcionando sem mudança.*
+
 ## [1.0.0] - 2026-10-16
 
 First public release. / Primeira versão pública.

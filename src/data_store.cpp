@@ -67,6 +67,7 @@ json ToJson(const DeathRecord& r)
         { "cause", r.cause }, { "causeEdited", r.causeEdited }, { "untracked", r.untracked },
     };
     if (r.hasPos) j["pos"] = { r.x, r.y, r.z };
+    if (r.mapId) j["mapId"] = r.mapId;
     return j;
 }
 
@@ -79,6 +80,7 @@ DeathRecord RecordFromJson(const json& j)
     r.playTimeMs = j.value("playTimeMs", 0u);
     r.mapArea = j.value("mapArea", -1);
     r.mapBlock = j.value("mapBlock", -1);
+    r.mapId = j.value("mapId", 0u);
     r.area = j.value("area", std::string());
     r.bonfire = j.value("bonfire", 0);
     r.cause = j.value("cause", std::string());
@@ -98,6 +100,7 @@ json ToJson(const Profile& p)
     json deaths = json::array();
     for (const auto& r : p.deaths) deaths.push_back(ToJson(r));
     return json{
+        { "game", p.game },
         { "key", p.key }, { "baseKey", p.baseKey }, { "name", p.name }, { "slot", p.slot },
         { "gameDeaths", p.gameDeaths }, { "baseDeaths", p.baseDeaths }, { "offset", p.offset },
         { "edited", p.edited }, { "playTimeMs", p.playTimeMs }, { "soulLevel", p.soulLevel },
@@ -109,6 +112,7 @@ json ToJson(const Profile& p)
 Profile ProfileFromJson(const json& j)
 {
     Profile p;
+    p.game = j.value("game", std::string("dsr"));
     p.key = j.value("key", std::string());
     p.baseKey = j.value("baseKey", p.key);
     p.name = j.value("name", std::string());

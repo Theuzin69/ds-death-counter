@@ -95,12 +95,69 @@ What the human checked in the real game:
 
 Every release is built by GitHub Actions from the public code, with checksums and build provenance attestations (see the [README](../README.md#smartscreen)).
 
+## Elden Ring (added after 1.0.0)
+
+Elden Ring support was built later, in its own Claude Code session (each new game got a parallel session). It came with a constraint Dark Souls Remastered doesn't have: **Easy Anti-Cheat (EAC)**.
+
+### The anti-cheat decision
+
+Launched normally through Steam, Elden Ring runs under EAC. A program that opens the protected game process is exactly what anti-cheat watches for, even when it only reads. Since the app promises no ban risk, the rule is strict: **while EAC is running, no handle to `eldenring.exe` is ever opened**, not even to query its version.
+
+- EAC is detected without touching the game: the process list (`EasyAntiCheat*.exe`, `start_protected_game.exe`), the state of the `EasyAntiCheat_EOS` and `EasyAntiCheat` services, and the game's parent process (EAC's launcher starts the game).
+- The game is opened only after two checks, two seconds apart, find no sign of EAC. The check repeats every two seconds; if EAC appears, the handle is closed at once and the app stays on the save file for the rest of that run of the game. If the process list can't be read, it assumes EAC.
+
+### Counting from the save file
+
+The save, `ER0000.sl2`, is a BND4 container and, unlike Dark Souls III's, it isn't encrypted: ten character slots (an MD5 plus 0x280000 bytes each) and a `USER_DATA010` section with the load screen summaries (name, level, play time) and the Steam id.
+
+Inside a slot the game writes dozens of structures one after another, several of variable size, so the death counter has no fixed offset. The save layout documented by [er-save-manager](https://github.com/Hapfel1/er-save-manager) and [ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor) puts it 3 bytes into a 0x1D-byte block between the tutorial data and the event flags (0x1BF99F bytes). Claude made the reader find it with an anchor and a proof:
+
+- **anchor:** the tutorial data header (`uint16 174, uint16 1, uint32 size`) right before the block;
+- **proof:** from each candidate, walk the rest of the slot (event flags, the five world state blocks, position, NetMan, weather, time) and check that the walk ends exactly on the account's Steam id. A wrong start never lands there. Exactly one candidate must pass; otherwise the slot is reported as not understood, never guessed;
+- **second opinion:** an independent parse from the start of the slot (item table, stats, inventory…) must end on the same tutorial header. When it does, NG+ and the bloodstain (the map where the character last died) are read too.
+
+This was checked on the developer's real save, a 1.02-era file with two characters, read without modifying it. It gave 400 and 324 deaths, with names, levels, play time and Steam id matching the summaries, and both parses agreed.
+
+How the game writes the file was simulated with `tests/er_save_test --simulate`. The test copies the save to `%TEMP%` and acts as the game on the copy:
+
+1. it writes a death (new count, new bloodstain, new MD5);
+2. it leaves a half-written file (MD5 not updated yet);
+3. it finishes the write with a second death.
+
+The watcher checks the file's timestamp twice a second without opening it. It reads only after the file has been stable for 0.7 s, holds the file for a few milliseconds and checks every slot's MD5, retrying a torn read. The character being played is the slot the game rewrote. It reported the right character, count and area at every step and ignored the half-written file.
+
+### Reading memory when EAC is off
+
+Offline, with EAC disabled (or with Seamless Co-op), the app reads memory like it does for Dark Souls Remastered, verified statically on the 1.02.0 executable (`tests/scan_test`):
+
+- `GameDataMan` is resolved by **five independent code sites**. Two were found for this project: the game's own "add to the death counter" function (a saturating add to `GameDataMan+0x94`, at exe+0x250100 in 1.02) and the "advance play time" function (`+0xA0`, capped at 999:59:59). The app reads both offsets from those instructions at runtime. The other three signatures come from SoulSplitter and DSDeaths. All five match exactly once and point to the same address.
+- `WorldChrMan` and the player's offset inside it (0x18468 in 1.02, 0x1E508 in later patches) come from one instruction sequence. HP comes from the character module chain (+0x190 → +0 → +0x138), the same one the game's own "is alive" checks use. The position and map id offsets per version come from SoulSplitter; the 1.02 values are visible in the code that sets them.
+- The save slot isn't read from memory. The character in memory is matched with its save slot by name, level and play time, so both modes land on the same profile (`er|slot|name`).
+- If the signatures stop matching after a game update, the app falls back to the save file.
+
+### Area names
+
+Elden Ring map ids are `mAA_BB_CC_DD`. Legacy dungeons and dungeons have their own map (`m10_00` Stormveil Castle, `m30_04` Murkwater Catacombs…), the open world is a grid of 256 m tiles (`m60_XX_YY_00`) and the DLC's Realm of Shadow is `m61`. Names come from the [Smithbox](https://github.com/vawser/Smithbox) map id list (MIT) for the base game and from the place names for the DLC.
+
+- **Granularity:** one name per legacy dungeon and dungeon, and one per open world tile, written as *Region - landmarks*; DLC tiles get their region only. The statistics group Elden Ring deaths by region.
+- **Last Site of Grace:** the save stores it as an entity id whose digits encode its map tile (`1042362950` → `m60_42_36`), so the app shows the grace's area. Grace names would need the game's encrypted data archives, which this project doesn't extract.
+
+### What was verified without the game
+
+- Static checks on `eldenring.exe` 1.02.0 (signatures, offsets, the death and HP code) and on the real save (above).
+- The real app was run against stand-in processes named `eldenring.exe` and `start_protected_game.exe` (tiny programs that do nothing), and the app's open handles were listed with `NtQuerySystemInformation`:
+  - with the fake EAC launcher running, the app had no handle to the fake game;
+  - without it, after the two checks, it had exactly one handle, with `PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE`;
+  - when the fake launcher appeared, the handle was gone within three seconds and didn't come back for that run of the game.
+- Not verified: the real game running (it wasn't launched during development), the current Steam version 1.17 (no copy of its executable or saves), and how quickly the game writes the save after a death.
+
 ## Known limitations
 
 - The killer (enemy/boss) isn't detected automatically, except falls.
 - Exclusive fullscreen may hide the overlay; windowed/borderless always works.
 - The interface is in Portuguese only (English is planned).
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
+- Elden Ring with Easy Anti-Cheat counts a few seconds late (after the game saves) and records no falls; the overlay can't tell the title screen from gameplay. The current Steam version (1.17) and the timing of the game's save after a death still need to be confirmed in the game.
 
 ## Tools
 

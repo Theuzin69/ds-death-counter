@@ -5,6 +5,7 @@
 - [1. Instalação](#1-instalação)
 - [2. Primeira vez](#2-primeira-vez)
 - [3. Enquanto você joga](#3-enquanto-você-joga)
+- [Elden Ring](#elden-ring)
 - [4. Personagens e contagens](#4-personagens-e-contagens)
 - [5. A lista de mortes](#5-a-lista-de-mortes)
 - [6. Configurações](#6-configurações)
@@ -43,7 +44,7 @@ No topo da janela:
 
 | Status | Significado |
 |---|---|
-| *Aguardando o Dark Souls Remastered abrir…* | O jogo não está aberto. *Iniciar Dark Souls* abre o jogo. |
+| *Aguardando o Dark Souls Remastered ou o Elden Ring abrir…* | Nenhum jogo compatível está aberto. *Iniciar Dark Souls* abre o Dark Souls Remastered. |
 | *Dark Souls encontrado, preparando a leitura…* | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Conectado; você está no menu principal. |
 | *Contando as mortes de NOME (slot N)* | Contando. |
@@ -62,6 +63,52 @@ A contagem do personagem atual aparece num canto da janela do jogo (padrão: can
 ### Ícone na bandeja
 
 Fechar a janela mantém o contador rodando na bandeja. Passe o mouse no ícone para ver a contagem atual. Botão direito: *Abrir*, *Mostrar overlay* e *Sair*.
+
+## Elden Ring
+
+O contador também reconhece o **Elden Ring** (`eldenring.exe`), sem nada para configurar. Cada personagem ganha a sua contagem e o seu histórico, como no Dark Souls Remastered. Na lista de personagens, os do Elden Ring aparecem marcados como *Elden Ring* e os do Dark Souls Remastered como *DSR*.
+
+### O Easy Anti-Cheat decide como a contagem é lida
+
+| Como o jogo foi aberto | O que o contador faz |
+|---|---|
+| Pela Steam, do jeito normal (Easy Anti-Cheat ligado) | **Não abre o processo do jogo de jeito nenhum.** Lê o contador de mortes do arquivo de save, `%APPDATA%\EldenRing\<steamid>\ER0000.sl2`, que o jogo grava depois de cada morte. A contagem muda **alguns segundos depois da morte**, quando o jogo termina de salvar. |
+| Sem o Easy Anti-Cheat (modo offline com o EAC desativado, Seamless Co-op) | Lê a memória do jogo, só leitura, como no Dark Souls Remastered. A contagem muda na hora, e cada morte ganha a área exata e a detecção de queda. |
+
+O contador procura o EAC sem tocar no jogo:
+
+- processos `EasyAntiCheat*.exe` ou `start_protected_game.exe` rodando;
+- os serviços do Windows *EasyAntiCheat* e *EasyAntiCheat_EOS*;
+- se foi o `start_protected_game.exe` (o lançador do EAC) que abriu o jogo.
+
+Ele confere duas vezes, com dois segundos de intervalo, antes de abrir o jogo, e continua conferindo a cada dois segundos. Se o EAC aparecer, o contador larga o acesso na hora e fica no arquivo de save até o jogo fechar. Se outro jogo com EAC estiver aberto ao mesmo tempo, o Elden Ring também é tratado como protegido; isso só quer dizer que a contagem vem do arquivo de save.
+
+O arquivo de save é aberto só para leitura e compartilhado, por alguns milissegundos depois de cada gravação, e nunca é alterado.
+
+### Linha de status (Elden Ring)
+
+| Status | Significado |
+|---|---|
+| *Elden Ring encontrado, verificando o Easy Anti-Cheat antes de ler…* | O jogo está aberto; o contador está confirmando que o EAC está desligado antes de tocar nele (alguns segundos). |
+| *Elden Ring sem Easy Anti-Cheat, preparando a leitura da memória…* | Sem EAC; o contador está localizando os dados do jogo. |
+| *Contando as mortes de NOME (slot N)* | Contando pela memória (sem EAC). |
+| *Contando as mortes de NOME (slot N) pelo arquivo de save* | EAC ligado; contando pelo arquivo de save. |
+| *Elden Ring com Easy Anti-Cheat: aguardando o jogo salvar para saber qual é o personagem* | Você tem mais de um personagem e o jogo ainda não gravou o save desde que o contador abriu, então ele ainda não sabe qual você está jogando. Ele descobre na próxima gravação (por exemplo, ao descansar numa graça ou morrer). |
+
+### O que cada morte registra
+
+- *Área*: dungeons e masmorras pelo nome (*Stormveil Castle*, *Murkwater Catacombs*…). No mundo aberto, o quadrado de 256 m do mapa em que você estava, escrito como *Região - lugares* (por exemplo *Limgrave - Church of Elleh, Stranded Graveyard Exit*). No Reino das Sombras (DLC) aparece só a região. Com o EAC ligado, a área é onde o jogo deixou a sua mancha de sangue, ou seja, onde você morreu. Passe o mouse para ver o id do mapa (`m60_42_36_00`).
+- *Última graça (área)*: a área da última graça em que você descansou. O save guarda a graça como um objeto do mapa, não pelo nome, então a coluna mostra a área dela.
+- *Por área* agrupa as mortes do Elden Ring por região (*Limgrave*, *Liurnia of the Lakes*, *Stormveil Castle*…).
+- A *Queda* só é detectada lendo a memória (sem EAC), porque precisa da posição do personagem.
+- As sugestões de causa incluem os principais chefes do Elden Ring e do Shadow of the Erdtree.
+
+### Dicas
+
+- Use o modo de tela **Janela sem bordas** do próprio jogo para o overlay conseguir aparecer por cima. O botão *Deixar a janela do jogo sem bordas* fica desligado enquanto o EAC estiver rodando: o contador fica totalmente passivo.
+- Com o EAC ligado, o contador não sabe diferenciar o menu principal do jogo em si, então *Esconder no menu principal do jogo* não se aplica; o overlay aparece sempre que a janela do jogo estiver ativa.
+- O botão *Iniciar Dark Souls* só abre o Dark Souls Remastered. Abra o Elden Ring pela Steam.
+- Os saves do Seamless Co-op (`ER0000.co2`) só são usados quando o jogo roda sem o EAC.
 
 ## 4. Personagens e contagens
 
@@ -162,6 +209,12 @@ Ele guarda configurações, personagens e o histórico completo. Para fazer back
 **Um personagem aparece duas vezes:** o personagem é identificado por slot + nome, então se ele mudou de slot (por exemplo, copiando arquivos de save), é visto como novo. Exclua a duplicata no app, se quiser.
 
 **Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição…).
+
+**Elden Ring: a contagem muda alguns segundos depois da morte:** é o esperado com o Easy Anti-Cheat ligado. O contador espera o jogo gravar o save (veja [Elden Ring](#elden-ring)).
+
+**Elden Ring: *aguardando o jogo salvar*:** você tem vários personagens e o contador está esperando a próxima gravação do jogo para saber qual você está jogando. Descanse numa graça ou continue jogando; ele aparece na próxima gravação.
+
+**Elden Ring: a contagem não muda de jeito nenhum:** abra *Diagnóstico*. As linhas *Save:* mostram qual arquivo é lido, quando foi a última leitura e o que cada slot tem. Se algum slot disser que o contador de mortes não foi localizado, uma atualização do jogo mudou o formato do save: por favor, avise mandando o texto do diagnóstico.
 
 **O antivírus reclamou:** veja a [seção sobre SmartScreen/antivírus](../README.pt-BR.md#smartscreen). O app lê a memória de outro programa, o que alguns antivírus estranham. Ele nunca escreve no jogo.
 

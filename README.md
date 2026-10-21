@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>.<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Elden Ring</b>.<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -40,6 +40,7 @@
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.
 - **Runs quietly in the system tray** and can start with Windows: open the game and it is already counting.
 - **Read-only.** It never writes to the game, injects nothing and doesn't touch your saves (see [Is it safe?](#is-it-safe-can-i-get-banned)).
+- **Elden Ring too, without touching Easy Anti-Cheat.** With EAC running (the normal Steam launch) the app never opens the game: it reads the count from your save file, which the game writes after every death. See [Elden Ring and Easy Anti-Cheat](#elden-ring-and-easy-anti-cheat).
 - Single ~1 MB executable, no runtimes to install.
 
 > [!NOTE]
@@ -111,12 +112,21 @@ The counter was designed to stay away from anything that could get you flagged:
 
 No third-party tool can honestly promise zero risk, but read-only memory access is as safe as it gets.
 
+### Elden Ring and Easy Anti-Cheat
+
+Elden Ring runs under **Easy Anti-Cheat (EAC)** when you launch it normally through Steam. Anti-cheat software watches which programs open the game, so while EAC is running the counter **does not open the game process at all**: no memory reading, no handle, nothing.
+
+- **EAC running:** the death count comes from the save file `%APPDATA%\EldenRing\<steamid>\ER0000.sl2`. The game writes it after every death, so the count updates **a few seconds after you die**. The file is opened read-only, shared, for a few milliseconds, and is never modified. Reading your own save is what backup tools and Steam Cloud do.
+- **EAC not running** (offline launch with EAC disabled, Seamless Co-op): the counter reads the game's memory, read-only, exactly like Dark Souls Remastered. The count is instant and each death gets the exact area.
+- EAC is detected without touching the game: the process list (`EasyAntiCheat*.exe`, `start_protected_game.exe`), the EAC services and the program that launched the game. The counter checks twice, two seconds apart, before it ever opens the game. If EAC shows up while the game runs, the counter closes its handle at once and stays on the save file until you close the game.
+
 ## Compatibility
 
 | | |
 |---|---|
 | Windows | 10 or 11, 64-bit |
 | Dark Souls Remastered | Supports the original 1.01 release and the 1.03.x builds (current Steam version). The game version is detected automatically. |
+| Elden Ring | With Easy Anti-Cheat (normal Steam launch): counts from the save file, a few seconds after each death. Without EAC: reads memory, signatures checked on 1.02.0 and known to work across patches. The current Steam version (1.17) still needs an in-game check; see the [user guide](docs/user-guide.md#elden-ring). |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
 | Interface language | Brazilian Portuguese (English planned) |
 
@@ -144,10 +154,11 @@ This produces `build\DSDeathCounter.exe`, statically linked with no extra DLLs. 
 - Idea, requirements and in-game testing: **MatheusMuzzi**
 - Code, reverse-engineering and docs: **Claude** (Anthropic), via Claude Code. See [How it was made](docs/how-it-was-made.md).
 - Memory offsets and signatures build on public community research: [DSDeaths](https://github.com/quidrex/DSDeaths), [SoulSplitter](https://github.com/FrankvdStam/SoulSplitter), [DSR-Gadget](https://github.com/JKAnderson/DSR-Gadget) and [DS-Gadget](https://github.com/JKAnderson/DS-Gadget).
+- The Elden Ring save file layout builds on [er-save-manager](https://github.com/Hapfel1/er-save-manager) and [ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor); Elden Ring area names come from [Smithbox](https://github.com/vawser/Smithbox) (MIT).
 - Libraries: [Dear ImGui](https://github.com/ocornut/imgui) and [nlohmann/json](https://github.com/nlohmann/json), both MIT. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License
 
 [MIT](LICENSE) © 2026 MatheusMuzzi
 
-*DARK SOULS is a trademark of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by them.*
+*DARK SOULS and ELDEN RING are trademarks of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by them.*

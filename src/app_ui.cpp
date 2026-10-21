@@ -1,6 +1,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "app.h"
 #include "ds1_data.h"
+#include "games/eldenring_data.h"
 #include "platform.h"
 #include "util.h"
 #include "version.h"
@@ -66,6 +67,20 @@ std::string SlotText(int slot)
     return slot >= 0 ? std::to_string(slot + 1) : std::string("?");
 }
 
+bool IsEr(const Profile& p) { return p.game == "er"; }
+
+// "Last bonfire" for DSR, "last Site of Grace" (its area) for Elden Ring.
+std::string BonfireText(const Profile& p, int id)
+{
+    if (IsEr(p)) return ErGraceLabel((uint32_t)id);
+    return Ds1BonfireName(id);
+}
+
+const char* GameTag(const Profile& p)
+{
+    return IsEr(p) ? "Elden Ring" : "DSR";
+}
+
 std::string CsvField(const std::string& s)
 {
     std::string out = "\"";
@@ -120,12 +135,13 @@ void App::UiHeader()
     ImGui::PopFont();
     ImGui::SameLine();
     ImGui::AlignTextToFramePadding();
-    ImGui::TextDisabled("Dark Souls Remastered");
+    ImGui::TextDisabled("%s", reader_.game() == GameReader::Game::None ? "Dark Souls Remastered · Elden Ring"
+                                                                       : reader_.GameName().c_str());
 
     switch (reader_.state()) {
         case GameReader::State::NotRunning:
             StatusDot(ImVec4(0.55f, 0.52f, 0.48f, 1));
-            ImGui::TextDisabled("Aguardando o Dark Souls Remastered abrir...");
+            ImGui::TextDisabled("Aguardando o Dark Souls Remastered ou o Elden Ring abrir...");
             ImGui::SameLine();
             if (ImGui::SmallButton("Iniciar Dark Souls")) LaunchGame(Utf8ToWide(s.gameExePath));
             break;
@@ -135,7 +151,28 @@ void App::UiHeader()
             break;
         case GameReader::State::Scanning:
             StatusDot(kYellow);
-            ImGui::TextColored(kYellow, "Dark Souls encontrado, preparando a leitura...");
+            if (reader_.CheckingEac())
+                ImGui::TextColored(kYellow, "Elden Ring encontrado, verificando o Easy Anti-Cheat antes de ler...");
+            else if (reader_.game() == GameReader::Game::EldenRing)
+                ImGui::TextColored(kYellow, "Elden Ring sem Easy Anti-Cheat, preparando a leitura da memória...");
+            else
+                ImGui::TextColored(kYellow, "Dark Souls encontrado, preparando a leitura...");
+            break;
+        case GameReader::State::SaveFile:
+            StatusDot(kGreen);
+            if (active)
+                ImGui::Text("Contando as mortes de %s (slot %s) pelo arquivo de save", active->name.c_str(),
+                            SlotText(active->slot).c_str());
+            else
+                ImGui::Text("Elden Ring%s: aguardando o jogo salvar para saber qual é o personagem",
+                            reader_.EacActive() ? " com Easy Anti-Cheat" : "");
+            if (reader_.EacActive())
+                ImGui::SetItemTooltip("O Easy Anti-Cheat está ativo, então o app não acessa o jogo de forma nenhuma: ele lê o\n"
+                                      "arquivo de save, que o jogo grava logo depois de cada morte. A contagem pode aparecer\n"
+                                      "alguns segundos depois da morte.");
+            else
+                ImGui::SetItemTooltip("A memória desta versão do jogo não foi reconhecida, então a contagem vem do arquivo\n"
+                                      "de save, que o jogo grava logo depois de cada morte.");
             break;
         case GameReader::State::Ready:
             StatusDot(kGreen);
@@ -183,8 +220,8 @@ void App::UiProfilesTab()
         ImGui::Spacing();
         ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x * 0.8f);
         ImGui::TextUnformatted("Nenhum personagem ainda.");
-        ImGui::TextDisabled("Abra o Dark Souls Remastered e carregue um save: o personagem aparece aqui sozinho "
-                            "e cada save ganha a sua própria contagem.");
+        ImGui::TextDisabled("Abra o Dark Souls Remastered ou o Elden Ring e carregue um save: o personagem aparece "
+                            "aqui sozinho e cada save ganha a sua própria contagem.");
         ImGui::PopTextWrapPos();
         return;
     }
@@ -227,7 +264,7 @@ void App::UiProfilesTab()
         dl->AddText(fontBold_, fontBold_->FontSize, ImVec2(a.x + pad, a.y + pad * 0.5f),
                     ImGui::GetColorU32(ImGuiCol_Text), name.c_str(), nullptr, 0.0f, &clip);
         char sub[96];
-        snprintf(sub, sizeof(sub), "Slot %s  ·  Nível %d%s%s", SlotText(p.slot).c_str(), p.soulLevel,
+        snprintf(sub, sizeof(sub), "%s  ·  Slot %s  ·  Nível %d%s%s", GameTag(p), SlotText(p.slot).c_str(), p.soulLevel,
                  p.ngPlus > 0 ? "  ·  NG+" : "", p.ngPlus > 0 ? std::to_string(p.ngPlus).c_str() : "");
         bool isActive = active && active->key == p.key;
         float subX = a.x + pad;
@@ -261,8 +298,8 @@ void App::UiProfileDetail(Profile& p)
         ImGui::TextColored(kGreen, "\xE2\x97\x8F no jogo agora");
     }
     std::string cycle = p.ngPlus > 0 ? "NG+" + std::to_string(p.ngPlus) : std::string("NG");
-    ImGui::TextDisabled("Slot %s  ·  Nível %d  ·  %s  ·  Tempo de jogo %s", SlotText(p.slot).c_str(), p.soulLevel,
-                        cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
+    ImGui::TextDisabled("%s  ·  Slot %s  ·  Nível %d  ·  %s  ·  Tempo de jogo %s", GameDisplayName(p.game),
+                        SlotText(p.slot).c_str(), p.soulLevel, cycle.c_str(), FormatPlayTime(p.playTimeMs).c_str());
     ImGui::TextDisabled("Acompanhado desde %s  ·  visto por último em %s", p.firstSeen.c_str(), p.lastSeen.c_str());
 
     ImVec4 col = Argb(p.edited ? s.colorEdited : s.colorNormal);
@@ -322,7 +359,8 @@ void App::UiProfileDetail(Profile& p)
 void App::UiDeathTable(Profile& p)
 {
     ImGui::SetNextItemWidth(300 * dpiScale_);
-    ImGui::InputTextWithHint("##filter", "Filtrar por área, fogueira ou causa...", &deathFilter_);
+    ImGui::InputTextWithHint("##filter", IsEr(p) ? "Filtrar por área, graça ou causa..." : "Filtrar por área, fogueira ou causa...",
+                             &deathFilter_);
     ImGui::SameLine();
     ImGui::TextDisabled("Clique na causa para editar  ·  botão direito na linha para mais opções");
 
@@ -330,7 +368,7 @@ void App::UiDeathTable(Profile& p)
     std::vector<int> rows;
     for (int i = (int)p.deaths.size() - 1; i >= 0; --i) {
         const DeathRecord& r = p.deaths[i];
-        if (Contains(r.area, needle) || Contains(r.cause, needle) || Contains(Ds1BonfireName(r.bonfire), needle))
+        if (Contains(r.area, needle) || Contains(r.cause, needle) || Contains(BonfireText(p, r.bonfire), needle))
             rows.push_back(i);
     }
     if (p.deaths.empty()) {
@@ -347,7 +385,7 @@ void App::UiDeathTable(Profile& p)
         ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 56 * dpiScale_);
         ImGui::TableSetupColumn("Data / hora", ImGuiTableColumnFlags_WidthFixed, 150 * dpiScale_);
         ImGui::TableSetupColumn("Área", ImGuiTableColumnFlags_WidthStretch, 2.2f);
-        ImGui::TableSetupColumn("Última fogueira", ImGuiTableColumnFlags_WidthStretch, 1.6f);
+        ImGui::TableSetupColumn(IsEr(p) ? "Última graça (área)" : "Última fogueira", ImGuiTableColumnFlags_WidthStretch, 1.6f);
         ImGui::TableSetupColumn("Causa", ImGuiTableColumnFlags_WidthStretch, 1.6f);
         ImGui::TableSetupColumn("Tempo de jogo", ImGuiTableColumnFlags_WidthFixed, 100 * dpiScale_);
         ImGui::TableHeadersRow();
@@ -381,11 +419,15 @@ void App::UiDeathTable(Profile& p)
 
                 ImGui::TableSetColumnIndex(2);
                 ImGui::TextUnformatted(r.area.c_str());
-                if (r.hasPos)
+                if (r.mapId && r.hasPos)
+                    ImGui::SetItemTooltip("Mapa %s  ·  posição %.1f, %.1f, %.1f", ErMapIdText(r.mapId).c_str(), r.x, r.y, r.z);
+                else if (r.mapId)
+                    ImGui::SetItemTooltip("Mapa %s", ErMapIdText(r.mapId).c_str());
+                else if (r.hasPos)
                     ImGui::SetItemTooltip("Mapa m%02d_%02d  ·  posição %.1f, %.1f, %.1f", r.mapArea, r.mapBlock, r.x, r.y, r.z);
 
                 ImGui::TableSetColumnIndex(3);
-                std::string bonfire = Ds1BonfireName(r.bonfire);
+                std::string bonfire = BonfireText(p, r.bonfire);
                 if (bonfire.empty() && r.bonfire > 0) bonfire = "#" + std::to_string(r.bonfire);
                 ImGui::TextUnformatted(bonfire.empty() ? "-" : bonfire.c_str());
 
@@ -424,7 +466,7 @@ void App::UiStatsTable(Profile& p, bool byCause)
     for (const auto& r : p.deaths) {
         if (r.untracked) continue;
         std::string key = byCause ? (r.cause.empty() ? "(causa não definida)" : r.cause)
-                                  : (r.area.empty() ? "Desconhecida" : r.area);
+                                  : (r.area.empty() ? "Desconhecida" : IsEr(p) ? ErRegionOf(r.area) : r.area);
         ++counts[key];
         ++total;
     }
@@ -439,7 +481,7 @@ void App::UiStatsTable(Profile& p, bool byCause)
     if (ImGui::BeginTable("stats", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY |
                                       ImGuiTableFlags_SizingStretchProp)) {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn(byCause ? "Causa" : "Área", ImGuiTableColumnFlags_WidthStretch, 3.0f);
+        ImGui::TableSetupColumn(byCause ? "Causa" : IsEr(p) ? "Região" : "Área", ImGuiTableColumnFlags_WidthStretch, 3.0f);
         ImGui::TableSetupColumn("Mortes", ImGuiTableColumnFlags_WidthFixed, 70 * dpiScale_);
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch, 2.0f);
         ImGui::TableHeadersRow();
@@ -547,7 +589,8 @@ void App::UiPopups()
                                                   ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::TextDisabled("Sugestões:");
             ImGui::BeginChild("##sugg", ImVec2(0, 220 * dpiScale_), ImGuiChildFlags_Borders);
-            const auto& list = editingArea_ ? Ds1AllMapNames() : Ds1CauseSuggestions();
+            const auto& list = IsEr(*p) ? (editingArea_ ? ErAllMapNames() : ErCauseSuggestions())
+                                         : (editingArea_ ? Ds1AllMapNames() : Ds1CauseSuggestions());
             bool exact = std::find(list.begin(), list.end(), editBuffer_) != list.end();
             std::string needle = exact ? std::string() : Lower(editBuffer_);
             for (const auto& sug : list) {
@@ -591,6 +634,8 @@ void App::UiWelcome()
         ImGui::PopFont();
         ImGui::TextUnformatted("Ele conta suas mortes no Dark Souls Remastered (uma contagem para cada save/personagem) "
                                "e mostra o número por cima do jogo. Só lê a memória do jogo: não modifica nada.");
+        ImGui::TextUnformatted("Também conta as mortes no Elden Ring. Com o Easy Anti-Cheat ativo (o jeito normal de "
+                               "jogar pela Steam), o app nem chega a acessar o jogo: ele lê o arquivo de save.");
 
         ImGui::SeparatorText("1. Vincular ao jogo");
         if (!s.gameExePath.empty()) {
@@ -639,7 +684,8 @@ void App::UiSettingsTab()
     ImGui::PushTextWrapPos(760 * dpiScale_);
 
     ImGui::SeparatorText("Vínculo com o jogo");
-    ImGui::TextDisabled("O contador encontra o Dark Souls Remastered sozinho sempre que o jogo estiver aberto.");
+    ImGui::TextDisabled("O contador encontra o Dark Souls Remastered e o Elden Ring sozinho sempre que o jogo estiver "
+                        "aberto. O executável abaixo só é usado pelo botão \"Iniciar Dark Souls\".");
     std::string path = s.gameExePath.empty() ? std::string("(não definido)") : s.gameExePath;
     ImGui::InputText("Executável do jogo", &path, ImGuiInputTextFlags_ReadOnly);
     if (ImGui::Button("Procurar...")) {
@@ -705,13 +751,18 @@ void App::UiSettingsTab()
     ImGui::SeparatorText("Janela do jogo");
     ImGui::TextDisabled("O overlay é uma janela própria desenhada por cima do jogo. Ele aparece com o jogo em modo "
                         "Janela ou Janela sem bordas; em Tela cheia ele pode não aparecer ou piscar, dependendo do Windows e do driver.");
-    ImGui::BeginDisabled(!gameHwnd_);
+    // With Easy Anti-Cheat running the app stays fully passive (Elden Ring has its own borderless mode).
+    bool eac = reader_.EacActive();
+    ImGui::BeginDisabled(!gameHwnd_ || eac);
     if (ImGui::Button("Deixar a janela do jogo sem bordas (tela cheia em janela)")) {
         bool ok = MakeWindowBorderless(gameHwnd_);
         statusMessage_ = ok ? "Janela do jogo ajustada" : "Não foi possível ajustar a janela do jogo";
         statusMessageUntil_ = GetTickCount64() + 4000;
     }
     ImGui::EndDisabled();
+    if (eac)
+        ImGui::TextDisabled("Com o Easy Anti-Cheat ativo este botão fica desligado: no Elden Ring use o modo de tela "
+                            "\"Janela sem bordas\" do próprio jogo.");
     ImGui::TextDisabled("Coloque o jogo em modo Janela, na resolução do seu monitor, e use o botão acima. "
                         "Só mexe na moldura da janela; nada dentro do jogo é alterado.");
 
@@ -737,10 +788,17 @@ void App::UiDiagnosticsTab()
                  s.charLoaded ? "sim" : "não", s.inWorld ? "sim" : "não", WideToUtf8(s.name).c_str(), s.saveSlot,
                  s.deaths, FormatPlayTime(s.playTimeMs).c_str(), s.ngPlus, s.soulLevel);
         t += b;
-        std::string map = s.mapArea >= 0 ? Ds1MapName(s.mapArea, s.mapBlock) : "?";
-        snprintf(b, sizeof(b), "Mapa: 0x%08X -> m%02d_%02d (%s)\nÚltima fogueira: %d (%s)\nHP: %d | Posição: %s%.2f, %.2f, %.2f\n",
-                 s.mapRaw, s.mapArea, s.mapBlock, map.c_str(), s.lastBonfire, Ds1BonfireName(s.lastBonfire).c_str(),
-                 s.hp, s.hasPos ? "" : "(indisponível) ", s.pos.x, s.pos.y, s.pos.z);
+        if (s.game == "er") {
+            snprintf(b, sizeof(b), "Mapa: %s (%s)\nÚltima graça: %u (%s)\nHP: %d | Posição: %s%.2f, %.2f, %.2f\n",
+                     ErMapIdText(s.mapRaw).c_str(), s.areaName.c_str(), (uint32_t)s.lastBonfire,
+                     ErGraceLabel((uint32_t)s.lastBonfire).c_str(), s.hp, s.hasPos ? "" : "(indisponível) ", s.pos.x,
+                     s.pos.y, s.pos.z);
+        } else {
+            std::string map = s.mapArea >= 0 ? Ds1MapName(s.mapArea, s.mapBlock) : "?";
+            snprintf(b, sizeof(b), "Mapa: 0x%08X -> m%02d_%02d (%s)\nÚltima fogueira: %d (%s)\nHP: %d | Posição: %s%.2f, %.2f, %.2f\n",
+                     s.mapRaw, s.mapArea, s.mapBlock, map.c_str(), s.lastBonfire, Ds1BonfireName(s.lastBonfire).c_str(),
+                     s.hp, s.hasPos ? "" : "(indisponível) ", s.pos.x, s.pos.y, s.pos.z);
+        }
         t += b;
     }
     Profile* p = tracker_.active();
@@ -761,7 +819,7 @@ void App::UiAboutTab()
     ImGui::PushFont(fontTitle_);
     ImGui::Text("DS Death Counter %s", DSDC_VERSION_STRING);
     ImGui::PopFont();
-    ImGui::TextDisabled("Contador de mortes com overlay para Dark Souls Remastered. Código aberto (licença MIT).");
+    ImGui::TextDisabled("Contador de mortes com overlay para Dark Souls Remastered e Elden Ring. Código aberto (licença MIT).");
     if (ImGui::Button("Página do projeto no GitHub")) OpenFolder(Utf8ToWide(DSDC_REPO_URL));
     ImGui::SameLine();
     if (ImGui::Button("Baixar versões novas")) OpenFolder(Utf8ToWide(std::string(DSDC_REPO_URL) + "/releases"));
@@ -785,6 +843,10 @@ void App::UiAboutTab()
     ImGui::BulletText("O overlay é uma janela separada por cima do jogo; nada é desenhado dentro dele.");
     ImGui::BulletText("Os banimentos do Dark Souls vêm de dados de personagem impossíveis enviados aos servidores, "
                       "coisa que este app não toca.");
+    ImGui::BulletText("Elden Ring: enquanto o Easy Anti-Cheat estiver rodando, o app não abre o processo do jogo nem lê "
+                      "a memória dele. A contagem vem do arquivo de save (ER0000.sl2), que o jogo grava depois de cada "
+                      "morte; o arquivo só é lido, nunca alterado. A memória só é lida quando o jogo foi aberto sem o "
+                      "Easy Anti-Cheat (modo offline), e aí a contagem aparece na hora e com a área exata da morte.");
 
     ImGui::SeparatorText("Dados");
     ImGui::TextDisabled("%s", WideToUtf8(store_.FilePath()).c_str());
@@ -806,7 +868,7 @@ void App::ExportCsv(const Profile& p)
         char pos[96] = ";;";
         if (r.hasPos) snprintf(pos, sizeof(pos), "%.2f;%.2f;%.2f", r.x, r.y, r.z);
         out += (r.gameCount > 0 ? std::to_string(r.gameCount) : std::string()) + ";" + CsvField(r.time) + ";" +
-               CsvField(r.area) + ";" + CsvField(Ds1BonfireName(r.bonfire)) + ";" + CsvField(r.cause) + ";" +
+               CsvField(r.area) + ";" + CsvField(BonfireText(p, r.bonfire)) + ";" + CsvField(r.cause) + ";" +
                (r.untracked ? std::string() : FormatPlayTime(r.playTimeMs)) + ";" + pos + ";" +
                (r.untracked ? "nao" : "sim") + "\r\n";
     }

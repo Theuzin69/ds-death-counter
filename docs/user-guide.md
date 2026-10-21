@@ -7,6 +7,7 @@ The app's interface is in Brazilian Portuguese. This guide quotes the on-screen 
 - [1. Installing](#1-installing)
 - [2. First launch](#2-first-launch)
 - [3. While you play](#3-while-you-play)
+- [Elden Ring](#elden-ring)
 - [4. Characters and counts](#4-characters-and-counts)
 - [5. The death list](#5-the-death-list)
 - [6. Settings](#6-settings)
@@ -45,7 +46,7 @@ At the top of the window:
 
 | Status | Meaning |
 |---|---|
-| *Aguardando o Dark Souls Remastered abrir…* | The game isn't running. *Iniciar Dark Souls* launches it. |
+| *Aguardando o Dark Souls Remastered ou o Elden Ring abrir…* | No supported game is running. *Iniciar Dark Souls* launches Dark Souls Remastered. |
 | *Dark Souls encontrado, preparando a leitura…* | The game was found and the counter is locating its data (takes a moment). |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Connected; you're on the title screen. |
 | *Contando as mortes de NAME (slot N)* | Counting. |
@@ -64,6 +65,52 @@ The current character's count appears in a corner of the game window (default: t
 ### Tray icon
 
 Closing the window keeps the counter running in the system tray. Hover the tray icon to see the current count. Right-click it for *Abrir* (open), *Mostrar overlay* (toggle overlay) and *Sair* (quit).
+
+## Elden Ring
+
+The counter also recognizes **Elden Ring** (`eldenring.exe`), with nothing to set up. Each character gets its own count and history, as in Dark Souls Remastered. In the character list, Elden Ring characters are tagged *Elden Ring* and Dark Souls Remastered ones *DSR*.
+
+### Easy Anti-Cheat decides how the count is read
+
+| How the game was started | What the counter does |
+|---|---|
+| Normally through Steam (Easy Anti-Cheat on) | It **never opens the game process**. It reads the death counter from the save file, `%APPDATA%\EldenRing\<steamid>\ER0000.sl2`, which the game writes after every death. The count changes **a few seconds after you die**, once the game has saved. |
+| Without Easy Anti-Cheat (offline launch with EAC disabled, Seamless Co-op) | It reads the game's memory, read-only, like Dark Souls Remastered. The count changes instantly, and each death gets the exact area and fall detection. |
+
+The counter looks for EAC without touching the game:
+
+- running `EasyAntiCheat*.exe` or `start_protected_game.exe` processes;
+- the *EasyAntiCheat* and *EasyAntiCheat_EOS* Windows services;
+- whether `start_protected_game.exe` (EAC's launcher) started the game.
+
+It checks twice, two seconds apart, before it opens the game, and keeps checking every two seconds after that. If EAC appears, the counter drops its access at once and stays on the save file until the game is closed. If another game with EAC is running at the same time, Elden Ring is treated as protected too, which only means the count comes from the save file.
+
+The save file is opened read-only and shared, for a few milliseconds after each write, and is never modified.
+
+### Status line (Elden Ring)
+
+| Status | Meaning |
+|---|---|
+| *Elden Ring encontrado, verificando o Easy Anti-Cheat antes de ler…* | The game is running; the counter is making sure EAC is off before touching it (a few seconds). |
+| *Elden Ring sem Easy Anti-Cheat, preparando a leitura da memória…* | No EAC; the counter is locating the game's data. |
+| *Contando as mortes de NAME (slot N)* | Counting from memory (no EAC). |
+| *Contando as mortes de NAME (slot N) pelo arquivo de save* | EAC is on; counting from the save file. |
+| *Elden Ring com Easy Anti-Cheat: aguardando o jogo salvar para saber qual é o personagem* | You have more than one character and the game hasn't written the save since the counter started, so it doesn't know yet which one you're playing. It finds out at the next save (for example when you rest at a grace or die). |
+
+### What each death records
+
+- *Área*: legacy dungeons and dungeons by name (*Stormveil Castle*, *Murkwater Catacombs*…). In the open world, the 256 m map square you were in, written as *Region - landmarks* (for example *Limgrave - Church of Elleh, Stranded Graveyard Exit*). In the Realm of Shadow (DLC) only the region is named. With EAC on, the area is where the game left your bloodstain, which is where you died. Hover to see the map id (`m60_42_36_00`).
+- *Última graça (área)*: the area of the last Site of Grace you rested at. The save keeps the grace as a map object, not by name, so the column shows its area.
+- *Por área* groups Elden Ring deaths by region (*Limgrave*, *Liurnia of the Lakes*, *Stormveil Castle*…).
+- *Queda* (fall) is only detected when reading memory (no EAC), because it needs the player's position.
+- The cause suggestions include the main Elden Ring and Shadow of the Erdtree bosses.
+
+### Tips
+
+- Use the game's own **Borderless Windowed** screen mode so the overlay can draw over it. The *Deixar a janela do jogo sem bordas* button is disabled while EAC is running: the counter stays completely passive.
+- With EAC on, the counter can't tell the title screen from gameplay, so *Esconder no menu principal do jogo* doesn't apply; the overlay shows whenever the game window is active.
+- The *Iniciar Dark Souls* button only launches Dark Souls Remastered. Start Elden Ring from Steam.
+- Seamless Co-op saves (`ER0000.co2`) are only used when the game runs without EAC.
 
 ## 4. Characters and counts
 
@@ -166,6 +213,12 @@ That file holds settings, characters and the full death history. To back it up o
 **A character shows up twice:** a character is identified by slot + name, so a character that moved to another slot (for example, by copying save files around) is seen as new. Delete the duplicate in the app if you want.
 
 **Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position…).
+
+**Elden Ring: the count changes a few seconds after I die:** expected while Easy Anti-Cheat is on. The counter waits for the game to write the save (see [Elden Ring](#elden-ring)).
+
+**Elden Ring: *aguardando o jogo salvar*:** you have several characters and the counter is waiting for the game's next save to know which one you're playing. Rest at a grace or keep playing; it shows up at the next save.
+
+**Elden Ring: the count doesn't change at all:** open *Diagnóstico*. The *Save:* lines show which file is read, when it was last read, and what each slot holds. If a slot says the death counter was not found, a game update changed the save format: please report it with the diagnostics text.
 
 **My antivirus complained:** see the [SmartScreen/antivirus section](../README.md#smartscreen). The app reads another program's memory, which some antivirus heuristics dislike. It never writes to the game.
 

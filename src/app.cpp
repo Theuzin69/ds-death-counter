@@ -103,7 +103,8 @@ void App::Tick()
 {
     tracker_.Tick(reader_);
     Settings& s = store_.settings;
-    if (reader_.IsReady() && s.gameExePath.empty()) {
+    // The path is used by the "Iniciar Dark Souls" button only.
+    if (reader_.IsReady() && reader_.game() == GameReader::Game::DarkSoulsRemastered && s.gameExePath.empty()) {
         std::wstring path = reader_.ProcessPath();
         if (!path.empty()) {
             s.gameExePath = WideToUtf8(path);
@@ -238,7 +239,7 @@ void App::UpdateTrayTip()
     if (Profile* p = tracker_.active())
         tip += L"\n" + Utf8ToWide(p->name) + L": " + std::to_wstring(p->Shown()) + L" mortes";
     else if (reader_.state() == GameReader::State::NotRunning)
-        tip += L"\nAguardando o Dark Souls";
+        tip += L"\nAguardando o jogo";
     if (tip == trayTip_) return;
     trayTip_ = tip;
     wcsncpy_s(nid_.szTip, tip.c_str(), _TRUNCATE);

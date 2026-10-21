@@ -14,10 +14,11 @@ Requirements: Windows 10/11 x64 and Visual Studio 2019/2022 with the *Desktop de
 
 ```bat
 build.bat                 :: -> build\DSDeathCounter.exe
-tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe
+tests\build_tests.bat     :: -> build\tests\scan_test.exe, overlay_test.exe, er_save_test.exe
 ```
 
-- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it.
+- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` (or `eldenring.exe`) runs the app's signature scanner against a game executable on disk. Use it to check a game version without launching it.
+- `build\tests\er_save_test.exe "%APPDATA%\EldenRing\<steamid>\ER0000.sl2"` shows what the counter reads from an Elden Ring save (read-only). With `--simulate` it copies the save to `%TEMP%` and plays the game's writes on the copy to test the save watcher.
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 
 Installer: install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run `ISCC.exe installer\DSDeathCounter.iss` (output in `dist\`).
@@ -32,6 +33,8 @@ src/overlay.*        click-through layered window drawn over the game (GDI+)
 src/app*.cpp         main window (Win32 + Direct3D 11 + Dear ImGui), tray, hotkey
 src/ds1_data.*       map names, bonfire names, cause suggestions
 src/platform.*       start with Windows, Steam lookup, game window helpers, dialogs
+src/games/           other games: eldenring.* (memory + Easy Anti-Cheat detection),
+                     eldenring_save.* (save file reader), eldenring_data.* (area names)
 src/version.h        the version number (single source)
 installer/           Inno Setup script
 tests/               small test programs
@@ -42,6 +45,7 @@ third_party/         Dear ImGui and nlohmann/json (vendored, MIT)
 ## Ground rules
 
 - **Read-only, always.** The app must never write to the game process, inject code or install hooks. That's what keeps it ban-safe. Pull requests that change this won't be accepted.
+- **Never open a game protected by Easy Anti-Cheat.** For Elden Ring, no handle may be opened while EAC runs; that mode reads the save file only.
 - Match the style of the surrounding code (C++20, MSVC, no warnings).
 - User-facing text is in Brazilian Portuguese for now. If you add strings, keep them easy to translate later.
 
@@ -65,4 +69,5 @@ Obrigado pelo interesse! Relatos de bug, relatos de versão do jogo, traduções
 - **Bug:** use o [formulário de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose) e cole o texto da aba **Diagnóstico** (botão *Copiar*).
 - **Compilar:** Visual Studio 2019/2022 com *Desenvolvimento para desktop com C++*; rode `build.bat`. Testes em `tests\build_tests.bat`.
 - **Regra principal:** o app é **somente leitura**. Nada de escrever na memória do jogo, injetar código ou instalar hooks; é isso que evita ban.
+- **Easy Anti-Cheat:** com o EAC rodando, o Elden Ring nunca é aberto pelo app (nenhum handle); a contagem vem só do arquivo de save.
 - **Publicar versão:** atualize `src/version.h` e o `CHANGELOG.md`, crie a tag `vX.Y.Z` e envie (`git push origin main vX.Y.Z`). O GitHub Actions compila e publica o release sozinho.

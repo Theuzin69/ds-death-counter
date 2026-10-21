@@ -14,6 +14,12 @@ DS Death Counter includes the following open source libraries. Both are compiled
 - License: MIT. Copyright (c) 2013-2023 Niels Lohmann <https://nlohmann.me>
 - The full license text is at the top of `json.hpp`.
 
+## Smithbox map names (data)
+
+- The base-game Elden Ring area names in `src/games/eldenring_data.cpp` come from the map id list in [Smithbox](https://github.com/vawser/Smithbox) (`Documentation/Game Information/ER/Map/Info - Map IDs.txt`).
+- License: MIT. Copyright (c) 2025 Vawser, Copyright (c) 2018 Katalash, Meowmaritus
+- Full text: [`third_party/smithbox/LICENSE.txt`](third_party/smithbox/LICENSE.txt)
+
 ## Community research (no code included)
 
 The memory offsets and byte signatures used to read the game come from public research by the Souls modding and speedrunning community. No source code from these projects is included in DS Death Counter; they are credited because their work made it possible:
@@ -21,7 +27,8 @@ The memory offsets and byte signatures used to read the game come from public re
 - [DSDeaths](https://github.com/quidrex/DSDeaths) by quidrex
 - [SoulSplitter / SoulMemory](https://github.com/FrankvdStam/SoulSplitter) by Frank van der Stam (incl. work by CapitaineToinon)
 - [DSR-Gadget](https://github.com/JKAnderson/DSR-Gadget) and [DS-Gadget](https://github.com/JKAnderson/DS-Gadget) by JKAnderson
+- Elden Ring save file layout: [er-save-manager](https://github.com/Hapfel1/er-save-manager) by Hapfel1 (its save file structure documentation) and [ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor) by ClayAmore
 
 ---
 
-DARK SOULS is a trademark of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. This project is a fan-made tool and is not affiliated with, endorsed by or sponsored by them.
+DARK SOULS and ELDEN RING are trademarks of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. This project is a fan-made tool and is not affiliated with, endorsed by or sponsored by them.

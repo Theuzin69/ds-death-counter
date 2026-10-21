@@ -49,13 +49,14 @@ void DeathTracker::Tick(GameReader& reader)
     // Remember where the player was while alive. HP 0 freezes the history at the moment of death.
     bool alive = s.inWorld && s.hasPos && s.hp != 0;
     if (alive) {
-        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs });
+        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.mapRaw, s.areaName });
         while (!history_.empty() && now - history_.front().t > 10000) history_.pop_front();
     }
 
     if (!s.charLoaded) return;
 
     std::string baseKey = (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
+    if (s.game != "dsr") baseKey = s.game + "|" + baseKey;   // existing DSR keys stay as they were
     if (baseKey != candidateKey_) {
         candidateKey_ = baseKey;
         candidateSince_ = now;
@@ -87,10 +88,12 @@ void DeathTracker::Tick(GameReader& reader)
         store_.MarkDirty();
     }
 
-    if (p->playTimeMs != s.playTimeMs || p->soulLevel != s.soulLevel || p->ngPlus != s.ngPlus) {
+    // ngPlus < 0: unknown (an Elden Ring save the detailed parse didn't cover)
+    int ngPlus = s.ngPlus >= 0 ? s.ngPlus : p->ngPlus;
+    if (p->playTimeMs != s.playTimeMs || p->soulLevel != s.soulLevel || p->ngPlus != ngPlus) {
         p->playTimeMs = s.playTimeMs;
         p->soulLevel = s.soulLevel;
-        p->ngPlus = s.ngPlus;
+        p->ngPlus = ngPlus;
         p->lastSeen = NowLocalString();
         store_.MarkDirty();
     }
@@ -125,10 +128,11 @@ void DeathTracker::Activate(const GameSnapshot& s, const std::string& baseKey)
 
     p->name = s.name.empty() ? "Personagem do slot " + (s.saveSlot >= 0 ? std::to_string(s.saveSlot + 1) : std::string("?"))
                              : WideToUtf8(s.name);
+    p->game = s.game;
     p->slot = s.saveSlot;
     p->playTimeMs = s.playTimeMs;
     p->soulLevel = s.soulLevel;
-    p->ngPlus = s.ngPlus;
+    if (s.ngPlus >= 0) p->ngPlus = s.ngPlus;
     p->lastSeen = NowLocalString();
     activeKey_ = p->key;
     lastDeaths_ = s.deaths;
@@ -161,8 +165,11 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
     bool fell = false;
     if (haveSample) {
         float peak = last.pos.y;
+        // Elden Ring: each legacy dungeon has its own coordinates; compare only within one space.
+        auto space = [](uint32_t map) { unsigned a = map >> 24; return (a == 60 || a == 61) ? a : map; };
         for (const auto& h : history_)
-            if (last.t - h.t <= 4000) peak = std::max(peak, h.pos.y);
+            if (last.t - h.t <= 4000 && (snap_.game == "dsr" || space(h.mapRaw) == space(last.mapRaw)))
+                peak = std::max(peak, h.pos.y);
         fell = peak - last.pos.y > 10.0f;
     }
 
@@ -175,6 +182,12 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
         r.mapArea = haveSample ? last.mapArea : snap_.mapArea;
         r.mapBlock = haveSample ? last.mapBlock : snap_.mapBlock;
         r.area = AreaLabel(r.mapArea, r.mapBlock);
+        // Games whose module names the area itself (Elden Ring)
+        const std::string& areaName = haveSample ? last.areaName : snap_.areaName;
+        if (snap_.game != "dsr") {
+            r.mapId = haveSample ? last.mapRaw : snap_.mapRaw;
+            r.area = areaName.empty() ? "Desconhecida" : areaName;
+        }
         r.bonfire = haveSample ? last.bonfire : snap_.lastBonfire;
         if (haveSample) {
             r.hasPos = true;
