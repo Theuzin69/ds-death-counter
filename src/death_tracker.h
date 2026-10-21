@@ -28,6 +28,7 @@ private:
         Vec3 pos;
         int mapArea, mapBlock, bonfire;
         uint32_t playTimeMs;
+        std::string areaName;
     };
 
     void Activate(const GameSnapshot& s, const std::string& baseKey);

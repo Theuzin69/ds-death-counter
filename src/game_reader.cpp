@@ -9,7 +9,11 @@
 
 namespace {
 
-const wchar_t* kGameExe = L"DarkSoulsRemastered.exe";
+// One row per supported game. The first one is the default (profiles from 1.0.0 belong to it).
+const GameInfo kGames[] = {
+    { "dsr", L"DarkSoulsRemastered.exe", "Dark Souls Remastered", "DSR" },
+    { "ds3", L"DarkSoulsIII.exe",        "Dark Souls III",        "DS3" },
+};
 
 // Module sizes of the 1.01.x builds (from DSR-Gadget). Anything else is treated
 // as 1.03 / 1.03.1, the build Steam distributes today.
@@ -87,14 +91,14 @@ int32_t ReadI32(const std::vector<uint8_t>& buf, size_t at)
     return v;
 }
 
-DWORD FindGamePid()
+DWORD FindGamePid(const GameInfo*& game)
 {
     DWORD pid = 0;
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE) return 0;
     PROCESSENTRY32W pe{ sizeof(pe) };
     for (BOOL ok = Process32FirstW(snap, &pe); ok; ok = Process32NextW(snap, &pe)) {
-        if (_wcsicmp(pe.szExeFile, kGameExe) == 0) { pid = pe.th32ProcessID; break; }
+        if (const GameInfo* g = FindGameByExe(pe.szExeFile)) { pid = pe.th32ProcessID; game = g; break; }
     }
     CloseHandle(snap);
     return pid;
@@ -103,6 +107,37 @@ DWORD FindGamePid()
 bool ValidPtr(uintptr_t p) { return p >= 0x10000 && p < 0x7FFFFFFFFFFFull; }
 
 } // namespace
+
+const GameInfo* FindGameById(const std::string& id)
+{
+    for (const auto& g : kGames)
+        if (id == g.id) return &g;
+    return nullptr;
+}
+
+const GameInfo* FindGameByExe(const std::wstring& exeFileName)
+{
+    size_t slash = exeFileName.find_last_of(L"\\/");
+    std::wstring file = slash == std::wstring::npos ? exeFileName : exeFileName.substr(slash + 1);
+    for (const auto& g : kGames)
+        if (_wcsicmp(file.c_str(), g.exe) == 0) return &g;
+    return nullptr;
+}
+
+std::string SupportedGamesText()
+{
+    std::string t;
+    for (size_t i = 0; i < std::size(kGames); ++i) {
+        if (i) t += (i + 1 == std::size(kGames)) ? " ou " : ", ";
+        t += kGames[i].title;
+    }
+    return t;
+}
+
+std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern)
+{
+    return FindAll(img, pattern);
+}
 
 std::wstring GameReader::ProcessPath() const
 {
@@ -131,6 +166,7 @@ std::string GameReader::VersionName() const
             fileVer = b;
         }
     }
+    if (IsDs3()) return fileVer.empty() ? "?" : fileVer;   // DS3 file versions match the game version (1.15.0.0)
     const char* label = "1.03.x";
     switch (size_) {
         case 0x4869400: label = "1.01"; break;
@@ -154,6 +190,7 @@ void GameReader::Detach()
     base_ = 0;
     size_ = 0;
     gameMan_ = gameDataMan_ = worldChrMan_ = 0;
+    ds3_ = Ds3Reader{};
     scanAttempts_ = 0;
     state_ = State::NotRunning;
 }
@@ -171,7 +208,7 @@ bool GameReader::OpenGame(DWORD pid)
     if (snap == INVALID_HANDLE_VALUE) { Detach(); return false; }   // game still starting, retry later
     MODULEENTRY32W me{ sizeof(me) };
     for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {
-        if (_wcsicmp(me.szModule, kGameExe) == 0) {
+        if (_wcsicmp(me.szModule, game_->exe) == 0) {
             base_ = (uintptr_t)me.modBaseAddr;
             size_ = me.modBaseSize;
             break;
@@ -203,6 +240,7 @@ bool GameReader::ScanPatterns()
 bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 {
     scanLog_.clear();
+    if (IsDs3()) return ds3_.Analyze(img, base_, scanLog_);   // src/games/ds3.cpp
     char line[256];
     // Resolves "mov reg, [rip+rel32]" style references to the address of a global.
     auto resolve = [&](const char* name, std::initializer_list<const char*> patterns, int relOff, int instrLen) -> uintptr_t {
@@ -267,7 +305,7 @@ void GameReader::Update()
     nextTry_ = now + 2000;
 
     if (!proc_) {
-        DWORD pid = FindGamePid();
+        DWORD pid = FindGamePid(game_);
         if (!pid) { state_ = State::NotRunning; return; }
         if (!OpenGame(pid)) return;
     }
@@ -292,6 +330,8 @@ bool GameReader::Read(GameSnapshot& s)
 {
     s = GameSnapshot{};
     if (state_ != State::Ready) return false;
+    s.game = game_->id;
+    if (IsDs3()) { ds3_.Read(proc_, s); return true; }   // src/games/ds3.cpp
 
     if (uintptr_t gdm = ReadPtr(gameDataMan_)) {
         s.gameDataOk = true;
@@ -364,8 +404,9 @@ std::string GameReader::DiagnosticsText() const
         case State::Ready:        st = "conectado"; break;
         default: break;
     }
-    snprintf(b, sizeof(b), "Estado: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
-             st, pid_, (unsigned long long)base_, size_, VersionName().c_str(), scanAttempts_);
+    snprintf(b, sizeof(b), "Estado: %s\nJogo: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
+             st, state_ == State::NotRunning ? "-" : game_->title, pid_, (unsigned long long)base_, size_,
+             VersionName().c_str(), scanAttempts_);
     t += b;
     t += scanLog_;
     return t;

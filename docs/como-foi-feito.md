@@ -95,12 +95,43 @@ O que o humano conferiu no jogo de verdade:
 
 Cada release é compilado pelo GitHub Actions a partir do código público, com somas de verificação e atestados de procedência (veja o [README](../README.pt-BR.md#smartscreen)).
 
+## Suporte ao Dark Souls III
+
+O suporte ao Dark Souls III veio depois, em outra sessão do Claude Code, com o mesmo método: análise estática do executável do jogo (lido como arquivo, nunca executado), assinaturas de bytes que precisam bater em **exatamente um** lugar, e **assinaturas independentes para a mesma estrutura que precisam concordar**. O código específico do jogo fica em `src/games/ds3.cpp` (assinaturas, offsets, leituras) e `src/games/ds3_data.cpp` (nomes dos mapas, sugestões de causa).
+
+**O executável.** A cópia disponível para o desenvolvimento era o `DarkSoulsIII.exe` **1.15.0.0** (data no cabeçalho PE: 08/08/2017, `SizeOfImage` 0x63DF000). A Steam distribui hoje a **1.15.1 / 1.15.2**, que não pôde ser analisada. Esses patches mexeram principalmente no código de rede, e o endereço fixo que o DSDeaths usa na versão nova (`exe+0x47572B8`) não aparece em lugar nenhum da 1.15.0, ou seja, os globais mudaram de lugar. Por isso o app encontra tudo por assinaturas e lê a maior parte dos offsets do próprio código do jogo, em vez de deixá-los fixos.
+
+**O que é lido e como cada valor foi confirmado** (endereços da 1.15.0):
+
+| Valor | Onde | Como foi confirmado |
+|---|---|---|
+| `GameDataMan` | `exe+0x4740178` | 3 assinaturas concordam: a do SoulMemory, a função `AddDeathCount` do jogo e a atualização do tempo de jogo |
+| Contador de mortes | `GameDataMan + 0x98` | A função Lua `AddDeathCount` termina numa função pequena que soma neste campo (travando em 0xFFFFFFFF); o carregador do save lê o campo do save e um jogo novo zera o campo |
+| Tempo de jogo (ms) | `GameDataMan + 0xA4` | Código que soma o tempo de cada quadro e trava o valor em 999:59:59 (0xD693A018) |
+| Ciclo NG+ | `GameDataMan + 0x78` | Lido do save e limitado a 0..9999 pelo carregador |
+| Nome do personagem | `[GameDataMan + 0x10] + 0x88` | O carregador do `PlayerGameData` termina ali um nome UTF-16 de 16 caracteres |
+| Nível | `PlayerGameData + 0x70` | Copiado junto com as almas (+0x74) e o total de almas (+0x78, comparado com 999.999.999), na mesma ordem dos textos de depuração *SoulLv*, *Soul* e *Total Get Soul* |
+| `WorldChrMan` / jogador | `exe+0x4768E78`, `+0x80` | 2 assinaturas concordam: a do SoulMemory e uma função pequena "o jogador existe?", que também dá o offset `+0x80` |
+| `GameMan` | `exe+0x4743AB0` | 3 assinaturas concordam: o setter do ponto de renascimento, o getter dele e o código de jogo novo que grava o slot do save. O construtor guarda o objeto no mesmo global |
+| Slot do save | `GameMan + 0xA60` | Um jogo novo grava ali o primeiro slot livre dos 10 (ou -1) |
+| Última fogueira | `GameMan + 0xACC` | Id do ponto de renascimento: o getter devolve esse valor (ou um substituto temporário em +0xAD0), e o carregador do save e funções Lua/ESD gravam nele |
+| HP | `PlayerIns + 0x1F90` → `+0x18` → `+0xD8` | Quem chama `SprjChrDataModule::SetHp` passa esse módulo, e o `SetHp` limita +0xD8 pelo HP máximo em +0xDC |
+| Posição | `PlayerIns + 0x1F90` → `+0x68` → `+0x80` | Os módulos do personagem são registrados por índice: o índice 13 (`+0x68`) é o `SprjChrPhysicsModule`, cujo construtor inicia a posição `float4` em +0x80 com (0, 0, 0, 1) |
+| Mapa atual | `PlayerIns + 0x1ABC` | Atualizado sempre que muda o chão (colisão) sob o personagem. O jogo monta o valor a partir do id de *play region* da colisão, como um número decimal `AABKCC`, em que `AA` é a área do mapa e `B` o bloco: `m30_01` (Lothric Castle) dá `301xxx` |
+
+Os nomes dos mapas (`mAA_BB`) são uma tabela pequena em `ds3_data.cpp`. Os ids de fogueira e de ponto de renascimento seguem o padrão de ids de entidade do jogo, `AABxxxx` (por exemplo, `4002950` fica no `m40_00`). Por isso a coluna *Última fogueira* mostra o mapa da fogueira mais o id, e não o nome exato da fogueira.
+
+O `tests/scan_test` roda o scanner do próprio app no `DarkSoulsIII.exe` e confere que as 11 assinaturas foram encontradas e que cada endereço e offset é igual aos valores da 1.15.0 acima. As conferências do DSR continuam iguais.
+
+Os perfis agora têm um campo `game` (`"dsr"` para todo perfil salvo pela 1.0.0), e as chaves de perfis de outros jogos levam o id do jogo na frente (`ds3|slot|nome`). Assim os dados do Dark Souls Remastered que já existiam continuam funcionando sem mudança.
+
 ## Limitações conhecidas
 
 - Quem matou (inimigo/chefe) não é detectado automaticamente, exceto quedas.
 - Em tela cheia exclusiva o overlay pode não aparecer; em janela/sem bordas ele sempre funciona.
 - A interface está só em português (inglês está nos planos).
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
+- O Dark Souls III foi conferido estaticamente só na 1.15.0. Na versão atual da Steam (1.15.1 / 1.15.2) a expectativa é que as assinaturas continuem batendo, mas isso ainda não foi confirmado. A leitura do mapa atual a partir do id de *play region* e o offset do nível ainda precisam ser conferidos no jogo.
 
 ## Ferramentas
 

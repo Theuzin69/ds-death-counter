@@ -4,6 +4,20 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### Added / Adicionado
+
+- **Dark Souls III support** (`DarkSoulsIII.exe`, verified on 1.15.0): automatic death count from the game's own per-character counter, separate count and history per save/character, current area (map), last bonfire (shown by map), play time, fall detection and DS3 boss suggestions for the cause. Same read-only access as for Dark Souls Remastered. The current Steam build (1.15.1 / 1.15.2) still needs to be confirmed in-game.
+  *Suporte ao Dark Souls III (`DarkSoulsIII.exe`, conferido na 1.15.0): contagem automática de mortes pelo contador do próprio jogo, contagem e histórico separados por save/personagem, área atual (mapa), última fogueira (mostrada pelo mapa), tempo de jogo, detecção de quedas e sugestões de causa com os chefes do DS3. Mesmo acesso somente leitura do Dark Souls Remastered. A versão atual da Steam (1.15.1 / 1.15.2) ainda precisa ser confirmada no jogo.*
+- Each character shows which game it belongs to (*DSR* / *DS3*), and the Diagnostics tab shows the game and how many code signatures were found.
+  *Cada personagem mostra de qual jogo é (*DSR* / *DS3*), e a aba Diagnóstico mostra o jogo e quantas assinaturas do código foram encontradas.*
+
+### Changed / Alterado
+
+- Saved data gets a `game` field per character (`"dsr"` for existing data, which keeps working unchanged); Dark Souls III characters are stored under keys starting with `ds3|`.
+  *Os dados salvos ganham um campo `game` por personagem (`"dsr"` para os dados que já existiam, que continuam funcionando sem mudança); personagens do Dark Souls III ficam em chaves que começam com `ds3|`.*
+
 ## [1.0.0] - 2026-10-16
 
 First public release. / Primeira versão pública.

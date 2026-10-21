@@ -44,8 +44,9 @@ struct DeathRecord {
 };
 
 struct Profile {
-    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character)
-    std::string baseKey;        // "slot|name"
+    std::string game = "dsr";   // GameInfo::id ("dsr", "ds3")
+    std::string key;            // "slot|name", "ds3|slot|name" for other games (+ "#N" when a slot was reused)
+    std::string baseKey;        // the key without "#N"
     std::string name;
     int slot = -1;
     int gameDeaths = 0;         // last value read from the game

@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b>.<br>
+  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b> e <b>Dark Souls III</b>.<br>
   Para streamers e para quem quer saber quantas vezes (e onde) morreu.
 </p>
 
@@ -90,7 +90,7 @@ Alguns antivírus também podem desconfiar do app só por ele ler a memória de 
 ## Começando
 
 1. Instale (ou descompacte) e abra o **DS Death Counter**. Conte com o [aviso do SmartScreen](#smartscreen) acima.
-2. Na tela de boas-vindas, deixe ele achar o jogo (ou aponte o `DarkSoulsRemastered.exe`) e mantenha marcado **Iniciar com o Windows**.
+2. Na tela de boas-vindas, deixe ele achar o jogo (ou aponte o `DarkSoulsRemastered.exe`) e mantenha marcado **Iniciar com o Windows**. O Dark Souls III é reconhecido sozinho sempre que estiver aberto.
 3. Deixe o jogo em modo **Janela** (ou janela sem bordas). Em tela cheia exclusiva o overlay pode não aparecer. Em *Configurações › Janela do jogo* há um botão que tira a borda da janela do jogo, e fica igual a tela cheia.
 4. Carregue um personagem e jogue. A contagem aparece no canto do jogo e cada morte vai para a lista.
 
@@ -114,6 +114,7 @@ Nenhuma ferramenta de terceiros pode prometer risco zero com honestidade, mas le
 |---|---|
 | Windows | 10 ou 11, 64 bits |
 | Dark Souls Remastered | Funciona na versão original 1.01 e nas versões 1.03.x (a atual da Steam). A versão do jogo é detectada automaticamente. |
+| Dark Souls III | Conferido na 1.15.0. A versão atual da Steam (1.15.1 / 1.15.2) deve funcionar, porque tudo é localizado por assinaturas no código, mas isso ainda não foi confirmado no jogo. Contagem, histórico por personagem, área (mapa) e última fogueira (pelo mapa). |
 | Modo de tela | Janela / janela sem bordas. Em tela cheia exclusiva o overlay pode não aparecer. |
 | Idioma do app | Português do Brasil (inglês planejado) |
 

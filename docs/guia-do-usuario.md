@@ -31,6 +31,7 @@ O app não tem assinatura digital, então na primeira vez o Windows mostra **"O 
 A tela *Bem-vindo ao DS Death Counter* pede duas coisas:
 
 1. **Vincular ao jogo.** O app procura o Dark Souls Remastered nas bibliotecas da Steam. Se não achar, clique em *Procurar DarkSoulsRemastered.exe…* e selecione o executável do jogo. O caminho só é usado pelo botão *Iniciar Dark Souls*: o contador reconhece o jogo aberto sozinho de qualquer jeito.
+   O **Dark Souls III** não precisa de nada aqui: sempre que o `DarkSoulsIII.exe` estiver aberto, o contador encontra o jogo sozinho.
 2. **Sempre ligado.** Deixe marcado *Iniciar com o Windows, minimizado na bandeja*. Assim o app abre junto com o Windows, fica na bandeja, e suas mortes são contadas sempre que você abrir o jogo, sem precisar lembrar de abrir o contador.
 
 Clique em *Começar*.
@@ -43,8 +44,8 @@ No topo da janela:
 
 | Status | Significado |
 |---|---|
-| *Aguardando o Dark Souls Remastered abrir…* | O jogo não está aberto. *Iniciar Dark Souls* abre o jogo. |
-| *Dark Souls encontrado, preparando a leitura…* | O jogo foi encontrado e o contador está localizando os dados (leva um instante). |
+| *Aguardando o jogo abrir (Dark Souls Remastered ou Dark Souls III)…* | Nenhum jogo suportado está aberto. *Iniciar Dark Souls* abre o jogo definido em *Configurações*. |
+| *Dark Souls III encontrado, preparando a leitura…* | O jogo foi encontrado (aparece o nome dele) e o contador está localizando os dados (leva um instante). |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Conectado; você está no menu principal. |
 | *Contando as mortes de NOME (slot N)* | Contando. |
 | *O jogo está rodando como administrador…* | O Windows bloqueou o acesso. Veja [Problemas comuns](#9-problemas-comuns). |
@@ -67,7 +68,8 @@ Fechar a janela mantém o contador rodando na bandeja. Passe o mouse no ícone p
 
 A aba *Personagens* lista todos os personagens que o contador já viu (*Saves / personagens*). O que está sendo jogado agora tem uma bolinha verde e fica no topo.
 
-- **Como os personagens são separados:** pelo slot do save e pelo nome. Se você apagar um personagem e criar outro com o mesmo nome no mesmo slot, o contador percebe que o tempo de jogo voltou a zero e começa uma contagem nova.
+- **De qual jogo:** cada personagem mostra o jogo dele (*DSR* para Dark Souls Remastered, *DS3* para Dark Souls III) na lista e nos detalhes. Personagens de jogos diferentes nunca se misturam, mesmo com o mesmo nome e o mesmo slot.
+- **Como os personagens são separados:** pelo jogo, pelo slot do save e pelo nome. Se você apagar um personagem e criar outro com o mesmo nome no mesmo slot, o contador percebe que o tempo de jogo voltou a zero e começa uma contagem nova.
 - **De onde vem o número:** o jogo guarda um contador de mortes por personagem dentro do save. O app lê esse contador, então o número é exato mesmo para mortes de antes de instalar o app ou de quando ele estava fechado.
 - *N morte(s) aconteceram antes do contador conhecer este personagem*: N mortes aconteceram antes de o app ver esse personagem pela primeira vez. Elas entram no total, mas sem detalhes na lista.
 
@@ -105,6 +107,8 @@ A aba *Mortes* tem uma linha por morte, da mais recente para a mais antiga:
 - *Por área* / *Por causa* mostram onde e como você mais morre, com porcentagens.
 
 As áreas são os mapas do jogo, então alguns nomes juntam duas regiões (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). Se uma morte caiu no mapa errado, corrija com botão direito → *Editar área*.
+
+**Dark Souls III:** as áreas também são os mapas do DS3, e alguns juntam duas ou três regiões (*Road of Sacrifices / Farron Keep*, *Irithyll Dungeon / Profaned Capital*). A coluna *Última fogueira* mostra o mapa da fogueira mais o id que o jogo usa para ela (por exemplo *Firelink Shrine / Cemetery of Ash / Untended Graves (#4002950)*), e não o nome exato da fogueira. As sugestões de causa trazem os chefes do DS3.
 
 ## 6. Configurações
 
@@ -160,6 +164,8 @@ Ele guarda configurações, personagens e o histórico completo. Para fazer back
 **A contagem diminuiu:** você restaurou uma cópia antiga do save. O contador segue o número do próprio jogo.
 
 **Um personagem aparece duas vezes:** o personagem é identificado por slot + nome, então se ele mudou de slot (por exemplo, copiando arquivos de save), é visto como novo. Exclua a duplicata no app, se quiser.
+
+**O Dark Souls III não está contando:** o contador foi conferido com a versão 1.15.0 do DS3. Em outra versão, o *Diagnóstico* mostra quais assinaturas foram encontradas (`GameDataMan -> exe+… (3/3 assinaturas)`); `NÃO ENCONTRADO` ou `DIVERGENTE` quer dizer que essa versão ainda não é suportada. Por favor, avise mandando o texto do *Diagnóstico*.
 
 **Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição…).
 

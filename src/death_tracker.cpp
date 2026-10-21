@@ -49,13 +49,15 @@ void DeathTracker::Tick(GameReader& reader)
     // Remember where the player was while alive. HP 0 freezes the history at the moment of death.
     bool alive = s.inWorld && s.hasPos && s.hp != 0;
     if (alive) {
-        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs });
+        history_.push_back({ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName });
         while (!history_.empty() && now - history_.front().t > 10000) history_.pop_front();
     }
 
     if (!s.charLoaded) return;
 
-    std::string baseKey = (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
+    // Dark Souls Remastered keeps the 1.0.0 keys ("slot|name"); other games get a prefix ("ds3|slot|name").
+    std::string baseKey = (s.game == "dsr" ? std::string() : s.game + "|") +
+                          (s.saveSlot >= 0 ? std::to_string(s.saveSlot) : std::string("?")) + "|" + WideToUtf8(s.name);
     if (baseKey != candidateKey_) {
         candidateKey_ = baseKey;
         candidateSince_ = now;
@@ -108,6 +110,7 @@ void DeathTracker::Activate(const GameSnapshot& s, const std::string& baseKey)
 
     if (!p) {
         Profile np;
+        np.game = s.game;
         np.baseKey = baseKey;
         np.key = baseKey;
         for (int gen = 2; store_.Find(np.key); ++gen) np.key = baseKey + "#" + std::to_string(gen);
@@ -174,7 +177,12 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
         r.playTimeMs = snap_.playTimeMs;
         r.mapArea = haveSample ? last.mapArea : snap_.mapArea;
         r.mapBlock = haveSample ? last.mapBlock : snap_.mapBlock;
-        r.area = AreaLabel(r.mapArea, r.mapBlock);
+        if (snap_.game == "dsr") {
+            r.area = AreaLabel(r.mapArea, r.mapBlock);
+        } else {   // the game modules name the area themselves
+            const std::string& name = haveSample ? last.areaName : snap_.areaName;
+            r.area = name.empty() ? "Desconhecida" : name;
+        }
         r.bonfire = haveSample ? last.bonfire : snap_.lastBonfire;
         if (haveSample) {
             r.hasPos = true;

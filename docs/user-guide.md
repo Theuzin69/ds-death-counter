@@ -33,6 +33,7 @@ The app isn't code-signed, so the first time you run it Windows shows **"Windows
 A welcome screen (*Bem-vindo ao DS Death Counter*) asks for two things:
 
 1. **Link to the game** (*Vincular ao jogo*). The app looks for Dark Souls Remastered in your Steam libraries. If it doesn't find it, click *Procurar DarkSoulsRemastered.exe…* and select the game's exe. This path is only used by the *Iniciar Dark Souls* (launch game) button: the counter recognizes the running game by itself either way.
+   **Dark Souls III** needs nothing here: whenever `DarkSoulsIII.exe` is running, the counter finds it on its own.
 2. **Always on** (*Sempre ligado*). Keep *Iniciar com o Windows, minimizado na bandeja* checked. The app then starts with Windows in the system tray, so your deaths are counted whenever you open the game, without you having to remember to open the counter.
 
 Click *Começar* (start).
@@ -45,8 +46,8 @@ At the top of the window:
 
 | Status | Meaning |
 |---|---|
-| *Aguardando o Dark Souls Remastered abrir…* | The game isn't running. *Iniciar Dark Souls* launches it. |
-| *Dark Souls encontrado, preparando a leitura…* | The game was found and the counter is locating its data (takes a moment). |
+| *Aguardando o jogo abrir (Dark Souls Remastered ou Dark Souls III)…* | No supported game is running. *Iniciar Dark Souls* launches the one set in *Configurações*. |
+| *Dark Souls III encontrado, preparando a leitura…* | The game was found (its name is shown) and the counter is locating its data (takes a moment). |
 | *Conectado ao jogo (versão X). Carregue um personagem.* | Connected; you're on the title screen. |
 | *Contando as mortes de NAME (slot N)* | Counting. |
 | *O jogo está rodando como administrador…* | Windows blocked access. See [Troubleshooting](#9-troubleshooting). |
@@ -69,7 +70,8 @@ Closing the window keeps the counter running in the system tray. Hover the tray 
 
 The *Personagens* tab lists every character the counter has seen (*Saves / personagens*). The character currently being played is marked with a green dot and listed first.
 
-- **How characters are told apart:** by save slot and character name. If you delete a character and create a new one with the same name in the same slot, the counter notices that the play time went back to zero and starts a new count.
+- **Which game:** every character shows its game (*DSR* for Dark Souls Remastered, *DS3* for Dark Souls III) in the list and in its details. Characters of different games never mix, even with the same name and slot.
+- **How characters are told apart:** by game, save slot and character name. If you delete a character and create a new one with the same name in the same slot, the counter notices that the play time went back to zero and starts a new count.
 - **Where the number comes from:** the game keeps a death counter per character inside the save. The app reads it, so the count is exact even for deaths that happened before you installed the app, or while it was closed.
 - *N morte(s) aconteceram antes do contador conhecer este personagem* means N deaths happened before the app first saw this character. They're included in the total but have no details in the list.
 
@@ -107,6 +109,8 @@ The *Mortes* tab shows one row per death, newest first:
 - *Por área* / *Por causa* show where and how you die the most, with percentages.
 
 Areas are the game's maps, so a few names cover two regions (*Blighttown / Quelaag's Domain*, *Demon Ruins / Lost Izalith*). If a death landed on the wrong map, fix it with right-click → *Editar área*.
+
+**Dark Souls III:** areas are DS3's maps too, some of which also cover two or three regions (*Road of Sacrifices / Farron Keep*, *Irithyll Dungeon / Profaned Capital*). The *Última fogueira* column shows the map the bonfire belongs to plus the game's id for it (e.g. *Firelink Shrine / Cemetery of Ash / Untended Graves (#4002950)*), not the bonfire's exact name. The cause suggestions list DS3's bosses.
 
 ## 6. Settings
 
@@ -164,6 +168,8 @@ That file holds settings, characters and the full death history. To back it up o
 **The count went down:** you restored an older copy of your save. The counter follows the game's own number.
 
 **A character shows up twice:** a character is identified by slot + name, so a character that moved to another slot (for example, by copying save files around) is seen as new. Delete the duplicate in the app if you want.
+
+**Dark Souls III isn't counting:** the counter was checked against DS3 version 1.15.0. On another version, *Diagnóstico* shows which signatures were found (`GameDataMan -> exe+… (3/3 assinaturas)`); `NÃO ENCONTRADO` or `DIVERGENTE` means that version isn't supported yet. Please report it with the *Diagnóstico* text.
 
 **Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position…).
 

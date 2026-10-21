@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>.<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Dark Souls III</b>.<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -93,7 +93,7 @@ Some antivirus programs may also flag it heuristically, because it reads another
 ## Quick start
 
 1. Install (or unzip) and open **DS Death Counter**. Expect the [SmartScreen warning](#smartscreen) above.
-2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked.
+2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked. Dark Souls III is recognized on its own whenever it's running.
 3. Set the game to **Windowed** (or borderless) mode. The overlay can't always draw over exclusive fullscreen. There's a button in *Configurações › Janela do jogo* that makes the game window borderless, so it looks just like fullscreen.
 4. Load a character and play. The count shows up in the corner of the game, and every death goes to the list.
 
@@ -117,6 +117,7 @@ No third-party tool can honestly promise zero risk, but read-only memory access 
 |---|---|
 | Windows | 10 or 11, 64-bit |
 | Dark Souls Remastered | Supports the original 1.01 release and the 1.03.x builds (current Steam version). The game version is detected automatically. |
+| Dark Souls III | Verified on 1.15.0. The current Steam version (1.15.1 / 1.15.2) is expected to work, since everything is located through code signatures, but it hasn't been confirmed in-game yet. Counts, history per character, area (map) and last bonfire (by map). |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
 | Interface language | Brazilian Portuguese (English planned) |
 

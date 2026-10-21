@@ -95,12 +95,43 @@ What the human checked in the real game:
 
 Every release is built by GitHub Actions from the public code, with checksums and build provenance attestations (see the [README](../README.md#smartscreen)).
 
+## Adding Dark Souls III
+
+Dark Souls III support was added later, in a separate Claude Code session, using the same method: static analysis of the game's executable (read as a file, never run), byte signatures that must match **exactly once**, and **independent signatures for the same structure that must agree**. The game-specific code lives in `src/games/ds3.cpp` (signatures, offsets, reads) and `src/games/ds3_data.cpp` (map names, cause suggestions).
+
+**The executable.** The copy available for development was `DarkSoulsIII.exe` **1.15.0.0** (PE timestamp 2017-08-08, `SizeOfImage` 0x63DF000). Steam currently ships **1.15.1 / 1.15.2**, which could not be analyzed. Those patches mostly changed networking code, and DSDeaths' fixed address for the newer build (`exe+0x47572B8`) appears nowhere in 1.15.0, so the globals did move. That's why the app finds everything through signatures, and reads most offsets from the game's own code instead of hard-coding them.
+
+**What is read, and how each value was confirmed** (1.15.0 addresses):
+
+| Value | Where | How it was confirmed |
+|---|---|---|
+| `GameDataMan` | `exe+0x4740178` | 3 signatures agree: SoulMemory's, the game's `AddDeathCount` function, and the play-time update |
+| Death counter | `GameDataMan + 0x98` | The Lua binding `AddDeathCount` ends in a small function that adds to this field (saturating at 0xFFFFFFFF); the save loader reads it from the save and a new game zeroes it |
+| Play time (ms) | `GameDataMan + 0xA4` | Code that adds the frame time and caps the value at 999:59:59 (0xD693A018) |
+| NG+ cycle | `GameDataMan + 0x78` | Read from the save and clamped to 0..9999 by the save loader |
+| Character name | `[GameDataMan + 0x10] + 0x88` | `PlayerGameData`'s save loader terminates a 16-character UTF-16 name there |
+| Soul level | `PlayerGameData + 0x70` | Copied together with souls (+0x74) and total souls (+0x78, compared against 999,999,999), matching the debug labels *SoulLv*, *Soul* and *Total Get Soul* |
+| `WorldChrMan` / player | `exe+0x4768E78`, `+0x80` | 2 signatures agree: SoulMemory's and a small "is the player present" function that also gives the `+0x80` offset |
+| `GameMan` | `exe+0x4743AB0` | 3 signatures agree: the respawn-point setter, its getter, and the new-game code that stores the save slot. The constructor stores the object in the same global |
+| Save slot | `GameMan + 0xA60` | A new game stores the first free slot of 10 there (or -1) |
+| Last bonfire | `GameMan + 0xACC` | Respawn point id: the getter returns it (or a temporary override at +0xAD0), the save loader and Lua/ESD bindings set it |
+| HP | `PlayerIns + 0x1F90` → `+0x18` → `+0xD8` | Callers of `SprjChrDataModule::SetHp` pass this module, and `SetHp` clamps +0xD8 against max HP at +0xDC |
+| Position | `PlayerIns + 0x1F90` → `+0x68` → `+0x80` | The character modules are registered by index: index 13 (`+0x68`) is `SprjChrPhysicsModule`, whose constructor initializes the position `float4` at +0x80 to (0, 0, 0, 1) |
+| Current map | `PlayerIns + 0x1ABC` | Updated whenever the floor collision under a character changes. The game builds it from the collision's *play region* id as a decimal number `AABKCC`, where `AA` is the map area and `B` the block, so `m30_01` (Lothric Castle) gives `301xxx` |
+
+Map names (`mAA_BB`) are a small table in `ds3_data.cpp`. Bonfire and respawn ids follow the game's entity id scheme `AABxxxx` (e.g. `4002950` is in `m40_00`), so the *Última fogueira* column shows the map the bonfire belongs to plus its id, rather than an exact bonfire name.
+
+`tests/scan_test` runs the app's own scanner on `DarkSoulsIII.exe` and checks that all 11 signatures were found and that every address and offset equals the 1.15.0 values above. The DSR checks are unchanged.
+
+Profiles now carry a `game` field (`"dsr"` for every profile saved by 1.0.0) and non-DSR profile keys are prefixed with the game id (`ds3|slot|name`), so existing Dark Souls Remastered data keeps working untouched.
+
 ## Known limitations
 
 - The killer (enemy/boss) isn't detected automatically, except falls.
 - Exclusive fullscreen may hide the overlay; windowed/borderless always works.
 - The interface is in Portuguese only (English is planned).
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
+- Dark Souls III was verified statically on 1.15.0 only. On the current Steam build (1.15.1 / 1.15.2) the signatures are expected to still match, but that hasn't been confirmed yet. The reading of the current map from the play region id, and the soul level offset, still need an in-game check.
 
 ## Tools
 
