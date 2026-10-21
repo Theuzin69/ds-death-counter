@@ -5,8 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Dark Souls II: Scholar of the First Sin</b>.<br>
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Sekiro: Shadows Die Twice</b>.<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Sekiro: Shadows Die Twice</b> and <b>Bloodborne</b> (PC port, experimental).<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -37,10 +36,8 @@
 - **Never loses the count.** Close the game and counting stops; open it again and it continues where it left off. Deaths that happen while the counter is closed are still added.
 - **Overlay on top of the game** with your choice of font, size, corner, colors and outline. `Ctrl+Shift+D` shows/hides it.
 - **List of every death**: date/time, area (map), last bonfire (in Sekiro, the area of the last Sculptor's Idol), cause and play time. Statistics by area and by cause, plus CSV export.
-- **Falls are detected automatically** (Dark Souls). For other causes, pick from suggestions (bosses, enemies, traps…) with one click.
 - **OBS text source for streamers.** Optionally writes the count to a text file that an OBS **Text (GDI+)** source reads, so it works with Game Capture and Window Capture. You pick the text, e.g. `Deaths: {mortes}` ([how to set it up](docs/user-guide.md#7-streaming-obs)).
-- **List of every death**: date/time, area (map), last bonfire, cause and play time. Statistics by area and by cause, plus CSV export.
-- **Bosses and falls are detected automatically.** A death while a boss health bar is on screen is recorded as that boss; a big drop just before dying is recorded as a fall. For other causes, pick from suggestions (enemies, traps…) with one click.
+- **Bosses and falls are detected automatically.** In Dark Souls Remastered, a death while a boss health bar is on screen is recorded as that boss; in the Dark Souls games, a big drop just before dying is recorded as a fall. For other causes, pick from suggestions (enemies, traps…) with one click.
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.
 - **Runs quietly in the system tray** and can start with Windows: open the game and it is already counting.
 - **Read-only.** It never writes to the game, injects nothing and doesn't touch your saves (see [Is it safe?](#is-it-safe-can-i-get-banned)).
@@ -97,7 +94,7 @@ Some antivirus programs may also flag it heuristically, because it reads another
 ## Quick start
 
 1. Install (or unzip) and open **DS Death Counter**. Expect the [SmartScreen warning](#smartscreen) above.
-2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked. Dark Souls II needs no setup: it is recognized whenever `DarkSoulsII.exe` is running.
+2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked. The other games need no setup: each one is recognized whenever it is running.
 3. Set the game to **Windowed** (or borderless) mode. The overlay can't always draw over exclusive fullscreen. There's a button in *Configurações › Janela do jogo* that makes the game window borderless, so it looks just like fullscreen.
 4. Load a character and play. The count shows up in the corner of the game, and every death goes to the list.
 
@@ -121,7 +118,7 @@ No third-party tool can honestly promise zero risk, but read-only memory access 
 |---|---|
 | Windows | 10 or 11, 64-bit |
 | Dark Souls Remastered | Supports the original 1.01 release and the 1.03.x builds (current Steam version). The game version is detected automatically. |
-| Dark Souls II | **Scholar of the First Sin** (64-bit), new in the next version. Checked against the 1.02 executable; the current Steam build (1.03) is found by the same byte signatures but has not been confirmed in-game yet. The original 32-bit Dark Souls II (2014) is **not** supported: the app says so instead of counting. |
+| Dark Souls II | **Scholar of the First Sin** (64-bit), since 1.1.0. Checked against the 1.02 executable; the current Steam build (1.03) is found by the same byte signatures but has not been confirmed in-game yet. The original 32-bit Dark Souls II (2014) is **not** supported: the app says so instead of counting. |
 | Sekiro: Shadows Die Twice | **1.06** (current Steam version), checked against the game's exe. The memory layout is read from the game's own code, so older versions (1.02–1.05) will probably work too, but they haven't been tested. Counts **real deaths only**: resurrecting doesn't count (see the [user guide](docs/user-guide.md#sekiro)). Sekiro has no character names, so each save slot is one character. |
 | Bloodborne | **Experimental.** The Bloodborne PC Windows port v0.5 (`bbport.exe`) running Bloodborne 1.09: deaths, name, level, NG+ and play time. No area or fall detection yet, and not yet confirmed in a real play session. See the [user guide](docs/user-guide.md#bloodborne-pc-port-experimental). |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
@@ -157,4 +154,4 @@ This produces `build\DSDeathCounter.exe`, statically linked with no extra DLLs. 
 
 [MIT](LICENSE) © 2026 MatheusMuzzi
 
-*DARK SOULS is a trademark of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE is a trademark of FromSoftware, Inc. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by any of them.*
+*DARK SOULS is a trademark of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE is a trademark of FromSoftware, Inc. BLOODBORNE is a trademark of Sony Interactive Entertainment LLC. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by any of them.*

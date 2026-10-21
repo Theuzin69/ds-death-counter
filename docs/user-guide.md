@@ -235,9 +235,9 @@ If the OBS text file is on, `obs.txt` is in the same folder by default. It only 
 **A character shows up twice:** a character is identified by slot + name, so a character that moved to another slot (for example, by copying save files around) is seen as new. Delete the duplicate in the app if you want.
 
 **Dark Souls II says *Versão do jogo não suportada (DS2 de 32 bits)*:** you are running the original 2014 Dark Souls II. Only Scholar of the First Sin is supported.
+
 **Bloodborne isn't detected:** the counter looks for the port's game process, `bbport.exe`, and was checked against port v0.5 with Bloodborne 1.09. Other ports, emulators and game versions aren't supported. If *Diagnóstico* shows *NÃO ENCONTRADO*, the game data wasn't recognized; please send that text in a bug report.
 
-**Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position…).
 **Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position, boss health bars…).
 
 **My antivirus complained:** see the [SmartScreen/antivirus section](../README.md#smartscreen). The app reads another program's memory, which some antivirus heuristics dislike. It never writes to the game.

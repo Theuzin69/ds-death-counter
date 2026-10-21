@@ -181,13 +181,13 @@ All of this comes from static analysis of the 1.01 executable. Two things still 
 
 ## Known limitations
 
-- Ordinary enemies aren't detected automatically; bosses with a health bar and falls are. Bosses without a health bar (such as the Hellkite Dragon) aren't either.
+- Ordinary enemies aren't detected automatically; bosses with a health bar (Dark Souls Remastered) and falls (Dark Souls games) are. Bosses without a health bar (such as the Hellkite Dragon) aren't either.
 - Exclusive fullscreen may hide the overlay; windowed/borderless always works.
 - The interface is in Portuguese only (English is planned).
 - Dark Souls II: only Scholar of the First Sin (64-bit) is supported; the current Steam build (1.03) is found by signatures but hasn't been confirmed in-game yet.
 - Bloodborne (PC port) is experimental: no area, lamp or fall detection, characters are told apart by name only, and it hasn't been confirmed in a real play session yet.
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
-- Sekiro was checked against the 1.06 executable only; older versions haven't been tested. The in-game behavior (resurrections not counted, slot switching, area and idol) still has to be confirmed by playing. Idol names aren't known, only the idol's area.
+- Sekiro was checked against the 1.06 executable only; older versions haven't been tested. In a first in-game test the deaths, save slot, play time, area and idol were read correctly; the player position came out wrong (it only affects the coordinates shown for each death), and resurrections not counting still has to be confirmed. Idol names aren't known, only the idol's area.
 
 ## Tools
 

@@ -626,7 +626,7 @@ void App::UiWelcome()
 
         ImGui::SeparatorText("2. Sempre ligado");
         ImGui::Checkbox("Iniciar com o Windows, minimizado na bandeja (recomendado)", &s.startWithWindows);
-        ImGui::TextDisabled("Assim, toda vez que você abrir o Dark Souls as mortes já estarão sendo contadas, "
+        ImGui::TextDisabled("Assim, toda vez que você abrir um dos jogos as mortes já estarão sendo contadas, "
                             "sem precisar lembrar de abrir este app.");
 
         ImGui::SeparatorText("3. Overlay");

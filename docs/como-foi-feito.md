@@ -181,13 +181,13 @@ Tudo isso vem da análise estática do executável da 1.01. Duas coisas ainda pr
 
 ## Limitações conhecidas
 
-- Inimigos comuns não são detectados automaticamente; chefes com barra de vida e quedas, sim. Chefes sem barra de vida (como o Hellkite Dragon) também não.
+- Inimigos comuns não são detectados automaticamente; chefes com barra de vida (Dark Souls Remastered) e quedas (jogos Dark Souls), sim. Chefes sem barra de vida (como o Hellkite Dragon) também não.
 - Em tela cheia exclusiva o overlay pode não aparecer; em janela/sem bordas ele sempre funciona.
 - A interface está só em português (inglês está nos planos).
 - Dark Souls II: só o Scholar of the First Sin (64 bits) é suportado; a versão atual da Steam (1.03) é encontrada pelas assinaturas, mas ainda não foi confirmada no jogo.
 - O Bloodborne (port de PC) é experimental: sem área, lamparina ou detecção de quedas, personagens separados só pelo nome, e ainda não foi confirmado numa sessão de jogo de verdade.
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
-- O Sekiro foi conferido só no executável 1.06; versões anteriores não foram testadas. O comportamento dentro do jogo (ressurreições não contam, troca de slot, área e ídolo) ainda precisa ser confirmado jogando. Os nomes dos ídolos não são conhecidos, só a área do ídolo.
+- O Sekiro foi conferido só no executável 1.06; versões anteriores não foram testadas. Num primeiro teste no jogo, as mortes, o slot do save, o tempo de jogo, a área e o ídolo foram lidos corretamente; a posição do jogador veio errada (só afeta as coordenadas mostradas em cada morte), e ainda falta confirmar que ressuscitar não conta. Os nomes dos ídolos não são conhecidos, só a área do ídolo.
 
 ## Ferramentas
 

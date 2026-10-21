@@ -4,36 +4,37 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
-## [Unreleased]
+## [1.1.0] - 2026-10-21
 
-### Added / Adicionado
+Three more games, automatic boss detection in Dark Souls Remastered and an OBS text source. / Mais três jogos, detecção automática de chefes no Dark Souls Remastered e uma fonte de texto para o OBS.
 
-- Dark Souls II: Scholar of the First Sin support (64-bit, checked against the 1.02 executable): the game's own death total per character, plus name, save slot, level, NG+ cycle, play time, current map and last bonfire. The original 32-bit Dark Souls II is detected and reported as not supported.
-  *Suporte ao Dark Souls II: Scholar of the First Sin (64 bits, conferido no executável 1.02): o total de mortes que o próprio jogo guarda por personagem, mais nome, slot do save, nível, ciclo de NG+, tempo de jogo, mapa atual e última fogueira. O Dark Souls II original de 32 bits é detectado e o app avisa que não é suportado.*
-- Each character shows which game it belongs to (*DSR* / *DS2*); characters of different games never mix. Data from 1.0.0 keeps working unchanged (it's Dark Souls Remastered).
-  *Cada personagem mostra de qual jogo ele é (*DSR* / *DS2*); personagens de jogos diferentes nunca se misturam. Os dados da 1.0.0 continuam funcionando sem mudança (são do Dark Souls Remastered).*
-- Diagnostics shows the attached game and, for Dark Souls II, every signature it found (a `*` marks a fallback value).
-  *O Diagnóstico mostra o jogo conectado e, no Dark Souls II, cada assinatura encontrada (um `*` marca um valor de reserva).*
-- **Sekiro: Shadows Die Twice** support (1.06, the current Steam version; older versions untested). The counter recognizes `sekiro.exe` by itself and reads the game's own death counter, which only goes up on real deaths: resurrecting doesn't count. Each save slot is a character (Sekiro has no names); the list shows the area and the area of the last Sculptor's Idol, with Sekiro's bosses as cause suggestions. See the [user guide](docs/user-guide.md#sekiro).
-  *Suporte ao **Sekiro: Shadows Die Twice** (1.06, a versão atual da Steam; versões anteriores não testadas). O contador reconhece o `sekiro.exe` sozinho e lê o contador de mortes do próprio jogo, que só sobe nas mortes de verdade: ressuscitar não conta. Cada slot de save é um personagem (o Sekiro não tem nomes); a lista mostra a área e a área do último Ídolo do Escultor, com os chefes do Sekiro nas sugestões de causa. Veja o [guia do usuário](docs/guia-do-usuario.md#sekiro).*
-- The character list shows which game each character belongs to (*DSR* / *Sekiro*). Existing data is kept as Dark Souls Remastered.
-  *A lista de personagens mostra de qual jogo é cada personagem (DSR / Sekiro). Os dados existentes continuam como Dark Souls Remastered.*
-- `tests/scan_test` also accepts `sekiro.exe` and checks every Sekiro signature.
-  *O `tests/scan_test` também aceita o `sekiro.exe` e confere todas as assinaturas do Sekiro.*
-- Experimental Bloodborne support for the Bloodborne PC Windows port v0.5 (`bbport.exe`, Bloodborne 1.09): reads the game's own death counter, character name, level, NG+ cycle and play time, read-only like Dark Souls Remastered. No area or fall detection for Bloodborne yet; characters are told apart by name. Profiles now store which game they belong to (`game` in `data.json`; existing ones are Dark Souls Remastered).
-  *Suporte experimental ao Bloodborne no Bloodborne PC Windows port v0.5 (`bbport.exe`, Bloodborne 1.09): lê o contador de mortes do próprio jogo, o nome, o nível, o ciclo de NG+ e o tempo de jogo, só lendo a memória, como no Dark Souls Remastered. Ainda sem área nem detecção de quedas no Bloodborne; os personagens são separados pelo nome. Os perfis agora guardam de qual jogo são (`game` no `data.json`; os já existentes são do Dark Souls Remastered).*
-- Tests: `bb_scan_test` (scanner on an `eboot.bin` file), `bb_fake_port` + `bb_live_test` (live reader against a stand-in process that never runs game code).
-  *Testes: `bb_scan_test` (analisador num arquivo `eboot.bin`), `bb_fake_port` + `bb_live_test` (leitor ao vivo contra um processo substituto que nunca executa código do jogo).*
-- Automatic boss detection: a death while a boss health bar is on screen is recorded with that boss as the cause (e.g. *Chefe: Ornstein & Smough*), covering all 26 bosses that have a health bar. It reads the game's own boss bar data, located from the game's code for each version, so it stays read-only. A fall during a boss fight counts as a death to that boss. Not yet confirmed in-game.
-  *Detecção automática de chefe: morrer com a barra de vida de um chefe na tela registra aquele chefe como causa (ex.: “Chefe: Ornstein & Smough”), para os 26 chefes que têm barra de vida. Lê os dados da barra do próprio jogo, localizados a partir do código de cada versão, então continua somente leitura. Uma queda durante a luta conta como morte para o chefe. Ainda não confirmado no jogo.*
-- The *Diagnóstico* tab shows the boss health bars currently on screen.
-  *A aba Diagnóstico mostra as barras de chefe que estão na tela.*
-## [1.1.0] - Unreleased
+### New games / Jogos novos
 
-### Added / Adicionado
+- **Dark Souls II: Scholar of the First Sin** (64-bit, checked against the 1.02 executable): the game's own death total per character, plus name, save slot, level, NG+ cycle, play time, current map and last bonfire. The original 32-bit Dark Souls II is detected and reported as not supported.
+  *Suporte ao **Dark Souls II: Scholar of the First Sin** (64 bits, conferido no executável 1.02): o total de mortes que o próprio jogo guarda por personagem, mais nome, slot do save, nível, ciclo de NG+, tempo de jogo, mapa atual e última fogueira. O Dark Souls II original de 32 bits é detectado e o app avisa que não é suportado.*
+- **Sekiro: Shadows Die Twice** (1.06, the current Steam version; older versions untested): reads the game's own death counter, which only goes up on real deaths (resurrecting doesn't count). Each save slot is a character (Sekiro has no names); the list shows the area and the area of the last Sculptor's Idol, with Sekiro's bosses as cause suggestions. See the [user guide](docs/user-guide.md#sekiro).
+  *Suporte ao **Sekiro: Shadows Die Twice** (1.06, a versão atual da Steam; versões anteriores não testadas): lê o contador de mortes do próprio jogo, que só sobe nas mortes de verdade (ressuscitar não conta). Cada slot de save é um personagem (o Sekiro não tem nomes); a lista mostra a área e a área do último Ídolo do Escultor, com os chefes do Sekiro nas sugestões de causa. Veja o [guia do usuário](docs/guia-do-usuario.md#sekiro).*
+- **Bloodborne** (experimental), running in the Bloodborne PC Windows port v0.5 (`bbport.exe`, Bloodborne 1.09): the game's own death counter, character name, level, NG+ cycle and play time, read-only. No area or fall detection for Bloodborne yet; characters are told apart by name.
+  *Suporte **experimental** ao **Bloodborne** no Bloodborne PC Windows port v0.5 (`bbport.exe`, Bloodborne 1.09): o contador de mortes do próprio jogo, nome, nível, ciclo de NG+ e tempo de jogo, só lendo a memória. Ainda sem área nem detecção de quedas no Bloodborne; os personagens são separados pelo nome.*
+- Each character shows which game it belongs to; characters of different games never mix. Data from 1.0.0 keeps working unchanged (it's Dark Souls Remastered).
+  *Cada personagem mostra de qual jogo ele é; personagens de jogos diferentes nunca se misturam. Os dados da 1.0.0 continuam funcionando sem mudança (são do Dark Souls Remastered).*
 
-- OBS text file for streamers (off by default): the app writes the current character's count to a UTF-8 text file that an OBS **Text (GDI+)** source shows with **Read from file**, so the count appears with Game Capture and Window Capture too. Configurable text with `{mortes}` (count) and `{nome}` (character name), and file location (default `%APPDATA%\DSDeathCounter\obs.txt`). The file is only rewritten when the text changes. Setup steps are in the user guide, section 7.
-  *Arquivo de texto para o OBS, para quem faz live (desligado por padrão): o app grava a contagem do personagem atual num arquivo de texto UTF-8 que uma fonte **Texto (GDI+)** do OBS mostra com **Carregar do arquivo**, então a contagem aparece também com Captura de jogo e Captura de janela. Texto configurável com `{mortes}` (contagem) e `{nome}` (nome do personagem), e local do arquivo (padrão `%APPDATA%\DSDeathCounter\obs.txt`). O arquivo só é regravado quando o texto muda. O passo a passo está no guia do usuário, seção 7.*
+### Boss detection / Detecção de chefes (Dark Souls Remastered)
+
+- A death while a boss health bar is on screen is recorded with that boss as the cause (e.g. *Chefe: Ornstein & Smough*), covering all 26 bosses that have a health bar. It reads the game's own boss bar data, so it stays read-only. A fall during a boss fight counts as a death to that boss. Not yet confirmed in-game.
+  *Morrer com a barra de vida de um chefe na tela registra aquele chefe como causa (ex.: “Chefe: Ornstein & Smough”), para os 26 chefes que têm barra de vida. Lê os dados da barra do próprio jogo, então continua somente leitura. Uma queda durante a luta conta como morte para o chefe. Ainda não confirmado no jogo.*
+
+### OBS
+
+- OBS text file for streamers (off by default): the app writes the current character's count to a UTF-8 text file that an OBS **Text (GDI+)** source shows with **Read from file**, so the count also appears with Game Capture and Window Capture. Configurable text with `{mortes}` (count) and `{nome}` (character name), and file location (default `%APPDATA%\DSDeathCounter\obs.txt`). Setup steps are in the user guide, section 7.
+  *Arquivo de texto para o OBS, para quem faz live (desligado por padrão): o app grava a contagem do personagem atual num arquivo de texto UTF-8 que uma fonte **Texto (GDI+)** do OBS mostra com **Carregar do arquivo**, então a contagem aparece também com Captura de jogo e Captura de janela. Texto configurável com `{mortes}` (contagem) e `{nome}` (nome do personagem), e local do arquivo (padrão `%APPDATA%\DSDeathCounter\obs.txt`). O passo a passo está no guia do usuário, seção 7.*
+
+### Other / Outros
+
+- The *Diagnóstico* tab shows the attached game, every signature found for it and, in Dark Souls Remastered, the boss health bars on screen.
+  *A aba Diagnóstico mostra o jogo conectado, cada assinatura encontrada e, no Dark Souls Remastered, as barras de chefe na tela.*
+- Tests: `scan_test` accepts the Dark Souls II and Sekiro executables; new `boss_cause_test`, `bb_scan_test`, `bb_fake_port` and `bb_live_test`.
+  *Testes: o `scan_test` aceita os executáveis do Dark Souls II e do Sekiro; novos `boss_cause_test`, `bb_scan_test`, `bb_fake_port` e `bb_live_test`.*
 
 ## [1.0.0] - 2026-10-16
 
@@ -56,6 +57,5 @@ First public release. / Primeira versão pública.
 - Per-user installer (no admin rights) and portable zip, built and attested by GitHub Actions.
   *Instalador por usuário (sem administrador) e zip portátil, compilados e atestados pelo GitHub Actions.*
 
-[Unreleased]: https://github.com/Theuzin69/ds-death-counter/compare/v1.0.0...HEAD
 [1.1.0]: https://github.com/Theuzin69/ds-death-counter/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Theuzin69/ds-death-counter/releases/tag/v1.0.0
