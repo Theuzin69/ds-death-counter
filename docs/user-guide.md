@@ -242,6 +242,21 @@ Undertale has a single save, so **each name you give the fallen human is one cha
 - Undertale runs in a window by default; the overlay draws over it. `F4` switches the game to fullscreen, which may hide the overlay.
 - The *Iniciar Dark Souls* button only launches Dark Souls Remastered. Start Undertale from Steam.
 - To see live what the counter reads, run `build\tests\ut_test.exe --live` (only in a build from source) or open the *Diagnóstico* tab.
+<a id="hollow-knight"></a>
+
+## Hollow Knight
+
+The counter also recognizes **Hollow Knight** (`hollow_knight.exe`, the current Steam version, built with Unity 6 in 2026). Just open the game and load a save. Hollow Knight works differently from the FromSoftware games:
+
+- **The app does the counting.** Hollow Knight doesn't keep a death counter anywhere, so the app watches the game and adds one each time the Knight dies. The count lives only in the app (*Contada pelo app* under the number): deaths while the counter is closed are **not** counted, and the first time you play a save with the app open the count starts at 0. If you already died before, set your number with *Editar contagem…*; new deaths are added on top of it.
+- **What counts as a death:** every time the Knight dies — the last mask is lost (to an enemy, a boss, spikes or acid), including the final death of a Steel Soul save, and also deaths in dreams (dream bosses, the Hall of Gods, the Pantheons), which wake you up instead of leaving a shade. Those are recorded with the cause *Sonho* when no boss is known.
+- **What doesn't count:** spikes, acid or pits that only cost a mask and send you back to the last safe spot; quitting to the menu; loading a save (even one saved while the Knight was dying). One death is counted once, however long the death animation and the trip back to the bench take.
+- **One character per save slot.** Each of the 4 save slots is a character, shown as *Slot N* and tagged *HK*. A Steel Soul save shows as *Slot N (Steel Soul)* and is kept apart from a normal save that used the same slot before. Starting a new game in a slot (the play time goes back near zero) starts a new entry.
+- **Area** is the game's own map area (*Forgotten Crossroads*, *Greenpath*, *City of Tears*, *Godhome*…). **Último banco (área)** shows the area of the bench you'll respawn at.
+- **Cause:** dying in a boss arena while that boss is still undefeated records the boss (*Chefe: Hornet Protector*, *Chefe: Soul Master*…); dream bosses, the Colosseum trials and every Godhome fight are recognized too. Other deaths have no automatic cause; the suggestions list Hollow Knight's bosses.
+- No fall detection, character level or NG+ (Hollow Knight has none).
+- Use a windowed or borderless window for the overlay (in the game's video options).
+- Not yet confirmed in a real play session. Old versions of the game (1.4.3.2 and earlier, which speedrunners use) are not supported: *Diagnóstico* says so. If the count doesn't go up when you die, send the *Diagnóstico* text in a bug report.
 
 ## 6. Settings
 
@@ -338,6 +353,7 @@ If the OBS text file is on, `obs.txt` is in the same folder by default. It only 
 **Elden Ring: *aguardando o jogo salvar*:** you have several characters and the counter is waiting for the game's next save to know which one you're playing. Rest at a grace or keep playing; it shows up at the next save.
 
 **Elden Ring: the count doesn't change at all:** open *Diagnóstico*. The *Save:* lines show which file is read, when it was last read, and what each slot holds. If a slot says the death counter was not found, a game update changed the save format: please report it with the diagnostics text.
+**Hollow Knight: the count didn't go up:** the app has to be open when you die, since the game keeps no counter (see [Hollow Knight](#hollow-knight)). If *Diagnóstico* shows *Classes:* with something *não encontrado* or *não suportado*, the game version wasn't recognized; please send that text in a bug report.
 
 **Something looks wrong:** open *Diagnóstico*, click *Copiar* and paste the text into a [bug report](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). It shows the game version, the addresses found and the values being read (deaths, map, position, boss health bars…).
 

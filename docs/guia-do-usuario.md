@@ -240,6 +240,21 @@ O Undertale tem um único save, então **cada nome que você dá ao humano é um
 - O Undertale roda em janela por padrão; o overlay aparece por cima. O `F4` deixa o jogo em tela cheia, o que pode esconder o overlay.
 - O botão *Iniciar Dark Souls* só abre o Dark Souls Remastered. Abra o Undertale pela Steam.
 - Para ver ao vivo o que o contador lê, rode `build\tests\ut_test.exe --live` (só numa compilação a partir do código) ou abra a aba *Diagnóstico*.
+<a id="hollow-knight"></a>
+
+## Hollow Knight
+
+O contador também reconhece o **Hollow Knight** (`hollow_knight.exe`, a versão atual da Steam, feita com o Unity 6 em 2026). É só abrir o jogo e carregar um save. O Hollow Knight funciona diferente dos jogos da FromSoftware:
+
+- **Quem conta é o app.** O Hollow Knight não guarda contador de mortes em lugar nenhum, então o app observa o jogo e soma um a cada vez que o Cavaleiro morre. A contagem existe só no app (*Contada pelo app* embaixo do número): mortes com o contador fechado **não** entram, e na primeira vez que você joga um save com o app aberto a contagem começa em 0. Se você já tinha morrido antes, coloque o seu número em *Editar contagem…*; as mortes novas somam a partir dele.
+- **O que conta como morte:** toda vez que o Cavaleiro morre — perde a última máscara (para um inimigo, um chefe, espinhos ou ácido), inclusive a morte final de um save Steel Soul, e também as mortes em sonhos (chefes de sonho, o Hall of Gods, os Panteões), que te acordam em vez de deixar uma sombra. Essas ficam com a causa *Sonho* quando não há chefe conhecido.
+- **O que não conta:** espinhos, ácido ou abismos que só tiram uma máscara e te devolvem ao último ponto seguro; sair para o menu; carregar um save (mesmo um salvo enquanto o Cavaleiro morria). Cada morte conta uma vez só, por mais que a animação de morte e a volta ao banco demorem.
+- **Um personagem por slot.** Cada um dos 4 slots de save é um personagem, mostrado como *Slot N* e marcado como *HK*. Um save Steel Soul aparece como *Slot N (Steel Soul)* e fica separado de um save normal que usou o mesmo slot antes. Começar um jogo novo num slot (o tempo de jogo volta para perto de zero) cria uma entrada nova.
+- **Área** é a área do mapa do próprio jogo (*Forgotten Crossroads*, *Greenpath*, *City of Tears*, *Godhome*…). **Último banco (área)** mostra a área do banco onde você vai renascer.
+- **Causa:** morrer na arena de um chefe que ainda não foi derrotado registra o chefe (*Chefe: Hornet Protector*, *Chefe: Soul Master*…); os chefes de sonho, as provações do Coliseu e todas as lutas do Godhome também são reconhecidos. As outras mortes ficam sem causa automática; as sugestões trazem os chefes do Hollow Knight.
+- Sem detecção de queda, nível de personagem ou NG+ (o Hollow Knight não tem).
+- Para o overlay, use janela ou janela sem bordas (nas opções de vídeo do jogo).
+- Ainda não confirmado numa sessão de jogo de verdade. Versões antigas do jogo (1.4.3.2 e anteriores, usadas em speedrun) não são suportadas: o *Diagnóstico* avisa. Se a contagem não subir quando você morrer, mande o texto do *Diagnóstico* num relato de bug.
 
 ## 6. Configurações
 
@@ -334,6 +349,7 @@ Se o arquivo de texto para o OBS estiver ligado, o `obs.txt` fica na mesma pasta
 **Elden Ring: *aguardando o jogo salvar*:** você tem vários personagens e o contador está esperando a próxima gravação do jogo para saber qual você está jogando. Descanse numa graça ou continue jogando; ele aparece na próxima gravação.
 
 **Elden Ring: a contagem não muda de jeito nenhum:** abra *Diagnóstico*. As linhas *Save:* mostram qual arquivo é lido, quando foi a última leitura e o que cada slot tem. Se algum slot disser que o contador de mortes não foi localizado, uma atualização do jogo mudou o formato do save: por favor, avise mandando o texto do diagnóstico.
+**Hollow Knight: a contagem não subiu:** o app precisa estar aberto quando você morre, porque o jogo não guarda contador (veja [Hollow Knight](#hollow-knight)). Se o *Diagnóstico* mostrar em *Classes:* algo *não encontrado* ou *não suportado*, a versão do jogo não foi reconhecida; mande esse texto num relato de bug.
 
 **Algo parece errado:** abra *Diagnóstico*, clique em *Copiar* e cole o texto num [relato de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose). Ele mostra a versão do jogo, os endereços encontrados e os valores lidos (mortes, mapa, posição, barras de chefe…).
 

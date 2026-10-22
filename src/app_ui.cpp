@@ -313,7 +313,8 @@ void App::UiProfileDetail(Profile& p)
         Badge("CONTAGEM EDITADA", Argb(s.colorEdited | 0xFF000000));
         ImGui::TextDisabled("Jogo: %d  ·  ajuste manual: %+d", p.gameDeaths, p.offset);
     } else {
-        ImGui::TextDisabled("Contagem lida do próprio jogo");
+        ImGui::TextDisabled(GameById(p.game).countsItself ? "Contada pelo app (o jogo não tem contador de mortes)"
+                                                          : "Contagem lida do próprio jogo");
     }
     ImGui::EndGroup();
 

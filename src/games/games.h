@@ -23,6 +23,8 @@ struct GameInfo {
     // Optional: groups detailed area names for the "Por área" statistics ("Limgrave - Church of Elleh"
     // -> "Limgrave"). nullptr = each area on its own.
     std::string (*areaGroup)(const std::string& area) = nullptr;
+    bool           countsItself = false;     // the game keeps no death counter (Hollow Knight): GameSnapshot::deaths counts the
+                                     // deaths seen since the module attached and the app keeps each profile's total
 };
 
 const std::vector<const GameInfo*>& AllGames();

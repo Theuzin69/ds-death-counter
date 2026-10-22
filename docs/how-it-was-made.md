@@ -279,6 +279,29 @@ Every other supported game is 64-bit, and `GameReader` refused 32-bit processes 
 
 - `tests/ut_test`: ini parsing (whole, cut, without the key, the ini a True Reset leaves), every room's area, the battle group names, the game over context (battle, battle inside a room, no battle, no globals), and the module counting from a temporary ini, including a half-written file, a lower count that doesn't confirm and a deleted ini. Given the game folder, it reads `data.win` (room order and global slots) and analyzes `UNDERTALE.exe`, matching the values found by hand.
 - Not verified yet: anything in a real play session. The game was never launched by the session, and the user's save folder and data were only read.
+## Hollow Knight
+
+Hollow Knight is nothing like the FromSoftware games. It is a Unity game: `hollow_knight.exe` is a small launcher, and the game logic is C# (`hollow_knight_Data/Managed/Assembly-CSharp.dll`) running on Unity's Mono runtime (`mono-2.0-bdwgc.dll`). The installed copy is the 2026 Steam build (Unity 6000.0.61f1). Claude only read its files, never ran the game, and never changed anything in the game folder.
+
+**No counter to read.** The game's code was decompiled from a copy of `Assembly-CSharp.dll` (with ILSpy) to look for one. `PlayerData`, the class saved to the save file, has about 1700 fields and none of them counts deaths. So the app counts deaths itself and keeps the total per save slot in `data.json` (keys `hk|slot|Slot N`). That is the main difference from the other games: deaths while the counter is closed can't be known, and the user can set a starting number by hand.
+
+**What a death is, in the game's own code.**
+
+- `HeroController.TakeDamage` takes the masks and, when `PlayerData.health` reaches 0, starts `HeroController.Die`. That's the only way the Knight dies. Spikes and acid (`DieFromHazard`) only cost a mask and send the Knight back to the last safe spot, unless it was the last mask, in which case `Die` runs instead.
+- `Die` checks the map zone first: in `DREAM_WORLD` and `GODS_GLORY` (dreams and Godhome) it only plays the death effect and the game wakes the Knight up, with no shade. Everywhere else it sets `HeroControllerStates.dead`, turns a Steel Soul save (`permadeathMode` 1) into a dead one (2) and calls `GameManager.PlayerDead`, which saves the game right away and then loads the bench (or the *PermaDeath* screen in Steel Soul).
+- `HeroController.Respawn` clears `dead` and refills the masks.
+
+So the app counts a death when health goes from more than 0 to 0, or when `dead` turns on, while a save is being played. After that it waits for the respawn before it can count again. A save loaded from the menu (even one written mid-death) only sets the starting point, and the menu, loading screens and quitting reset it. Real deaths and dream/Godhome deaths both count. The shade fields (`shadeScene`, `geoPool`, `soulLimited`) were not used, because dreams, the Colosseum and Steel Soul don't leave a shade the usual way. `tests/hk_death_test` replays these situations (normal death, dream, spikes, Steel Soul, menu and reload, unreadable health…).
+
+**Reading Mono without touching it.** There are no stable addresses: objects live in Mono's heap. The app does what speedrun autosplitters (LiveSplit's Hollow Knight autosplitter and the `asr` library) do, written from scratch:
+
+1. Find `mono-2.0-bdwgc.dll` in the game process and read its exported functions. The offsets of Mono's internal structures are not hard-coded: the app reads them from small exported functions that use them, such as `mono_class_get_name` (`mov rax,[rcx+0x48]; ret`), `mono_class_get_fields`, `mono_vtable_get_static_field_data`, `mono_class_vtable` and `mono_image_init` (which sets up each assembly's class cache). The global list of loaded assemblies comes from `mono_assembly_foreach`. `tests/hk_mono_test` runs this on the DLL file and compares the 16 values with the ones found by hand in the disassembly (Capstone).
+2. Walk the loaded assemblies to `Assembly-CSharp`, then its class cache to the classes `GameManager`, `PlayerData`, `HeroController`, `HeroControllerStates` and `SceneManager`.
+3. Look up every field by name, so game updates that move fields around don't matter: `GameManager._instance` (static), `playerData`, `gameState`, `sceneName`, `profileID` (save slot 1–4) and the hero; `PlayerData.health`, `permadeathMode`, `respawnScene` and the boss "defeated" flags; `HeroControllerStates.dead`; the scene's `mapZone`. `UnityEngine.Object.m_CachedPtr` tells whether the hero object still exists.
+
+The area is the map zone (the same value `Die` checks), named after the game's areas. The cause is the boss of the arena when the scene is a known boss arena and that boss's defeat flag is still off; dream boss scenes, the Colosseum trials and Godhome's boss scenes always count as that fight. Scene names were checked against the game's scene list and the flags against `PlayerData`'s fields. The bench comes from `PlayerData.respawnScene`, shown as its area.
+
+All of this is static analysis plus unit tests; it still has to be confirmed in the game.
 
 ## Step 6: who killed you? (after 1.0.0)
 
@@ -308,6 +331,7 @@ All of this comes from static analysis of the 1.01 executable. Two things still 
 - Elden Ring with Easy Anti-Cheat counts a few seconds late (after the game saves) and records no falls; the overlay can't tell the title screen from gameplay. The current Steam version (1.17) hasn't been checked statically.
 - Bloodborne (PC port) is experimental: no area, lamp or fall detection, characters are told apart by name only, and it hasn't been confirmed in a real play session yet.
 - Support for the 1.03.x Steam builds relies on offsets published by the community tools above, plus the runtime version detection. If something is off on your version, the *Diagnóstico* tab shows what's being read; please open an issue.
+- Hollow Knight keeps no death counter, so the app only counts deaths that happen while it's open. It was checked against the game's code and Mono runtime (2026 Steam build) and tested in a real play session; the old 1.4.3.2 version (older Mono runtime) isn't supported.
 - Sekiro was checked against the 1.06 executable only; older versions haven't been tested. In a first in-game test the deaths, save slot, play time, area and idol were read correctly; the player position came out wrong (it only affects the coordinates shown for each death), and resurrections not counting still has to be confirmed. Idol names aren't known, only the idol's area.
 
 ## Tools

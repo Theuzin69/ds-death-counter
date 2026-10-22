@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Elden Ring</b>, <b>Undertale</b> and <b>Bloodborne</b> (PC port, experimental).<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Elden Ring</b>, <b>Hollow Knight</b>, <b>Undertale</b> and <b>Bloodborne</b> (PC port, experimental).<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -31,11 +31,11 @@
 
 ## Features
 
-- **Counts deaths by itself.** It reads the death counter the game already keeps for each character, so there is nothing to click while you play.
+- **Counts deaths by itself.** It reads the death counter the game already keeps for each character, so there is nothing to click while you play. (Hollow Knight keeps no counter, so there the app counts each death itself.)
 - **One count per save/character**, each with its own history.
 - **Never loses the count.** Close the game and counting stops; open it again and it continues where it left off. Deaths that happen while the counter is closed are still added.
 - **Overlay on top of the game** with your choice of font, size, corner, colors and outline. `Ctrl+Shift+D` shows/hides it.
-- **List of every death**: date/time, area (map), last bonfire (in Sekiro, the area of the last Sculptor's Idol; in Elden Ring, the area of the last Site of Grace), cause and play time. Statistics by area and by cause, plus CSV export.
+- **List of every death**: date/time, area (map), last checkpoint (bonfire; in Sekiro, the area of the last Sculptor's Idol; in Elden Ring, of the last Site of Grace; in Hollow Knight, of the last bench; in Undertale, the last save point), cause and play time. Statistics by area and by cause, plus CSV export.
 - **OBS text source for streamers.** Optionally writes the count to a text file that an OBS **Text (GDI+)** source reads, so it works with Game Capture and Window Capture. You pick the text, e.g. `Deaths: {mortes}` ([how to set it up](docs/user-guide.md#7-streaming-obs)).
 - **Bosses and falls are detected automatically.** In Dark Souls Remastered, a death while a boss health bar is on screen is recorded as that boss; in the Dark Souls games, a big drop just before dying is recorded as a fall. For other causes, pick from suggestions (enemies, traps…) with one click.
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.
@@ -109,7 +109,7 @@ The counter was designed to stay away from anything that could get you flagged:
 - It **never writes** to the game, **injects no DLL**, installs **no hooks** and doesn't modify game files or saves.
 - The overlay is a **separate window** on top of the game; nothing is drawn inside the game.
 - Editing your count only changes the number stored by this app. The game's own counter is never touched.
-- Dark Souls bans (the "soft ban") come from impossible character data being sent to the servers, which this app doesn't touch. Sekiro has no online mode at all.
+- Dark Souls bans (the "soft ban") come from impossible character data being sent to the servers, which this app doesn't touch. Sekiro and Hollow Knight have no online mode at all.
 
 No third-party tool can honestly promise zero risk, but read-only memory access is as safe as it gets.
 
@@ -132,7 +132,8 @@ Elden Ring runs under **Easy Anti-Cheat (EAC)** when you launch it normally thro
 | Sekiro: Shadows Die Twice | **1.06** (current Steam version), checked against the game's exe. The memory layout is read from the game's own code, so older versions (1.02–1.05) will probably work too, but they haven't been tested. Counts **real deaths only**: resurrecting doesn't count (see the [user guide](docs/user-guide.md#sekiro)). Sekiro has no character names, so each save slot is one character. |
 | Bloodborne | **Experimental.** The Bloodborne PC Windows port v0.5 (`bbport.exe`) running Bloodborne 1.09: deaths, name, level, NG+ and play time. No area or fall detection yet, and not yet confirmed in a real play session. See the [user guide](docs/user-guide.md#bloodborne-pc-port-experimental). |
 | Elden Ring | With Easy Anti-Cheat (normal Steam launch): counts from the save file, a few seconds after each death. Without EAC: reads memory (signatures checked on the 1.02.0 executable; offsets read from the game's own code). Tested in the game by the developer; in Elden Ring the overlay even showed in the game's fullscreen mode. The current Steam version (1.17) hasn't been checked statically. See the [user guide](docs/user-guide.md#elden-ring). |
-| Undertale | Steam version (**1.08**, 32-bit GameMaker). Counts the game's own GAME OVER counter (the one Sans mentions), read from `undertale.ini` a few seconds into each GAME OVER screen. The area and the enemy/boss of each death come from read-only memory reads; without them the count still works. Each name you give the fallen human is one character. Checked against the 1.08 executable and data.win, not yet confirmed in a play session. See the [user guide](docs/user-guide.md#undertale). |
+| Undertale | Steam version (**1.08**, 32-bit GameMaker). Counts the game's own GAME OVER counter (the one Sans mentions), read from `undertale.ini` a few seconds into each GAME OVER screen. The area and the enemy/boss of each death come from read-only memory reads; without them the count still works. Each name you give the fallen human is one character. Checked against the 1.08 executable and data.win, and tested in the game. See the [user guide](docs/user-guide.md#undertale). |
+| Hollow Knight | The current Steam version (Unity 6, 2026), read through the game's Mono runtime by class and field name. The game has **no death counter**, so the app counts each death itself while it runs, per save slot (Steel Soul saves are kept apart); dream and Godhome deaths count too, a spike hit that only costs a mask doesn't. Area, last bench area and the boss of the arena are recorded. Tested in the game. Old versions (1.4.3.2 and earlier) are not supported. See the [user guide](docs/user-guide.md#hollow-knight). |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
 | Interface language | Brazilian Portuguese (English planned) |
 
@@ -168,3 +169,4 @@ This produces `build\DSDeathCounter.exe`, statically linked with no extra DLLs. 
 [MIT](LICENSE) © 2026 MatheusMuzzi
 
 *DARK SOULS and ELDEN RING are trademarks of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE is a trademark of FromSoftware, Inc. BLOODBORNE is a trademark of Sony Interactive Entertainment LLC. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by any of them.*
+*DARK SOULS is a trademark of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE is a trademark of FromSoftware, Inc. BLOODBORNE is a trademark of Sony Interactive Entertainment LLC. HOLLOW KNIGHT is a trademark of Team Cherry. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by any of them.*

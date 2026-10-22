@@ -279,6 +279,29 @@ Todos os outros jogos suportados são de 64 bits, e o `GameReader` recusava proc
 
 - `tests/ut_test`: leitura do ini (inteiro, cortado, sem a chave, o ini que o True Reset deixa), a área de cada sala, os nomes dos grupos de batalha, o contexto do game over (batalha, batalha dentro de uma sala, sem batalha, sem as globais) e o módulo contando por um ini temporário, incluindo um arquivo pela metade, uma contagem menor que não se confirma e um ini apagado. Com a pasta do jogo, ele lê o `data.win` (ordem das salas e slots das globais) e analisa o `UNDERTALE.exe`, batendo com os valores achados à mão.
 - Ainda não conferido: nada numa sessão de jogo de verdade. A sessão nunca abriu o jogo, e a pasta de saves e os dados do usuário só foram lidos.
+## Hollow Knight
+
+O Hollow Knight não se parece em nada com os jogos da FromSoftware. É um jogo Unity: o `hollow_knight.exe` é um carregador pequeno, e a lógica do jogo é C# (`hollow_knight_Data/Managed/Assembly-CSharp.dll`) rodando no runtime Mono do Unity (`mono-2.0-bdwgc.dll`). A cópia instalada é a versão de 2026 da Steam (Unity 6000.0.61f1). O Claude só leu os arquivos dela, nunca rodou o jogo e não mudou nada na pasta do jogo.
+
+**Não há contador para ler.** O código do jogo foi decompilado a partir de uma cópia do `Assembly-CSharp.dll` (com o ILSpy) para procurar um. O `PlayerData`, a classe gravada no save, tem cerca de 1700 campos e nenhum conta mortes. Então o próprio app conta as mortes e guarda o total por slot de save no `data.json` (chaves `hk|slot|Slot N`). Essa é a grande diferença para os outros jogos: mortes com o contador fechado não têm como ser conhecidas, e o usuário pode definir um número inicial à mão.
+
+**O que é uma morte, no código do próprio jogo.**
+
+- `HeroController.TakeDamage` tira as máscaras e, quando `PlayerData.health` chega a 0, inicia `HeroController.Die`. Esse é o único jeito de o Cavaleiro morrer. Espinhos e ácido (`DieFromHazard`) só tiram uma máscara e devolvem o Cavaleiro ao último ponto seguro, a não ser que fosse a última máscara; aí quem roda é o `Die`.
+- O `Die` olha primeiro a zona do mapa: em `DREAM_WORLD` e `GODS_GLORY` (sonhos e Godhome) ele só mostra o efeito de morte e o jogo acorda o Cavaleiro, sem sombra. Em qualquer outro lugar ele liga `HeroControllerStates.dead`, transforma um save Steel Soul (`permadeathMode` 1) em morto (2) e chama `GameManager.PlayerDead`, que salva o jogo na hora e depois carrega o banco (ou a tela *PermaDeath* no Steel Soul).
+- `HeroController.Respawn` desliga o `dead` e enche as máscaras.
+
+Então o app conta uma morte quando a vida vai de mais que 0 para 0, ou quando o `dead` liga, com um save sendo jogado. Depois disso ele espera o renascimento para poder contar de novo. Um save carregado do menu (mesmo um gravado no meio da morte) só define o ponto de partida, e o menu, as telas de carregamento e sair do jogo zeram essa referência. Mortes de verdade e mortes em sonho/Godhome contam. Os campos da sombra (`shadeScene`, `geoPool`, `soulLimited`) não foram usados, porque sonhos, o Coliseu e o Steel Soul não deixam sombra do jeito normal. O `tests/hk_death_test` repete essas situações (morte normal, sonho, espinhos, Steel Soul, menu e recarregar, vida ilegível…).
+
+**Lendo o Mono sem mexer nele.** Não há endereços fixos: os objetos ficam no heap do Mono. O app faz o que os autosplitters de speedrun (o autosplitter de Hollow Knight do LiveSplit e a biblioteca `asr`) fazem, escrito do zero:
+
+1. Achar o `mono-2.0-bdwgc.dll` no processo do jogo e ler as funções exportadas dele. Os offsets das estruturas internas do Mono não ficam fixos no código: o app lê esses valores de pequenas funções exportadas que os usam, como `mono_class_get_name` (`mov rax,[rcx+0x48]; ret`), `mono_class_get_fields`, `mono_vtable_get_static_field_data`, `mono_class_vtable` e `mono_image_init` (que monta o cache de classes de cada assembly). A lista global de assemblies carregados vem de `mono_assembly_foreach`. O `tests/hk_mono_test` roda isso no arquivo da DLL e compara os 16 valores com os encontrados à mão no disassembly (Capstone).
+2. Percorrer os assemblies carregados até o `Assembly-CSharp`, e o cache de classes dele até as classes `GameManager`, `PlayerData`, `HeroController`, `HeroControllerStates` e `SceneManager`.
+3. Achar cada campo pelo nome, para que atualizações do jogo que mudam os campos de lugar não atrapalhem: `GameManager._instance` (estático), `playerData`, `gameState`, `sceneName`, `profileID` (slot do save, 1 a 4) e o herói; `PlayerData.health`, `permadeathMode`, `respawnScene` e as flags de "chefe derrotado"; `HeroControllerStates.dead`; o `mapZone` da cena. O `UnityEngine.Object.m_CachedPtr` diz se o objeto do herói ainda existe.
+
+A área é a zona do mapa (o mesmo valor que o `Die` confere), com os nomes das áreas do jogo. A causa é o chefe da arena quando a cena é uma arena de chefe conhecida e a flag de derrota desse chefe ainda está desligada; as cenas de chefes de sonho, as provações do Coliseu e as cenas de chefe do Godhome sempre contam como aquela luta. Os nomes das cenas foram conferidos com a lista de cenas do jogo, e as flags com os campos do `PlayerData`. O banco vem do `PlayerData.respawnScene`, mostrado como a área dele.
+
+Tudo isso é análise estática mais testes unitários; ainda falta confirmar no jogo.
 
 ## Passo 6: quem te matou? (depois da 1.0.0)
 
@@ -308,6 +331,7 @@ Tudo isso vem da análise estática do executável da 1.01. Duas coisas ainda pr
 - No Elden Ring com o Easy Anti-Cheat a contagem chega alguns segundos depois (quando o jogo salva) e quedas não são detectadas; o overlay não sabe diferenciar o menu principal do jogo. A versão atual da Steam (1.17) não foi conferida estaticamente.
 - O Bloodborne (port de PC) é experimental: sem área, lamparina ou detecção de quedas, personagens separados só pelo nome, e ainda não foi confirmado numa sessão de jogo de verdade.
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
+- O Hollow Knight não guarda contador de mortes, então o app só conta as mortes que acontecem com ele aberto. Foi conferido no código do jogo e no runtime Mono (versão de 2026 da Steam) e testado numa sessão de jogo de verdade; a versão antiga 1.4.3.2 (com um runtime Mono mais antigo) não é suportada.
 - O Sekiro foi conferido só no executável 1.06; versões anteriores não foram testadas. Num primeiro teste no jogo, as mortes, o slot do save, o tempo de jogo, a área e o ídolo foram lidos corretamente; a posição do jogador veio errada (só afeta as coordenadas mostradas em cada morte), e ainda falta confirmar que ressuscitar não conta. Os nomes dos ídolos não são conhecidos, só a área do ídolo.
 
 ## Ferramentas

@@ -24,6 +24,9 @@ tests\build_tests.bat     :: -> build\tests\scan_test.exe, boss_cause_test.exe, 
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 - `build\tests\bb_scan_test.exe "C:\path\to\eboot.bin"` runs the Bloodborne scanner against the `eboot.bin` file the Bloodborne PC port loads.
 - `build\tests\fake_port\bbport.exe "C:\path\to\eboot.bin"` is a stand-in for the port (it maps the game image and never runs it); run `build\tests\bb_live_test.exe` next to it to watch the live reader.
+- `build\tests\hk_mono_test.exe "C:\path\to\Hollow Knight\MonoBleedingEdge\EmbedRuntime\mono-2.0-bdwgc.dll"` reads the Mono runtime offsets the Hollow Knight reader needs from the DLL file.
+- `build\tests\hk_live_test.exe [seconds]` watches a running Hollow Knight like the app does and prints every change (deaths, slot, health, area, cause) plus the *Diagnóstico* text, without touching `data.json`.
+- `build\tests\hk_death_test.exe` replays Hollow Knight death situations through the death detector and checks the area/boss/bench tables (also run by CI).
 
 Installer: install [Inno Setup 6](https://jrsoftware.org/isinfo.php), then run `ISCC.exe installer\DSDeathCounter.iss` (output in `dist\`).
 

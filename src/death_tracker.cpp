@@ -75,12 +75,14 @@ void DeathTracker::Tick(GameReader& reader)
         return;
     }
 
+    // Games without a counter of their own: s.deaths only counts this session's deaths, the profile keeps the total.
+    const bool countsItself = GameById(s.game).countsItself;
     if (s.deaths > lastDeaths_) {
         int d = s.deaths - lastDeaths_;
         if (d <= 5) RecordDeaths(*p, d);
         else AddUntracked(*p, d);   // a jump this big is not a live death; just keep the list in sync
         lastDeaths_ = s.deaths;
-        p->gameDeaths = s.deaths;
+        p->gameDeaths = countsItself ? p->gameDeaths + d : s.deaths;
         p->playTimeMs = s.playTimeMs;
         p->lastSeen = NowLocalString();
         ++deathEvents_;
@@ -88,8 +90,10 @@ void DeathTracker::Tick(GameReader& reader)
     } else if (s.deaths < lastDeaths_) {
         // The game's counter went down (an older save backup was restored): follow the game.
         lastDeaths_ = s.deaths;
-        p->gameDeaths = s.deaths;
-        store_.MarkDirty();
+        if (!countsItself) {
+            p->gameDeaths = s.deaths;
+            store_.MarkDirty();
+        }
     }
 
     if (p->playTimeMs != s.playTimeMs || p->soulLevel != s.soulLevel || p->ngPlus != s.ngPlus) {
@@ -103,12 +107,16 @@ void DeathTracker::Tick(GameReader& reader)
 
 void DeathTracker::Activate(const GameSnapshot& s, const std::string& baseKey)
 {
+    // Without a game counter (Hollow Knight) the total lives only in the profile: deaths while
+    // the counter was closed are unknown, and s.deaths is just where this session's count starts.
+    const bool countsItself = GameById(s.game).countsItself;
     Profile* p = nullptr;
     for (auto& q : store_.profiles)
         if (q.baseKey == baseKey) p = &q;   // newest profile using this slot+name
 
     // Same slot and name, but a brand-new character (deleted and recreated).
-    if (p && s.playTimeMs + 120000 < p->playTimeMs && s.deaths < p->gameDeaths && s.playTimeMs < 30 * 60 * 1000)
+    if (p && s.playTimeMs + 120000 < p->playTimeMs && (countsItself || s.deaths < p->gameDeaths) &&
+        s.playTimeMs < 30 * 60 * 1000)
         p = nullptr;
 
     if (!p) {
@@ -117,15 +125,15 @@ void DeathTracker::Activate(const GameSnapshot& s, const std::string& baseKey)
         np.baseKey = baseKey;
         np.key = baseKey;
         for (int gen = 2; store_.Find(np.key); ++gen) np.key = baseKey + "#" + std::to_string(gen);
-        np.baseDeaths = s.deaths;
-        np.gameDeaths = s.deaths;
+        np.baseDeaths = countsItself ? 0 : s.deaths;
+        np.gameDeaths = countsItself ? 0 : s.deaths;
         np.firstSeen = NowLocalString();
         store_.profiles.push_back(std::move(np));
         p = &store_.profiles.back();
-    } else if (s.deaths > p->gameDeaths) {
+    } else if (!countsItself && s.deaths > p->gameDeaths) {
         AddUntracked(*p, s.deaths - p->gameDeaths);   // died while the counter was closed
         p->gameDeaths = s.deaths;
-    } else if (s.deaths < p->gameDeaths) {
+    } else if (!countsItself && s.deaths < p->gameDeaths) {
         p->gameDeaths = s.deaths;
     }
 
@@ -182,7 +190,7 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
     for (int i = 0; i < count; ++i) {
         DeathRecord r;
         r.id = store_.NextRecordId();
-        r.gameCount = lastDeaths_ + i + 1;
+        r.gameCount = p.gameDeaths + i + 1;
         r.time = NowLocalString();
         r.playTimeMs = snap_.playTimeMs;
         r.mapArea = haveSample ? last.mapArea : snap_.mapArea;
