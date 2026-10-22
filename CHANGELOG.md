@@ -4,6 +4,18 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### Added
+- **Undertale** (Steam 1.08). Undertale keeps its own GAME OVER counter: on every GAME OVER screen the game adds 1 to `Gameover` in `%LOCALAPPDATA%\UNDERTALE\undertale.ini`, keeps it across Resets and only clears it on a True Reset. The app reads that file (read-only, fully shared), so the count is exact and survives restarts. The area (Ruins, Snowdin, Waterfall, Hotland, Core, New Home, True Lab) and the enemy or boss of each death (*Chefe: Toriel*, *Froggit e Whimsun*…) come from read-only memory reads of the 32-bit game: the current room and `global.battlegroup`. Each name given to the fallen human is one character; the *Último save* column shows the game's save point name. Checked against the 1.08 executable and data.win; not yet confirmed in the game. See the [user guide](docs/user-guide.md#undertale).
+  *Suporte ao **Undertale** (Steam 1.08). O Undertale tem seu próprio contador de GAME OVER: a cada tela de GAME OVER o jogo soma 1 em `Gameover` no `%LOCALAPPDATA%\UNDERTALE\undertale.ini`, mantém o número nos Resets e só zera no True Reset. O app lê esse arquivo (só leitura, compartilhado), então a contagem é exata e sobrevive a reinícios. A área (Ruins, Snowdin, Waterfall, Hotland, Core, New Home, True Lab) e o inimigo ou chefe de cada morte (*Chefe: Toriel*, *Froggit e Whimsun*…) vêm de leituras da memória do jogo de 32 bits, só leitura: a sala atual e `global.battlegroup`. Cada nome dado ao humano é um personagem; a coluna "Último save" mostra o nome do ponto de save do jogo. Conferido no executável e no data.win da 1.08; ainda não confirmado no jogo. Veja o [guia do usuário](docs/guia-do-usuario.md#undertale).*
+- Tests: new `ut_test` (ini parsing, areas, battle groups, game over context, counting from a temporary ini; given the game folder it also reads data.win and analyzes UNDERTALE.exe; `--live` prints what the app reads from the running game).
+  *Testes: novo `ut_test` (leitura do ini, áreas, grupos de batalha, contexto do game over, contagem por um ini temporário; com a pasta do jogo também lê o data.win e analisa o UNDERTALE.exe; `--live` mostra o que o app lê do jogo aberto).*
+
+### Changed
+- Game modules can declare a 32-bit game (`GameModule::Is32Bit`); other 32-bit processes are still reported as unsupported. Modules can give the cause of a death (`GameSnapshot::cause`).
+  *Os módulos de jogo podem declarar um jogo de 32 bits (`GameModule::Is32Bit`); outros processos de 32 bits continuam sendo avisados como não suportados. Os módulos podem informar a causa de uma morte (`GameSnapshot::cause`).*
+
 ## [1.2.0] - 2026-10-21
 
 Dark Souls III and Elden Ring, both tested in the game. / Dark Souls III e Elden Ring, os dois testados no jogo.

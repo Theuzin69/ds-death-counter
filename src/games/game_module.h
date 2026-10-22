@@ -23,6 +23,8 @@ public:
     virtual std::string VersionLabel(uint32_t moduleSize) const { (void)moduleSize; return {}; }
     // Extra lines for the Diagnostics tab with values that are not part of GameSnapshot.
     virtual std::string LiveDiagnostics() const { return {}; }
+    // The game is a 32-bit program (Undertale): GameReader accepts a WOW64 process for it.
+    virtual bool Is32Bit() const { return false; }
 
     // --- Optional: games that may not always be opened (Elden Ring under Easy Anti-Cheat) ---
     enum class Access {

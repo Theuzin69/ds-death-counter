@@ -207,6 +207,42 @@ The save file is opened read-only and shared, for a few milliseconds after each 
 - Seamless Co-op saves (`ER0000.co2`) are only used when the game runs without EAC.
 - If a future game update changes the code the memory reader looks for, the counter switches to the save file by itself (the *Diagnóstico* tab says *executável desta versão não reconhecido*).
 
+## Undertale
+
+The counter also recognizes **Undertale** (`UNDERTALE.exe`, the Steam version 1.08), with nothing to set up. In the character list it is tagged *UT*.
+
+### Where the count comes from
+
+Undertale keeps its own GAME OVER counter, the number Sans brings up late in the game. On every GAME OVER screen the game adds 1 to it in `%LOCALAPPDATA%\UNDERTALE\undertale.ini`, a few seconds into the screen, before you can press a key to continue. The counter reads that file, so:
+
+- the count changes **a few seconds after the GAME OVER screen appears**, not at the moment your soul breaks;
+- it is exactly the game's number, and game overs that happen while the counter is closed are still added;
+- moments where the game doesn't show a real GAME OVER (for example when your soul refuses to break) don't count, for the game or for the counter.
+
+The ini is opened read-only, for a few milliseconds, sharing it so the game can always write it. Nothing in the game folder or the save folder is changed.
+
+### Characters, Reset and True Reset
+
+Undertale has a single save, so **each name you give the fallen human is one character** (`Slot 1`).
+
+- After a **Reset** the game keeps its GAME OVER counter. If you keep the same name, the counter continues the same character. With a new name you get a new character whose count starts at the game's current total: the message under the count says how many happened before the counter knew that character. Use *Editar contagem…* if you'd rather count that run from zero.
+- A **True Reset** deletes `undertale.ini`, so the game's counter goes back to 0, and the counter follows it.
+- The name is read from memory as soon as you name the human; if memory can't be read, the counter uses the name of the last save.
+
+### What each death records
+
+- *Área*: the region you were walking in when the battle started (*Ruins*, *Snowdin*, *Waterfall*, *Hotland*, *Core*, *New Home*, *True Lab*).
+- *Último save*: the save point of your last save, with the game's name for it (*Snowdin - Town*, *Waterfall - Quiet Area*…).
+- *Causa*: the enemies of the battle you lost (*Froggit e Whimsun*), or *Chefe: …* for bosses (*Chefe: Toriel*, *Chefe: Papyrus*, *Chefe: Undyne*, *Chefe: Mettaton EX*, *Chefe: Sans*, *Chefe: Asgore*…). It also works for battles inside a walking room, such as Undyne's spears in Waterfall.
+- Area and cause come from read-only memory reads (the current room and the battle group). If the game's memory can't be read (for example an unknown version of the game), the counter still counts from the ini; the area is then the region of your last save and the cause is left for you to fill in.
+- *Nível* is your LV (LOVE).
+
+### Tips
+
+- Undertale runs in a window by default; the overlay draws over it. `F4` switches the game to fullscreen, which may hide the overlay.
+- The *Iniciar Dark Souls* button only launches Dark Souls Remastered. Start Undertale from Steam.
+- To see live what the counter reads, run `build\tests\ut_test.exe --live` (only in a build from source) or open the *Diagnóstico* tab.
+
 ## 6. Settings
 
 *Configurações* tab:

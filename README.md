@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Elden Ring</b> and <b>Bloodborne</b> (PC port, experimental).<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Elden Ring</b>, <b>Undertale</b> and <b>Bloodborne</b> (PC port, experimental).<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -132,6 +132,7 @@ Elden Ring runs under **Easy Anti-Cheat (EAC)** when you launch it normally thro
 | Sekiro: Shadows Die Twice | **1.06** (current Steam version), checked against the game's exe. The memory layout is read from the game's own code, so older versions (1.02–1.05) will probably work too, but they haven't been tested. Counts **real deaths only**: resurrecting doesn't count (see the [user guide](docs/user-guide.md#sekiro)). Sekiro has no character names, so each save slot is one character. |
 | Bloodborne | **Experimental.** The Bloodborne PC Windows port v0.5 (`bbport.exe`) running Bloodborne 1.09: deaths, name, level, NG+ and play time. No area or fall detection yet, and not yet confirmed in a real play session. See the [user guide](docs/user-guide.md#bloodborne-pc-port-experimental). |
 | Elden Ring | With Easy Anti-Cheat (normal Steam launch): counts from the save file, a few seconds after each death. Without EAC: reads memory (signatures checked on the 1.02.0 executable; offsets read from the game's own code). Tested in the game by the developer; in Elden Ring the overlay even showed in the game's fullscreen mode. The current Steam version (1.17) hasn't been checked statically. See the [user guide](docs/user-guide.md#elden-ring). |
+| Undertale | Steam version (**1.08**, 32-bit GameMaker). Counts the game's own GAME OVER counter (the one Sans mentions), read from `undertale.ini` a few seconds into each GAME OVER screen. The area and the enemy/boss of each death come from read-only memory reads; without them the count still works. Each name you give the fallen human is one character. Checked against the 1.08 executable and data.win, not yet confirmed in a play session. See the [user guide](docs/user-guide.md#undertale). |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
 | Interface language | Brazilian Portuguese (English planned) |
 

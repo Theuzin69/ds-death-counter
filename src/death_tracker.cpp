@@ -195,7 +195,7 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
             r.hasPos = true;
             r.x = last.pos.x; r.y = last.pos.y; r.z = last.pos.z;
         }
-        r.cause = !bossCause.empty() ? bossCause : fell ? "Queda" : "";
+        r.cause = !bossCause.empty() ? bossCause : !snap_.cause.empty() ? snap_.cause : fell ? "Queda" : "";
         p.deaths.push_back(std::move(r));
     }
     history_.clear();

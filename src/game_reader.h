@@ -39,6 +39,7 @@ struct GameSnapshot {
     bool     hasPos       = false;
     Vec3     pos;
     std::string areaName;           // UTF-8 area label from the game module ("" = DSR: from mapArea/mapBlock)
+    std::string cause;              // UTF-8 cause of a death happening now, from the game module ("" = unknown)
     // Boss health bars on screen: the NPC name id each bar shows, -1 when the slot is empty.
     // The game fills these when a boss fight starts and clears them when the boss dies or
     // the area reloads, so "a bar was up when the player died" means "died in that fight".

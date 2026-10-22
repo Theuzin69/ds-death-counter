@@ -251,6 +251,35 @@ Elden Ring map ids are `mAA_BB_CC_DD`. Legacy dungeons and dungeons have their o
 - In the game, by the developer: it counts correctly, and Elden Ring was the one game where the overlay also showed in the game's fullscreen mode.
 - Still unverified: the current Steam version 1.17 statically (no copy of its executable or saves was available) and exactly how quickly the game writes the save after a death.
 
+## Adding Undertale
+
+Undertale got its own Claude Code session too. It is nothing like the FromSoftware games: a 32-bit GameMaker: Studio 1.4 runner (`UNDERTALE.exe`) that runs bytecode from `data.win`.
+
+### Does the game count game overs itself?
+
+Claude wrote a small `data.win` parser and bytecode disassembler in Python (the chunk format and the bytecode 16 instruction set as documented by UndertaleModTool), run from a scratch folder against the installed game, read-only. Searching the code for `undertale.ini` writes answered the question: `obj_heartdefeated`, the broken heart of the GAME OVER screen, reads `Gameover` from the `[General]` section, adds 1 and writes it back in its third alarm, about six seconds into the screen and before the player can press a key to continue. Sans and one shop read that number later. `scr_namingscreen` deletes the whole ini on a True Reset; a normal Reset keeps it. So the app counts from that key, like it counts the FromSoftware games' own counters, and the count survives restarts.
+
+The ini is rewritten in one go on every `ini_close`. The reader opens it with full sharing for a few milliseconds, rejects a file whose last line has no newline (caught in the middle of a write), and only accepts a lower count if a read half a second later still shows it.
+
+### Area and cause from memory
+
+The count doesn't need memory, but the area and the enemy do. Both were found statically in the 1.08 executable:
+
+- **Current room:** the runner registers each built-in variable as `push setter; push getter; push "room"; call`. The getter of `room` converts a global integer to a real: `exe+0x618EA0`, the same address the community autosplitter uses. The app finds it through the `"room"` string at runtime instead of a fixed address. The value is an index into the ROOM chunk of `data.win` (310 is `room_gameover`, 306 is `room_battle`).
+- **Global variables:** the VM's "push global" handler masks the variable id, subtracts 100000 and calls `CInstance::GetYYVarRef` on the global instance (`[exe+0x40894C]`). That function uses an array of 16-byte RValues at `+4` or, when it is empty, a hash map at `+0x44` (open addressing, element `{key, RValue*, hash}`, hash = key + 1). The function that links the VARI chunk shows that for globals the runner uses the chunk's own id as the slot (`battlegroup` 241, `charname` 123, `lv` 54 in 1.08); the app reads those slots from `data.win` at runtime. The offsets `+4` and `+0x44` are read from the instructions too.
+- **Enemy names:** `scr_battlegroup` sets `global.monstertype[]` for each battle group, and `scr_monstersetup` gives each monster type its name key in the English text table. The two were joined into a table (battle group 22 is Toriel, 27 Papyrus, 95 Sans, 100/101 Asgore…). Area names come from the room names; the *Último save* labels are the game's own save point names (`scr_roomname`).
+
+The module follows the rooms: the GAME OVER room right after a battle room means a death in that battle; the area is the last walking room before the battle. A change of battle group while the player stays in a walking room is a battle inside that room (Undyne's spears).
+
+### 32-bit, and fitting in
+
+Every other supported game is 64-bit, and `GameReader` refused 32-bit processes (that is how the original Dark Souls II is turned away). A module can now say it reads a 32-bit game (`GameModule::Is32Bit`). Pointers in it are 4 bytes, read with the same `ReadProcessMemory`. The module snapshot also lists 32-bit modules. If the executable isn't recognized, the module counts from the ini alone, through the same *Passive* path Elden Ring uses.
+
+### What was verified
+
+- `tests/ut_test`: ini parsing (whole, cut, without the key, the ini a True Reset leaves), every room's area, the battle group names, the game over context (battle, battle inside a room, no battle, no globals), and the module counting from a temporary ini, including a half-written file, a lower count that doesn't confirm and a deleted ini. Given the game folder, it reads `data.win` (room order and global slots) and analyzes `UNDERTALE.exe`, matching the values found by hand.
+- Not verified yet: anything in a real play session. The game was never launched by the session, and the user's save folder and data were only read.
+
 ## Step 6: who killed you? (after 1.0.0)
 
 Requirement 6 also asked for *what* killed the player, and version 1.0.0 only recognized falls. The follow-up research went back to the executable, looking for any place where the game keeps the killer and that can be read safely.

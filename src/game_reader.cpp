@@ -264,13 +264,13 @@ bool GameReader::OpenGame(DWORD pid, const GameInfo& game)
     // Every supported game is a 64-bit build. A 32-bit process with the same name (e.g. the
     // original Dark Souls II) has a different memory layout: say so instead of guessing.
     BOOL wow64 = FALSE;
-    if (IsWow64Process(proc_, &wow64) && wow64) {
+    if (IsWow64Process(proc_, &wow64) && wow64 && !(module_ && module_->Is32Bit())) {
         unsupported_ = std::string(game.shortName) + " de 32 bits";
         state_ = State::Unsupported;
         return false;
     }
 
-    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
     if (snap == INVALID_HANDLE_VALUE) { Detach(); return false; }   // game still starting, retry later
     MODULEENTRY32W me{ sizeof(me) };
     for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {

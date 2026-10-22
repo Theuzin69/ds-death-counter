@@ -6,6 +6,7 @@ extern const GameInfo kSekiroInfo;
 extern const GameInfo kBloodborneInfo;
 extern const GameInfo kDs3Info;
 extern const GameInfo kEldenRingInfo;
+extern const GameInfo kUndertaleInfo;
 
 namespace {
 
@@ -25,6 +26,7 @@ const std::vector<const GameInfo*>& AllGames()
         &kSekiroInfo,
         &kBloodborneInfo,
         &kEldenRingInfo,
+        &kUndertaleInfo,
     };
     return list;
 }

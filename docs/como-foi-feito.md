@@ -251,6 +251,35 @@ Os ids de mapa do Elden Ring são `mAA_BB_CC_DD`. Dungeons e masmorras têm mapa
 - No jogo, pelo desenvolvedor: a contagem funciona, e o Elden Ring foi o único jogo em que o overlay apareceu também no modo de tela cheia do jogo.
 - Ainda não conferido: a versão atual da Steam, 1.17, estaticamente (não havia cópia do executável nem dos saves), e quanto tempo exatamente o jogo leva para gravar o save depois de uma morte.
 
+## Adicionando o Undertale
+
+O Undertale também ganhou sua própria sessão do Claude Code. Ele não se parece nada com os jogos da FromSoftware: é um runner de 32 bits do GameMaker: Studio 1.4 (`UNDERTALE.exe`) que executa bytecode do `data.win`.
+
+### O jogo conta os game overs sozinho?
+
+O Claude escreveu um pequeno leitor do `data.win` e um desmontador do bytecode em Python (o formato dos blocos e as instruções do bytecode 16 como o UndertaleModTool documenta), rodado de uma pasta temporária contra o jogo instalado, só leitura. Procurar no código as gravações no `undertale.ini` respondeu a pergunta: o `obj_heartdefeated`, o coração quebrado da tela de GAME OVER, lê `Gameover` na seção `[General]`, soma 1 e grava de volta no seu terceiro alarme, uns seis segundos depois da tela aparecer e antes de o jogador poder apertar uma tecla para continuar. O Sans e uma das lojas leem esse número mais tarde. O `scr_namingscreen` apaga o ini inteiro no True Reset; o Reset normal mantém. Então o app conta por essa chave, como conta pelos contadores dos jogos da FromSoftware, e a contagem sobrevive a reinícios.
+
+O ini é regravado de uma vez a cada `ini_close`. O leitor abre o arquivo compartilhado por alguns milissegundos, rejeita um arquivo cuja última linha não termina em quebra de linha (pego no meio da gravação) e só aceita uma contagem menor se uma leitura meio segundo depois ainda mostrar o mesmo.
+
+### Área e causa pela memória
+
+A contagem não precisa da memória, mas a área e o inimigo sim. Os dois foram encontrados estaticamente no executável 1.08:
+
+- **Sala atual:** o runner registra cada variável embutida com `push setter; push getter; push "room"; call`. O getter de `room` converte um inteiro global em real: `exe+0x618EA0`, o mesmo endereço que o autosplitter da comunidade usa. O app o encontra pela string `"room"` em tempo de execução, em vez de um endereço fixo. O valor é um índice no bloco ROOM do `data.win` (310 é `room_gameover`, 306 é `room_battle`).
+- **Variáveis globais:** o tratador de "push global" da VM mascara o id da variável, subtrai 100000 e chama `CInstance::GetYYVarRef` na instância global (`[exe+0x40894C]`). Essa função usa um vetor de RValues de 16 bytes em `+4` ou, quando ele está vazio, uma tabela hash em `+0x44` (endereçamento aberto, elemento `{chave, RValue*, hash}`, hash = chave + 1). A função que liga o bloco VARI mostra que, para as globais, o runner usa o próprio id do bloco como slot (`battlegroup` 241, `charname` 123, `lv` 54 na 1.08); o app lê esses slots do `data.win` em tempo de execução. Os deslocamentos `+4` e `+0x44` também são lidos das instruções.
+- **Nomes dos inimigos:** o `scr_battlegroup` define `global.monstertype[]` para cada grupo de batalha, e o `scr_monstersetup` dá a cada tipo de monstro a chave do nome na tabela de textos em inglês. Os dois viraram uma tabela (o grupo 22 é a Toriel, 27 o Papyrus, 95 o Sans, 100/101 o Asgore…). Os nomes das áreas vêm dos nomes das salas; os nomes da coluna "Último save" são os nomes que o próprio jogo dá aos pontos de save (`scr_roomname`).
+
+O módulo acompanha as salas: a sala de GAME OVER logo depois de uma sala de batalha significa uma morte naquela batalha; a área é a última sala de exploração antes da batalha. Uma troca de grupo de batalha com o jogador parado numa sala de exploração é uma batalha dentro daquela sala (as lanças da Undyne).
+
+### 32 bits, e o encaixe
+
+Todos os outros jogos suportados são de 64 bits, e o `GameReader` recusava processos de 32 bits (é assim que o Dark Souls II original é recusado). Agora um módulo pode dizer que lê um jogo de 32 bits (`GameModule::Is32Bit`). Os ponteiros nele têm 4 bytes, lidos com o mesmo `ReadProcessMemory`. A lista de módulos do processo também inclui os de 32 bits. Se o executável não for reconhecido, o módulo conta só pelo ini, pelo mesmo caminho *Passive* que o Elden Ring usa.
+
+### O que foi conferido
+
+- `tests/ut_test`: leitura do ini (inteiro, cortado, sem a chave, o ini que o True Reset deixa), a área de cada sala, os nomes dos grupos de batalha, o contexto do game over (batalha, batalha dentro de uma sala, sem batalha, sem as globais) e o módulo contando por um ini temporário, incluindo um arquivo pela metade, uma contagem menor que não se confirma e um ini apagado. Com a pasta do jogo, ele lê o `data.win` (ordem das salas e slots das globais) e analisa o `UNDERTALE.exe`, batendo com os valores achados à mão.
+- Ainda não conferido: nada numa sessão de jogo de verdade. A sessão nunca abriu o jogo, e a pasta de saves e os dados do usuário só foram lidos.
+
 ## Passo 6: quem te matou? (depois da 1.0.0)
 
 O requisito 6 também pedia *o que* matou o jogador, e a versão 1.0.0 só reconhecia quedas. A pesquisa seguinte voltou ao executável atrás de algum lugar onde o jogo guarde quem matou e que dê para ler com segurança.

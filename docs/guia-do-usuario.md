@@ -205,6 +205,42 @@ O arquivo de save é aberto só para leitura e compartilhado, por alguns milisse
 - Os saves do Seamless Co-op (`ER0000.co2`) só são usados quando o jogo roda sem o EAC.
 - Se uma atualização futura do jogo mudar o código que a leitura da memória procura, o contador passa sozinho para o arquivo de save (a aba *Diagnóstico* mostra *executável desta versão não reconhecido*).
 
+## Undertale
+
+O contador também reconhece o **Undertale** (`UNDERTALE.exe`, a versão 1.08 da Steam), sem nada para configurar. Na lista de personagens ele aparece com a etiqueta *UT*.
+
+### De onde vem a contagem
+
+O Undertale tem seu próprio contador de GAME OVER, o número que o Sans comenta no fim do jogo. A cada tela de GAME OVER o jogo soma 1 nesse contador, no arquivo `%LOCALAPPDATA%\UNDERTALE\undertale.ini`, alguns segundos depois da tela aparecer e antes de você poder apertar uma tecla para continuar. O contador lê esse arquivo, então:
+
+- a contagem muda **alguns segundos depois da tela de GAME OVER aparecer**, não no instante em que a alma quebra;
+- o número é exatamente o do jogo, e os game overs que acontecerem com o contador fechado também entram;
+- momentos em que o jogo não mostra um GAME OVER de verdade (por exemplo quando a alma se recusa a quebrar) não contam, nem para o jogo nem para o contador.
+
+O ini é aberto só para leitura, por alguns milissegundos, compartilhado para o jogo sempre conseguir gravá-lo. Nada na pasta do jogo ou na pasta dos saves é alterado.
+
+### Personagens, Reset e True Reset
+
+O Undertale tem um único save, então **cada nome que você dá ao humano é um personagem** (`Slot 1`).
+
+- Depois de um **Reset** o jogo mantém o contador de GAME OVER. Se você mantiver o mesmo nome, o contador continua o mesmo personagem. Com um nome novo surge um personagem novo cuja contagem começa no total atual do jogo: o aviso embaixo da contagem diz quantas aconteceram antes do contador conhecer esse personagem. Use *Editar contagem…* se preferir contar essa rota do zero.
+- O **True Reset** apaga o `undertale.ini`, então o contador do jogo volta a 0, e o app acompanha.
+- O nome é lido da memória assim que você dá o nome ao humano; se a memória não puder ser lida, o contador usa o nome do último save.
+
+### O que cada morte registra
+
+- *Área*: a região em que você estava andando quando a batalha começou (*Ruins*, *Snowdin*, *Waterfall*, *Hotland*, *Core*, *New Home*, *True Lab*).
+- *Último save*: o ponto de save do seu último save, com o nome que o jogo dá a ele (*Snowdin - Town*, *Waterfall - Quiet Area*…).
+- *Causa*: os inimigos da batalha que você perdeu (*Froggit e Whimsun*), ou *Chefe: …* para chefes (*Chefe: Toriel*, *Chefe: Papyrus*, *Chefe: Undyne*, *Chefe: Mettaton EX*, *Chefe: Sans*, *Chefe: Asgore*…). Funciona também nas batalhas dentro de uma sala de exploração, como as lanças da Undyne em Waterfall.
+- A área e a causa vêm de leituras da memória, só leitura (a sala atual e o grupo de batalha). Se a memória do jogo não puder ser lida (por exemplo numa versão desconhecida do jogo), o contador continua contando pelo ini; a área passa a ser a região do último save e a causa fica para você preencher.
+- *Nível* é o seu LV (LOVE).
+
+### Dicas
+
+- O Undertale roda em janela por padrão; o overlay aparece por cima. O `F4` deixa o jogo em tela cheia, o que pode esconder o overlay.
+- O botão *Iniciar Dark Souls* só abre o Dark Souls Remastered. Abra o Undertale pela Steam.
+- Para ver ao vivo o que o contador lê, rode `build\tests\ut_test.exe --live` (só numa compilação a partir do código) ou abra a aba *Diagnóstico*.
+
 ## 6. Configurações
 
 | Opção | O que faz |

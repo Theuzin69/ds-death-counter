@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Elden Ring</b> e <b>Bloodborne</b> (port de PC, experimental).<br>
+  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Elden Ring</b>, <b>Undertale</b> e <b>Bloodborne</b> (port de PC, experimental).<br>
   Para streamers e para quem quer saber quantas vezes (e onde) morreu.
 </p>
 
@@ -129,6 +129,7 @@ O Elden Ring roda com o **Easy Anti-Cheat (EAC)** quando você abre pela Steam d
 | Sekiro: Shadows Die Twice | **1.06** (a versão atual da Steam), conferida no executável do jogo. O app lê a organização da memória do próprio código do jogo, então as versões anteriores (1.02 a 1.05) provavelmente funcionam, mas não foram testadas. Conta **só as mortes de verdade**: ressuscitar não conta (veja o [guia do usuário](docs/guia-do-usuario.md#sekiro)). O Sekiro não tem nome de personagem, então cada slot de save é um personagem. |
 | Bloodborne | **Experimental.** O Bloodborne PC Windows port v0.5 (`bbport.exe`) rodando o Bloodborne 1.09: mortes, nome, nível, NG+ e tempo de jogo. Ainda sem área nem detecção de quedas, e ainda não confirmado numa sessão de jogo de verdade. Veja o [guia do usuário](docs/guia-do-usuario.md#bloodborne-port-de-pc-experimental). |
 | Elden Ring | Com o Easy Anti-Cheat (pela Steam, do jeito normal): conta pelo arquivo de save, alguns segundos depois de cada morte. Sem o EAC: lê a memória (assinaturas conferidas no executável 1.02.0; deslocamentos lidos do próprio código do jogo). Testado no jogo pelo desenvolvedor; no Elden Ring o overlay apareceu até no modo de tela cheia do jogo. A versão atual da Steam (1.17) não foi conferida estaticamente. Veja o [guia do usuário](docs/guia-do-usuario.md#elden-ring). |
+| Undertale | Versão da Steam (**1.08**, GameMaker de 32 bits). Usa o contador de GAME OVER do próprio jogo (o que o Sans menciona), lido do `undertale.ini` alguns segundos depois de cada tela de GAME OVER. A área e o inimigo/chefe de cada morte vêm de leituras da memória, só leitura; sem elas a contagem continua funcionando. Cada nome que você dá ao humano é um personagem. Conferido no executável e no data.win da 1.08, ainda não confirmado numa sessão de jogo. Veja o [guia do usuário](docs/guia-do-usuario.md#undertale). |
 | Modo de tela | Janela / janela sem bordas. Em tela cheia exclusiva o overlay pode não aparecer. |
 | Idioma do app | Português do Brasil (inglês planejado) |
 

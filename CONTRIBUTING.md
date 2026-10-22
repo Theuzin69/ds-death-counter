@@ -14,12 +14,13 @@ Requirements: Windows 10/11 x64 and Visual Studio 2019/2022 with the *Desktop de
 
 ```bat
 build.bat                 :: -> build\DSDeathCounter.exe
-tests\build_tests.bat     :: -> build\tests\scan_test.exe, boss_cause_test.exe, er_save_test.exe, overlay_test.exe, bb_*.exe
+tests\build_tests.bat     :: -> build\tests\scan_test.exe, boss_cause_test.exe, er_save_test.exe, ut_test.exe, overlay_test.exe, bb_*.exe
 ```
 
 - `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` (or `DarkSoulsII.exe`, `DarkSoulsIII.exe`, `sekiro.exe`, `eldenring.exe`) runs the app's signature scanner against a game executable on disk; the game is picked from the file name. Use it to check a game version without launching it.
 - `build\tests\er_save_test.exe "%APPDATA%\EldenRing\<steamid>\ER0000.sl2"` shows what the counter reads from an Elden Ring save (read-only). With `--simulate` it copies the save to `%TEMP%` and plays the game's writes on the copy to test the save watcher.
 - `build\tests\boss_cause_test.exe` checks the boss health bar → cause of death table (also run by CI).
+- `build\tests\ut_test.exe` checks the Undertale logic (ini parsing, areas, battle groups, game over context; also run by CI). Given the game folder (`ut_test.exe "C:\...\Undertale"`) it also reads `data.win` and analyzes `UNDERTALE.exe`, read-only; `ut_test.exe --live` prints what the app reads from the running game.
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 - `build\tests\bb_scan_test.exe "C:\path\to\eboot.bin"` runs the Bloodborne scanner against the `eboot.bin` file the Bloodborne PC port loads.
 - `build\tests\fake_port\bbport.exe "C:\path\to\eboot.bin"` is a stand-in for the port (it maps the game image and never runs it); run `build\tests\bb_live_test.exe` next to it to watch the live reader.
