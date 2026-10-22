@@ -28,8 +28,9 @@ private:
         Vec3 pos;
         int mapArea, mapBlock, bonfire;
         uint32_t playTimeMs;
-        uint32_t mapRaw;
-        std::string areaName;
+        std::string area;       // GameSnapshot::areaName
+        uint32_t mapRaw = 0;    // GameSnapshot::mapRaw
+        int boss[GameSnapshot::kBossSlots] = { -1, -1 };   // boss bars on screen (name ids)
     };
 
     void Activate(const GameSnapshot& s, const std::string& baseKey);

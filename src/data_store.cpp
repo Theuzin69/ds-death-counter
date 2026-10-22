@@ -30,6 +30,9 @@ json ToJson(const Settings& s)
         { "colorNormal", s.colorNormal },
         { "colorEdited", s.colorEdited },
         { "colorOutline", s.colorOutline },
+        { "obsTextEnabled", s.obsTextEnabled },
+        { "obsTextPath", s.obsTextPath },
+        { "obsTextFormat", s.obsTextFormat },
     };
 }
 
@@ -57,6 +60,9 @@ void FromJson(const json& j, Settings& s)
     s.colorNormal = j.value("colorNormal", d.colorNormal);
     s.colorEdited = j.value("colorEdited", d.colorEdited);
     s.colorOutline = j.value("colorOutline", d.colorOutline);
+    s.obsTextEnabled = j.value("obsTextEnabled", d.obsTextEnabled);
+    s.obsTextPath = j.value("obsTextPath", d.obsTextPath);
+    s.obsTextFormat = j.value("obsTextFormat", d.obsTextFormat);
 }
 
 json ToJson(const DeathRecord& r)

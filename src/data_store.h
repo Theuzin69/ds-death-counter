@@ -26,6 +26,11 @@ struct Settings {
     uint32_t colorNormal = 0xFFE8DFC8;  // ARGB
     uint32_t colorEdited = 0xFFFF8A2A;
     uint32_t colorOutline = 0xFF000000;
+
+    // Text file for OBS ("Text (GDI+)" source, "Read from file").
+    bool obsTextEnabled = false;
+    std::string obsTextPath;            // UTF-8; empty = %APPDATA%\DSDeathCounter\obs.txt
+    std::string obsTextFormat = "Mortes: {mortes}";
 };
 
 struct DeathRecord {
@@ -34,7 +39,7 @@ struct DeathRecord {
     std::string time;           // local time when detected
     uint32_t playTimeMs = 0;
     int mapArea = -1, mapBlock = -1;
-    uint32_t mapId = 0;         // full map id (games other than DSR; 0 = not recorded)
+    uint32_t mapId = 0;         // full map id mAA_BB_CC_DD (games other than DSR; 0 = not recorded)
     std::string area;           // display name (auto or edited)
     int bonfire = 0;
     bool hasPos = false;
@@ -45,9 +50,9 @@ struct DeathRecord {
 };
 
 struct Profile {
-    std::string game = "dsr";   // "dsr", "er"; other games prefix their keys with it ("er|slot|name")
-    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character)
-    std::string baseKey;        // "slot|name"
+    std::string game = "dsr";   // game id (games/games.h); data saved by 1.0.0 is Dark Souls Remastered
+    std::string key;            // "slot|name" (+ "#N" when a slot was reused by a new character); other games: "ds2|slot|name"
+    std::string baseKey;        // "slot|name" (other games: "ds2|slot|name")
     std::string name;
     int slot = -1;
     int gameDeaths = 0;         // last value read from the game

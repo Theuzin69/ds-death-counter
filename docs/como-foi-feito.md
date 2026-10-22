@@ -75,7 +75,7 @@ Como é o mapa do último chão firme, ele também responde bem a "onde eu morri
 | **Overlay como janela separada** | Uma janela transparente, que não captura cliques e fica sempre no topo, desenhada com GDI+ e que acompanha a janela do jogo. Nada é desenhado dentro do jogo. A contrapartida é que a tela cheia exclusiva pode escondê-la, por isso o app tem um botão de "janela sem bordas". |
 | **Interface com Dear ImGui em Direct3D 11** | Uma interface compacta e bonita, sem frameworks pesados. |
 | **Personagem = slot do save + nome** | Os dados do jogo não têm um id único de personagem. Se o tempo de jogo voltar a zero, é sinal de um personagem recriado com o mesmo nome. |
-| **Causa da morte** | Quedas são detectadas pelo histórico de altura do jogador. O jogo não guarda "quem te matou" num lugar que dê para ler de forma confiável e segura, então as outras causas o usuário escolhe nas sugestões. |
+| **Causa da morte** | Quedas são detectadas pelo histórico de altura do jogador, e chefes pela barra de vida do chefe (adicionado depois da 1.0.0, veja o [passo 6](#passo-6-quem-te-matou-depois-da-100)). O jogo não guarda "qual inimigo te matou" num lugar que dê para ler de forma confiável e segura, então as outras causas o usuário escolhe nas sugestões. |
 | **Dados em JSON** | Um arquivo legível em `%APPDATA%`, gravado de forma atômica para um travamento não corrompê-lo. |
 
 ## Passo 5: testes
@@ -84,6 +84,7 @@ O que a IA conferiu no PC de desenvolvimento:
 
 - o projeto compila no MSVC **sem erros e sem avisos**;
 - `tests/scan_test` roda o scanner do próprio app contra o executável do jogo no disco e compara com os endereços conferidos manualmente;
+- `tests/boss_cause_test` confere a tabela barra de chefe → causa (também roda no GitHub Actions);
 - `tests/overlay_test` desenha o overlay, que foi capturado na tela e inspecionado (cores normal e "editada");
 - a janela principal foi desenhada com dados de exemplo e capturada para conferir o layout;
 - o instalador foi instalado e desinstalado em modo silencioso para confirmar que não deixa sobras.
@@ -93,9 +94,103 @@ O que o humano conferiu no jogo de verdade:
 - as mortes dos saves que já existiam foram lidas corretamente;
 - uma morte nova no Undead Burg foi contada e registrada com a área certa.
 
+A detecção de chefes (passo 6) ainda não foi testada no jogo.
+
 Cada release é compilado pelo GitHub Actions a partir do código público, com somas de verificação e atestados de procedência (veja o [README](../README.pt-BR.md#smartscreen)).
 
-## Elden Ring (adicionado depois da 1.0.0)
+## Dark Souls II: Scholar of the First Sin
+
+O suporte ao Dark Souls II veio depois, numa sessão separada do Claude Code, com o mesmo método e as mesmas regras: o executável do jogo só foi lido como arquivo, nada da pasta do jogo foi executado ou extraído, e o app continua chamando só `ReadProcessMemory`.
+
+**Qual executável.** O `DarkSoulsII.exe` disponível para o desenvolvimento é o *Scholar of the First Sin* (SotFS), 64 bits, versão de arquivo 1.0.2.0 (o patch 1.02, módulo de tamanho `0x20B6000`). A Steam vende hoje o SotFS 1.03, que não estava disponível, então o app acha tudo por assinaturas de bytes em vez de endereços fixos. O Dark Souls II original, de 2014, é um programa de 32 bits com outra organização. O app detecta um processo de 32 bits (`IsWow64Process`) e avisa que não é suportado em vez de chutar.
+
+**Estrutura principal.** Quase tudo sai de um global só, o `GameManagerImp`. Duas assinaturas de projetos diferentes ([SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) e [DS2S-META](https://github.com/Nordgaren/DS2S-META)) batem exatamente uma vez cada e levam ao mesmo endereço, `exe+0x160B8D0`. O endereço fixo do DSDeaths (`0x16148F0`) não é usado em lugar nenhum da 1.02, então deve ser o da 1.03. Isso confirma que a 1.03 mudou os globais de lugar, e é por isso que o app usa assinaturas.
+
+**O contador de mortes.** As ferramentas públicas discordavam. O DSDeaths lê `PlayerParam + 0x104` (com `PlayerParam = [[GameManagerImp] + 0xD0] + 0x490`), e o DS2S-META chama `PlayerParam + 0x1A4` de "TotalDeaths". A função que carrega o `PlayerParam` do save explica o porquê. `+0x1A4` é um total único, limitado a 99.999.999. `+0x104` é o primeiro de um vetor de 20 contadores do mesmo tipo. Para tirar a dúvida, o Claude decifrou cópias dos saves de DS2 do próprio desenvolvedor (cópias só de leitura numa pasta temporária; os saves usam uma chave AES conhecida publicamente). Nos três personagens (463, 381 e 17 mortes) os dois campos têm o mesmo número, e o nome, as almas e a soul memory estão onde o código diz. O app conta pelo total (`+0x1A4`) e mostra o outro na aba *Diagnóstico* para comparar no jogo.
+
+**Nome, slot e tempo de jogo.** Foram achados seguindo o código que grava os resumos dos slots do menu de carregar:
+
+- nome em `[[GameManagerImp + 0xA8] + 0xC0] + 0x24`, classe em `+0x64`, ciclo de NG em `+0x68`, guardado como 1 na primeira jornada;
+- o slot ativo em `[[GameManagerImp + 0xA8] + 0xD8] + 0x1368`;
+- dez resumos de 0x1F0 bytes, com o tempo de jogo em segundos em `+0x1CC`.
+
+O DS2 não tem um contador de tempo correndo. A própria função *GetPlayTimeSeconds* do jogo soma o tempo desde que o resumo foi gravado, medido com `QueryPerformanceCounter`, e o app faz igual: esse contador vale para o sistema inteiro, então a marca de tempo do jogo significa o mesmo nos dois processos. Os dados do menu decifrados bateram com esse formato (91h27m e 20h19m).
+
+**Área e fogueira.**
+
+- **Mapa atual.** O gerenciador de mapas (`GameManagerImp + 0x38`) guarda o índice do mapa atual em `+0x170`, que aponta para uma tabela de ids de mapa (`mAA_BB`, em `0xAABB0000`).
+- **Nomes das áreas.** Vêm dos ids de área da lista de fogueiras do DS2S-META, então um mapa sem fogueira aparece como *Mapa mAA_BB*.
+- **Última fogueira.** Fica em `[GameManagerImp + 0x70] + 0x16C`, com os nomes da mesma lista (licença MIT).
+
+**Assinaturas conferidas.** O app usa 13 assinaturas. Cada uma tem que bater exatamente uma vez no executável 1.02, e os deslocamentos que elas contêm são lidos do código em tempo real. Se uma não for encontrada (num patch futuro, por exemplo), o app usa o valor da 1.02 e a aba *Diagnóstico* marca com `*`. O `tests/scan_test` reconhece o `DarkSoulsII.exe` e compara cada valor com os conferidos à mão. Não conferidos estaticamente: a posição do jogador (`[PlayerCtrl + 0x100] + 0x80`, do SoulSplitter, usada só na detecção de quedas) e a regra de "está no mundo" (o `PlayerCtrl` existe, como no DS2S-META). Os dois estão na lista para confirmar no jogo.
+
+## Adicionando o Dark Souls III
+
+O suporte ao Dark Souls III veio do mesmo jeito, em outra sessão do Claude Code: análise estática do executável (lido como arquivo, nunca executado), assinaturas de bytes escritas para este app que precisam bater em **exatamente um** lugar, e **assinaturas independentes para a mesma estrutura que precisam concordar**. O código fica em `src/games/ds3.cpp` (assinaturas, deslocamentos, leituras) e `src/games/ds3_data.cpp` (nomes dos mapas, sugestões de causa).
+
+**O executável.** A cópia disponível era o `DarkSoulsIII.exe` **1.15.0.0** (data no cabeçalho PE: 08/08/2017, tamanho do módulo `0x63DF000`). A Steam distribui hoje a **1.15.1 / 1.15.2**, que não pôde ser analisada. O endereço fixo que o DSDeaths usa na versão nova (`exe+0x47572B8`) não aparece em lugar nenhum da 1.15.0, ou seja, os globais mudaram de lugar. Por isso o app encontra tudo por assinaturas e lê a maior parte dos deslocamentos do próprio código do jogo.
+
+**O que é lido e como cada valor foi confirmado** (1.15.0):
+
+| Valor | Onde | Como foi confirmado |
+|---|---|---|
+| `GameDataMan` | `exe+0x4740178` | 3 assinaturas concordam: a do SoulMemory, a função `AddDeathCount` do jogo e a atualização do tempo de jogo |
+| Contador de mortes | `GameDataMan + 0x98` | A função de script `AddDeathCount` termina numa função pequena que soma neste campo (travando em 0xFFFFFFFF); o carregador do save lê o campo do save e um jogo novo zera o campo |
+| Tempo de jogo (ms) | `GameDataMan + 0xA4` | Código que soma o tempo de cada quadro e trava o valor em 999:59:59 (0xD693A018) |
+| Ciclo NG+ | `GameDataMan + 0x78` | Lido do save e limitado a 0..9999 pelo carregador |
+| Nome do personagem | `[GameDataMan + 0x10] + 0x88` | O carregador do `PlayerGameData` termina ali um nome UTF-16 de 16 caracteres |
+| Nível | `PlayerGameData + 0x70` | Copiado junto com as almas (+0x74) e o total de almas (+0x78, comparado com 999.999.999), na mesma ordem dos textos de depuração *SoulLv*, *Soul* e *Total Get Soul* |
+| `WorldChrMan` / jogador | `exe+0x4768E78`, `+0x80` | 2 assinaturas concordam: a do SoulMemory e uma função pequena "o jogador existe?", que também dá o `+0x80` |
+| `GameMan` | `exe+0x4743AB0` | 3 assinaturas concordam: o setter do ponto de renascimento, o getter dele e o código de jogo novo que grava o slot do save. O construtor guarda o objeto nesse mesmo global |
+| Slot do save | `GameMan + 0xA60` | Um jogo novo grava ali o primeiro slot livre dos 10 (ou -1) |
+| Última fogueira | `GameMan + 0xACC` | O id do ponto de renascimento: o getter devolve esse valor (ou um substituto temporário em +0xAD0); o carregador do save e as funções de script gravam nele |
+| HP | `PlayerIns + 0x1F90` → `+0x18` → `+0xD8` | Quem chama `SprjChrDataModule::SetHp` passa esse módulo, e o `SetHp` limita +0xD8 pelo HP máximo em +0xDC |
+| Posição | `PlayerIns + 0x1F90` → `+0x68` → `+0x80` | Os módulos do personagem são registrados por índice; o índice 13 (`+0x68`) é o `SprjChrPhysicsModule`. A atualização dele passa a posição anterior para +0x90 e grava a nova em +0x80 (um `float4` que começa como 0, 0, 0, 1) |
+| Mapa atual | `PlayerIns + 0x1ABC` | Atualizado sempre que muda o chão (colisão) sob o personagem. O jogo monta o valor a partir do id de *play region* da colisão, como um número decimal `AABKCC`, em que `AA` é a área do mapa e `B` o bloco: o Lothric Castle (`m30_01`) dá `301xxx` |
+| Mapa carregado (reserva) | `FieldArea` `exe+0x4743A80`, índice do bloco em `+0x20` na lista de blocos do mundo em `[+0x10] + 0x20` (entradas de 0x70 bytes, id do mapa em `+0x8`) | 2 assinaturas concordam no `FieldArea`; o código da função "id do mapa atual" do jogo dá o resto. Ele só muda quando um mapa carrega ou o jogador viaja, então é usado quando a *play region* é desconhecida e aparece no *Diagnóstico* para comparar |
+
+Os nomes dos mapas (`mAA_BB`) são uma tabela pequena em `ds3_data.cpp`. Os ids de fogueira e de ponto de renascimento seguem o padrão de ids de entidade do jogo, `AABxxxx` (por exemplo, `4002950` fica no `m40_00`). Por isso a coluna *Última fogueira* mostra o mapa da fogueira mais o id, e não o nome exato da fogueira. Os nomes das fogueiras ficam nos arquivos de dados do jogo, que não foram extraídos.
+
+O `tests/scan_test` reconhece o `DarkSoulsIII.exe`, confere que as 14 assinaturas foram encontradas e compara cada endereço e deslocamento com os valores da 1.15.0 acima. Os personagens do Dark Souls III ficam em chaves que começam com `ds3|`.
+<a id="sekiro"></a>
+
+## Adicionando o Sekiro: Shadows Die Twice
+
+O suporte ao Sekiro veio depois, do mesmo jeito, numa sessão separada do Claude Code (outras sessões adicionavam outros jogos em paralelo). O executável disponível era o `sekiro.exe` **1.06**, a versão atual da Steam. Essa cópia já estava sem a camada de DRM da Steam, então o código dela é exatamente o que a versão 1.06 da Steam executa depois de carregada. Ela só foi lida como arquivo para análise, nunca executada.
+
+**O contador de mortes.** O DSDeaths lê o contador do Sekiro em `GameDataMan + 0x90`. Em vez de confiar nisso, o Claude seguiu a função de script do próprio jogo, `AddDeathCount`: a tabela de funções de script do jogo liga esse nome a uma função pequena que termina num `+1` com limite em `GameDataMan + 0x90`. O jogo usa o mesmo `+1` para dois contadores que sobraram do multiplayer (`+0x80` e `+0x84`), então só o formato do código não diferencia um do outro. Em tempo real, o app segue o nome `AddDeathCount` pela tabela até o contador certo.
+
+**Ressurreição ou morte de verdade?** O único código que chama `AddDeathCount` é o tratador de morte do jogador. Ele é registrado no evento de morte do jogador (entidade 10000), e é também quem faz as verificações da penalidade de morte e mostra o texto grande de morte na tela. Ressuscitar não passa por ele. Então o contador do jogo, e o número que o app mostra, conta **só as mortes de verdade**: morrer para valer, não cair e ressuscitar. Essa conclusão vem da leitura do código e ainda precisa ser confirmada no jogo. Daria para separar as duas coisas (HP chegar a 0 sem o contador subir é uma ressurreição), mas o app não conta ressurreições.
+
+**Todo o resto** também foi lido do código do jogo. Cada estrutura é encontrada em tempo real por uma assinatura, e os deslocamentos são tirados das próprias instruções:
+
+| Dado | Onde (1.06) | Como foi confirmado |
+|---|---|---|
+| Tempo de jogo | `GameDataMan + 0x9C` | o código do relógio soma o tempo de cada quadro ali e limita em 999:59:59 |
+| Ciclo de NG+ | `GameDataMan + 0x70` | aumenta de um em um, com limite em 9999 |
+| Slot do save | `GameMan + 0xAE4` | a rotina de salvar usa esse valor quando nenhum slot é informado, e recusa valores acima de 9 (10 slots) |
+| No mundo, HP, posição | `WorldChrMan + 0x88` (jogador) → módulos `+0x1FF8` → módulo de dados `+0x18` (HP `+0x130`, máximo `+0x134`) e módulo de física `+0x68` (posição `+0x70`) | o `SetHp` do jogo (que limita pelo HP máximo logo depois), o código que monta os módulos (módulo 3 = dados, 13 = física) e a função que devolve a posição |
+| Mapa atual | `FieldArea + 0x28` (índice do bloco) na lista de blocos do mundo em `[FieldArea + 0x18] + 0x20` (itens de 0xB0 bytes, id do mapa em `+0x8`) | o código por trás da função de script `GetCurrentMapAreaNo` |
+| Último ídolo (ponto de retorno) | `GameMan + 0xB4C`, substituído por `+0xB50` enquanto este for ≥ 0 | gravado pela função de script `SetReturnPointEntityId` e ao descansar; lido pelo código de renascimento |
+
+Os nomes dos mapas vieram de cruzar os ids dos mapas com as flags de evento dos Ídolos do Escultor, que usam a mesma numeração (`1AAB…` pertence ao mapa `mAA_0B`; por exemplo, os ídolos do Ashina Castle, `1111000x`, ficam no `m11_01`). O ponto de retorno é um id de entidade, que diz o mapa do ídolo mas não qual ídolo é. Os nomes dos ídolos ficam nos arquivos de dados do jogo, que não foram extraídos, então o app mostra a área do ídolo.
+
+As assinaturas foram escritas do zero para este app; as ferramentas da comunidade (algumas são GPL) serviram só como fonte de fatos. Cada assinatura aparece exatamente uma vez na 1.06. O `GameDataMan` é confirmado por três trechos de código independentes, e o `GameMan`, o `WorldChrMan` e o `FieldArea` por dois cada. Se dois deles discordarem, aquela função é desligada e a aba *Diagnóstico* mostra *DIVERGENTE*, em vez de ler o lugar errado. O `tests/scan_test` reconhece o `sekiro.exe` e confere cada assinatura com os endereços achados à mão na 1.06.
+
+O Sekiro não tem nome nem nível de personagem, então um personagem do Sekiro é identificado pelo slot do save, e as chaves dele no `data.json` começam com `sekiro|`, para nunca se misturarem com personagens do Dark Souls. O Sekiro não tem dano de queda fora dos abismos, então a heurística de queda fica desligada para ele.
+## Bloodborne (port de PC)
+
+O suporte ao Bloodborne é para um programa específico, o **Bloodborne PC Windows port** v0.5. Antes de tudo, o Claude descobriu o que é esse programa usando só os arquivos dele: listas de arquivos, metadados PE (importações, seções, assinaturas, manifestos), o conteúdo empacotado do launcher e os scripts Python dele, que são texto puro. Nada dele foi executado. É um carregador, o `bbport.exe`, compilado com MinGW, sem assinatura digital e sem compactação. Ele roda direto o código x86-64 de PS4 do próprio jogo (`eboot.bin`), com a parte gráfica tirada do projeto [shadPS4](https://github.com/shadps4-emu/shadPS4). O launcher é um app PyInstaller + Qt que inicia o port pelo `run.bat`.
+
+O que importa para o contador é que o port coloca a imagem inteira do jogo num bloco só da memória, num endereço fixo na v0.5 (`0x800000000` = endereço 0 do jogo). Assim, o mesmo método do Dark Souls Remastered funciona:
+
+- Os scripts do jogo chamam uma função Lua chamada `AddDeathCount` quando a mensagem de morte aparece. O código dela soma 1 num campo do `GameDataMan` do jogo (deslocamento `0x88` na 1.09). Uma vizinha, `AddTrueDeathCount`, incrementa o `0x84`; nenhum script a chama, então o app só mostra esse valor no *Diagnóstico*.
+- O tempo de jogo (`0x94`, em milissegundos, com limite de 999:59:59 como nos outros jogos da FromSoftware), o ciclo de NG+ (`GetClearCount`, `0x68`) e o nível (`GetLocalPlayerSoulLv`, dados do jogador em `GameDataMan + 0x8`, nível em `+0x90`) vêm de outras funções, cada uma com a sua assinatura de bytes. As quatro assinaturas aparecem exatamente uma vez e apontam para o mesmo `GameDataMan`. Os patches de desempenho opcionais do port não mexem em nenhum desses bytes.
+- O nome do personagem não tem assinatura própria no código. Um arquivo de save guarda o mesmo bloco de dados do jogador, e os atributos batem campo a campo com os deslocamentos usados pelo código, o que coloca o nome `0x18` bytes depois do nível (`+0xA8`). O app só usa o nome para separar personagens e o valida durante a leitura.
+- Não existe um ponteiro de "jogador no mundo": o app considera que você está no jogo quando o tempo de jogo está correndo, porque ele para na tela de título.
+
+O `tests/bb_scan_test` roda o analisador num arquivo `eboot.bin` e compara o resultado com esses valores. O `tests/bb_fake_port` é um processo substituto chamado `bbport.exe`. Ele mapeia a imagem do jogo do mesmo jeito, nunca executa nada dela e segue um roteiro curto (tela de título, um personagem, três mortes, volta à tela de título). O `tests/bb_live_test` se conecta a esse substituto como o app faz. Com ele foram conferidos a conexão, a busca alternativa da imagem em outro endereço, as mortes, o nome, o nível e o NG+, e o estado "no jogo". Ainda não foi testado numa sessão de jogo de verdade.
+## Adicionando o Elden Ring
 
 O suporte ao Elden Ring foi feito depois, numa sessão própria do Claude Code (cada jogo novo ganhou uma sessão em paralelo). Ele trouxe uma restrição que o Dark Souls Remastered não tem: o **Easy Anti-Cheat (EAC)**.
 
@@ -135,6 +230,10 @@ No modo offline, com o EAC desativado (ou com o Seamless Co-op), o app lê a mem
 - o slot do save não é lido da memória. O personagem na memória é ligado ao slot do save pelo nome, nível e tempo de jogo, então os dois modos caem no mesmo perfil (`er|slot|nome`);
 - se as assinaturas pararem de bater depois de uma atualização do jogo, o app passa a usar o arquivo de save.
 
+### Encaixe no registro de jogos
+
+O Elden Ring é um `GameModule` como os outros jogos, com um pequeno acréscimo genérico na interface para jogos que nem sempre podem ser abertos. O `GameReader` pergunta ao módulo *antes* de abrir o processo, e depois a cada dois segundos: o `CheckAccess` responde **abrir**, **esperar** (perguntar de novo depois) ou **nunca** (não tocar no processo até o jogo fechar). Enquanto a resposta for *nunca*, o leitor fica no estado *Passive* e o módulo conta pelo `ReadWithoutProcess` (o arquivo de save). O mesmo caminho assume quando o executável não pode ser analisado. Os jogos que não implementam isso são abertos exatamente como antes.
+
 ### Nomes das áreas
 
 Os ids de mapa do Elden Ring são `mAA_BB_CC_DD`. Dungeons e masmorras têm mapa próprio (`m10_00` Stormveil Castle, `m30_04` Murkwater Catacombs…), o mundo aberto é uma grade de quadrados de 256 m (`m60_XX_YY_00`) e o Reino das Sombras do DLC é `m61`. Os nomes vêm da lista de mapas do [Smithbox](https://github.com/vawser/Smithbox) (MIT) para o jogo base e dos nomes dos lugares para o DLC.
@@ -142,22 +241,45 @@ Os ids de mapa do Elden Ring são `mAA_BB_CC_DD`. Dungeons e masmorras têm mapa
 - **Granularidade:** um nome por dungeon e masmorra, e um por quadrado do mundo aberto, escrito como *Região - lugares*; os quadrados do DLC têm só a região. As estatísticas agrupam as mortes do Elden Ring por região.
 - **Última graça:** o save guarda a graça como um id de entidade cujos dígitos dizem o quadrado do mapa (`1042362950` → `m60_42_36`), então o app mostra a área da graça. Os nomes das graças exigiriam os arquivos de dados criptografados do jogo, que este projeto não extrai.
 
-### O que foi conferido sem o jogo
+### O que foi conferido
 
 - Verificações estáticas no `eldenring.exe` 1.02.0 (assinaturas, deslocamentos, o código de morte e de HP) e no save real (acima).
 - O app de verdade foi executado com processos substitutos chamados `eldenring.exe` e `start_protected_game.exe` (programinhas que não fazem nada), e os handles abertos pelo app foram listados com `NtQuerySystemInformation`:
   - com o lançador falso do EAC rodando, o app não tinha nenhum handle para o jogo falso;
   - sem ele, depois das duas verificações, tinha exatamente um handle, com `PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE`;
   - quando o lançador falso apareceu, o handle sumiu em até três segundos e não voltou durante aquela execução do jogo.
-- Não conferido: o jogo de verdade rodando (ele não foi aberto durante o desenvolvimento), a versão atual da Steam, 1.17 (sem cópia do executável ou dos saves), e quanto tempo o jogo leva para gravar o save depois de uma morte.
+- No jogo, pelo desenvolvedor: a contagem funciona, e o Elden Ring foi o único jogo em que o overlay apareceu também no modo de tela cheia do jogo.
+- Ainda não conferido: a versão atual da Steam, 1.17, estaticamente (não havia cópia do executável nem dos saves), e quanto tempo exatamente o jogo leva para gravar o save depois de uma morte.
+
+## Passo 6: quem te matou? (depois da 1.0.0)
+
+O requisito 6 também pedia *o que* matou o jogador, e a versão 1.0.0 só reconhecia quedas. A pesquisa seguinte voltou ao executável atrás de algum lugar onde o jogo guarde quem matou e que dê para ler com segurança.
+
+**Inimigos comuns: não dá para ler de forma confiável.** O jogo aumenta o contador de mortes a partir do script de eventos (uma função chamada `AddDeathCount`), que não sabe nada sobre o atacante. O código que aplica dano é protegido pela ofuscação anti-adulteração do jogo, e nenhum campo guardado de "último atacante" apareceu: os golpes circulam como mensagens de evento passageiras (usadas pela condição "atingido por" dos scripts de evento) e por um conjunto de registros de golpes recentes cujo significado não dá para confirmar sem conectar um depurador ao jogo rodando, o que a promessa de somente leitura não permite. Chutar "o inimigo mais próximo" erraria com arqueiros, grupos e veneno, então o app não chuta.
+
+**Chefes: dá para ler, e com exatidão.** A barra de vida do chefe é outra história. Os scripts de evento mostram a barra com a instrução 2003:11 (*mostrar barra de vida do chefe*: liga/desliga, personagem, slot, id do nome), e o jogo a guarda na estrutura `MenuMan`: dois slots (duas barras, como em Ornstein & Smough ou nas Bell Gargoyles) de 0x14 bytes em `MenuMan + 0x1050` na 1.01, cada um começando pelo id do nome do chefe e pelo identificador (handle) do personagem dele. A barra é apagada quando o chefe morre (o script a desliga) e quando os scripts de evento reiniciam, que é o que acontece no carregamento depois de uma morte. Então "havia uma barra na tela no último instante em que o jogador estava vivo" quer dizer "morreu naquela luta", não importa quem deu o último golpe.
+
+Como foi conferido:
+
+- A estrutura foi achada seguindo a função de script do próprio jogo `SetBossGauge` até a implementação, e confirmada pela função que apaga as barras, pelo construtor que as inicializa e pelo nome da classe (RTTI) do objeto que as guarda, `NS_FRPG::MenuMan`.
+- Enquanto roda, o app lê o endereço do `MenuMan` e a posição da barra direto de duas funções pequenas do jogo (uma apaga as barras, a outra devolve um slot). Se as duas forem encontradas, precisam concordar; se discordarem, ou se nenhuma for encontrada, a detecção de chefe se desliga em vez de chutar. O `tests/scan_test` compara o resultado com os valores da 1.01 conferidos manualmente.
+- Os ids de nome vêm dos arquivos do próprio jogo: todas as instruções 2003:11 de `event/*.emevd` foram decodificadas (28 ids diferentes: 27 barras com nome, cobrindo as 26 lutas contra chefes, mais um id em New Londo que não tem nome nos arquivos do jogo) e cruzadas com a tabela de nomes de NPC em `msg/ENGLISH/item.msgbnd`. Cada chefe é registrado com o mesmo texto das sugestões de causa (*Dragon Slayer Ornstein* e *Executioner Smough* viram *Chefe: Ornstein & Smough*), para as estatísticas "por causa" juntarem causas automáticas e escolhidas à mão. O `tests/boss_cause_test` confere essa tabela.
+
+Luta contra chefe tem prioridade sobre a detecção de queda: cair da ponte do Taurus Demon ou nos buracos do Bed of Chaos conta como morte para aquele chefe. Chefes sem barra de vida (como o Hellkite Dragon na ponte do Undead Burg) não são detectados.
+
+Tudo isso vem da análise estática do executável da 1.01. Duas coisas ainda precisam do jogo de verdade: confirmar que a barra ainda está ativa no último instante em que o jogador está vivo, e que os mesmos padrões de código existem nas versões 1.03.x. A aba *Diagnóstico* mostra os valores das barras de chefe ao vivo para facilitar as duas conferências.
 
 ## Limitações conhecidas
 
-- Quem matou (inimigo/chefe) não é detectado automaticamente, exceto quedas.
+- Inimigos comuns não são detectados automaticamente; chefes com barra de vida (Dark Souls Remastered) e quedas (jogos Dark Souls), sim. Chefes sem barra de vida (como o Hellkite Dragon) também não.
 - Em tela cheia exclusiva o overlay pode não aparecer; em janela/sem bordas ele sempre funciona.
 - A interface está só em português (inglês está nos planos).
+- Dark Souls II: só o Scholar of the First Sin (64 bits) é suportado; a versão atual da Steam (1.03) é encontrada pelas assinaturas, mas ainda não foi confirmada no jogo.
+- O Dark Souls III foi conferido estaticamente só na 1.15.0. A expectativa é que a versão atual da Steam (1.15.1 / 1.15.2) bata com as mesmas assinaturas, mas isso não foi confirmado. A leitura do mapa atual a partir do id de *play region* e o deslocamento do nível ainda precisam ser conferidos no jogo. Os nomes das fogueiras não são conhecidos, só o mapa delas.
+- No Elden Ring com o Easy Anti-Cheat a contagem chega alguns segundos depois (quando o jogo salva) e quedas não são detectadas; o overlay não sabe diferenciar o menu principal do jogo. A versão atual da Steam (1.17) não foi conferida estaticamente.
+- O Bloodborne (port de PC) é experimental: sem área, lamparina ou detecção de quedas, personagens separados só pelo nome, e ainda não foi confirmado numa sessão de jogo de verdade.
 - O suporte às versões 1.03.x da Steam se apoia nos endereços publicados pelas ferramentas da comunidade citadas acima, mais a detecção de versão em tempo real. Se algo estiver estranho na sua versão, a aba *Diagnóstico* mostra o que está sendo lido; por favor, abra uma issue.
-- No Elden Ring com o Easy Anti-Cheat a contagem chega alguns segundos depois (quando o jogo salva) e quedas não são detectadas; o overlay não sabe diferenciar o menu principal do jogo. A versão atual da Steam (1.17) e o tempo que o jogo leva para salvar depois de uma morte ainda precisam ser confirmados no jogo.
+- O Sekiro foi conferido só no executável 1.06; versões anteriores não foram testadas. Num primeiro teste no jogo, as mortes, o slot do save, o tempo de jogo, a área e o ídolo foram lidos corretamente; a posição do jogador veio errada (só afeta as coordenadas mostradas em cada morte), e ainda falta confirmar que ressuscitar não conta. Os nomes dos ídolos não são conhecidos, só a área do ídolo.
 
 ## Ferramentas
 

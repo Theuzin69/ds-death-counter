@@ -41,6 +41,9 @@ private:
     void RegisterOverlayHotkey();
     void Tick();
     void UpdateOverlay();
+    void UpdateObsText();
+    std::wstring ObsTextPath() const;
+    std::string ObsText();
 
     // UI (app_ui.cpp)
     void DrawUI();
@@ -80,6 +83,12 @@ private:
     Overlay overlay_;
     HWND gameHwnd_ = nullptr;
     ULONGLONG gameHwndCheck_ = 0;
+
+    // OBS text file: what was last written, and where
+    std::string obsWrittenText_;
+    std::wstring obsWrittenPath_;
+    bool obsWriteFailed_ = false;
+    ULONGLONG obsRetryAt_ = 0;
 
     // UI state
     ImFont* fontUi_ = nullptr;

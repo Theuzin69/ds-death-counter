@@ -1,23 +1,27 @@
 #pragma once
-// Read-only access to DarkSoulsRemastered.exe memory.
+// Read-only access to the game's memory (DarkSoulsRemastered.exe here; the other games
+// in src/games/ plug in through GameModule).
 //
 // Only ReadProcessMemory is used: nothing is written to the game, nothing is
 // injected and no hooks are installed. The game cannot tell the difference
 // between this and any other program that happens to be running.
 //
-// Other games live in src/games/ and are dispatched from here by process name.
-// Elden Ring: while Easy Anti-Cheat runs, the game process is never opened at all
-// and the count comes from the save file (see games/eldenring.h).
+// A module can also forbid opening its game (Elden Ring while Easy Anti-Cheat runs): then the
+// process is never opened and the module counts without it (State::Passive).
 
 #include <windows.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
-#include "games/eldenring.h"
+#include "games/games.h"
+
+namespace bb { class Reader; }   // games/bloodborne.h
 
 struct Vec3 { float x = 0, y = 0, z = 0; };
 
 struct GameSnapshot {
+    std::string game      = "dsr";  // id of the game this came from (games/games.h)
     bool     gameDataOk   = false;  // GameDataMan resolved (game finished booting)
     bool     charLoaded   = false;  // a character is loaded (name valid, play time > 0)
     bool     inWorld      = false;  // player entity exists (not main menu / loading screen)
@@ -34,23 +38,21 @@ struct GameSnapshot {
     int      hp           = -1;
     bool     hasPos       = false;
     Vec3     pos;
-    std::string game = "dsr";       // game id: "dsr", "er"
-    std::string areaName;           // area name filled by game modules that name areas themselves
+    std::string areaName;           // UTF-8 area label from the game module ("" = DSR: from mapArea/mapBlock)
+    // Boss health bars on screen: the NPC name id each bar shows, -1 when the slot is empty.
+    // The game fills these when a boss fight starts and clears them when the boss dies or
+    // the area reloads, so "a bar was up when the player died" means "died in that fight".
+    static constexpr int kBossSlots = 2;
+    int      bossNameId[kBossSlots] = { -1, -1 };
 };
-
-// Game ids used in profiles ("dsr", "er") and their display names.
-const char* GameDisplayName(const std::string& gameId);
-
-// Byte pattern search ("48 8B 05 ? ? ? ?"), shared by the game modules. Every match offset.
-std::vector<size_t> FindPattern(const std::vector<uint8_t>& buf, const char* pattern);
 
 class GameReader {
 public:
-    // SaveFile: Elden Ring protected by Easy Anti-Cheat; counting from the save file, no access to the game.
-    enum class State { NotRunning, AccessDenied, Scanning, Ready, SaveFile };
-    enum class Game { None, DarkSoulsRemastered, EldenRing };
+    // Passive: the game runs but is not opened (anti-cheat); its module counts without the process.
+    enum class State { NotRunning, AccessDenied, Unsupported, Scanning, Ready, Passive };
 
-    ~GameReader() { Detach(); }
+    GameReader();
+    ~GameReader();
 
     // Looks for the game process and resolves pointers. Cheap to call repeatedly.
     void Update();
@@ -58,37 +60,37 @@ public:
     void Detach();
 
     State state() const { return state_; }
-    DWORD pid() const { return pid_; }
-    bool  IsReady() const { return state_ == State::Ready || state_ == State::SaveFile; }
-    Game  game() const { return game_; }
-    std::string GameName() const;
-    const std::string& EacReason() const { return eacReason_; }
-    bool  EacActive() const { return eacSeen_; }   // Elden Ring protected by EAC in this run of the game
-    // Elden Ring found, the game not opened yet: still making sure Easy Anti-Cheat is not running.
-    bool CheckingEac() const { return game_ == Game::EldenRing && state_ == State::Scanning && !proc_; }
+    DWORD pid() const;
+    bool  IsReady() const { return state_ == State::Ready || state_ == State::Passive; }
+    // Found, but its module hasn't allowed opening it yet (e.g. still checking for Easy Anti-Cheat).
+    bool  AccessPending() const { return state_ == State::Scanning && !proc_ && module_; }
+    // Why the game is (not) opened, from GameModule::CheckAccess ("" for games that don't check).
+    const std::string& AccessReason() const { return accessReason_; }
     std::wstring ProcessPath() const;
     std::string VersionName() const;
     std::string DiagnosticsText() const;
+    const GameInfo& game() const;
+    std::string GameId() const { return game().id; }
+    const std::string& UnsupportedReason() const { return unsupported_; }
 
     // Resolves globals and offsets from a copy of the exe image (base/size must be set).
     // Public so it can be exercised against the exe file on disk.
     bool AnalyzeImage(const std::vector<uint8_t>& img);
-    void SetModuleForAnalysis(uintptr_t base, uint32_t size, Game game = Game::DarkSoulsRemastered,
-                              uint32_t fileVersionMS = 0, uint32_t fileVersionLS = 0) {
-        base_ = base; size_ = size; game_ = game; fileVersionMS_ = fileVersionMS; fileVersionLS_ = fileVersionLS;
-    }
+    void SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId = "dsr");
+    GameModule* module() const { return module_.get(); }
     uintptr_t GameManAddr() const { return gameMan_; }
     uintptr_t GameDataManAddr() const { return gameDataMan_; }
     uintptr_t WorldChrManAddr() const { return worldChrMan_; }
-    const std::string& ScanLog() const { return game_ == Game::EldenRing ? er_.ScanLog() : scanLog_; }
-    const EldenRingGame& eldenRing() const { return er_; }
+    uintptr_t MenuManAddr() const { return menuMan_; }
+    int BossGaugeOffset() const { return offBossGauge_; }
+    int BossGaugeStride() const { return bossGaugeStride_; }
+    const std::string& ScanLog() const { return scanLog_; }
 
 private:
-    bool OpenGame(DWORD pid);
+    bool OpenGame(DWORD pid, const GameInfo& game);
     bool ScanPatterns();
     bool ProcessAlive() const;
-    void ReadFileVersion();
-    bool UpdateEldenRing(ULONGLONG now);
+    bool CheckModuleAccess(ULONGLONG now);
 
     uintptr_t ReadPtr(uintptr_t addr) const;
     template <class T> bool ReadT(uintptr_t addr, T& v) const {
@@ -97,6 +99,10 @@ private:
     }
 
     State     state_ = State::NotRunning;
+    const GameInfo* game_ = &GameById("dsr");
+    std::unique_ptr<GameModule> module_;   // games other than DSR
+    std::unique_ptr<bb::Reader> bb_;       // Bloodborne PC port: its own reader, used while no other game is attached
+    std::string unsupported_;
     HANDLE    proc_ = nullptr;
     DWORD     pid_ = 0;
     uintptr_t base_ = 0;
@@ -106,6 +112,7 @@ private:
 
     // Addresses of the game's global pointers (static variables in the exe)
     uintptr_t gameMan_ = 0, gameDataMan_ = 0, worldChrMan_ = 0;
+    uintptr_t menuMan_ = 0;     // optional: only used for the boss health bars
 
     // Version dependent offsets
     bool newLayout_ = true;     // 1.03+ (current Steam build) vs 1.01.x
@@ -114,14 +121,13 @@ private:
     int  offStableMap_ = 0xBD0;
     int  offChrMapData_ = 0x68;
     int  offHp_ = 0x3E8;
+    int  offBossGauge_ = 0;     // MenuMan offset of boss bar slot 0 (0 = not found)
+    int  bossGaugeStride_ = 0x14;
     std::string scanLog_;
 
-    // Elden Ring (src/games/eldenring.*)
-    Game      game_ = Game::None;
-    uint32_t  fileVersionMS_ = 0, fileVersionLS_ = 0;
-    EldenRingGame er_;
-    ULONGLONG nextEacCheck_ = 0;
-    int       eacClearChecks_ = 0;    // consecutive checks without EAC before the game may be opened
-    bool      eacSeen_ = false;       // EAC protected this run of the game: never open it
-    std::string eacReason_;
+    // GameModule::CheckAccess (games that may not always be opened)
+    ULONGLONG nextAccessCheck_ = 0;
+    bool accessOpen_ = false;   // the module allowed opening the process
+    bool passive_ = false;      // never open it during this run of the game
+    std::string accessReason_;
 };

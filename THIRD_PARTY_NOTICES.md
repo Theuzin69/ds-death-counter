@@ -27,6 +27,7 @@ The memory offsets and byte signatures used to read the game come from public re
 - [DSDeaths](https://github.com/quidrex/DSDeaths) by quidrex
 - [SoulSplitter / SoulMemory](https://github.com/FrankvdStam/SoulSplitter) by Frank van der Stam (incl. work by CapitaineToinon)
 - [DSR-Gadget](https://github.com/JKAnderson/DSR-Gadget) and [DS-Gadget](https://github.com/JKAnderson/DS-Gadget) by JKAnderson
+- [DS2S-META](https://github.com/Nordgaren/DS2S-META) by Nordgaren: Dark Souls II signatures and offsets, and the bonfire ids, area ids and names used in `src/games/ds2_data.cpp` (data from its bonfire list; MIT License, Copyright (c) 2021 Norgaren)
 - Elden Ring save file layout: [er-save-manager](https://github.com/Hapfel1/er-save-manager) by Hapfel1 (its save file structure documentation) and [ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor) by ClayAmore
 
 ---

@@ -1,8 +1,16 @@
-// Runs the counter's pattern scanner against a game exe on disk (DarkSoulsRemastered.exe or
-// eldenring.exe). Useful to check a new game version without launching it:
+// Runs the counter's pattern scanner against a game executable on disk.
+// Useful to check a new game version without launching it:
 //   build\tests\scan_test.exe "C:\...\DarkSoulsRemastered.exe"
+//   build\tests\scan_test.exe "C:\...\DarkSoulsII.exe"
+//   build\tests\scan_test.exe "C:\...\DarkSoulsIII.exe"
+//   build\tests\scan_test.exe "C:\...\sekiro.exe"
 //   build\tests\scan_test.exe "C:\...\eldenring.exe"
+// The game is picked from the file name (as the app does from the process name).
 #include "game_reader.h"
+#include "games/ds2.h"
+#include "games/ds3.h"
+#include "games/eldenring.h"
+#include "games/sekiro.h"
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
@@ -10,17 +18,22 @@
 #include <iterator>
 #include <vector>
 
-#pragma comment(lib, "version.lib")
-
 int wmain(int argc, wchar_t** argv)
 {
     if (argc < 2) {
-        fwprintf(stderr, L"uso: scan_test <DarkSoulsRemastered.exe | eldenring.exe>\n");
+        fwprintf(stderr, L"uso: scan_test <DarkSoulsRemastered.exe | DarkSoulsII.exe | DarkSoulsIII.exe | sekiro.exe | eldenring.exe>\n");
         return 2;
     }
     std::ifstream f(argv[1], std::ios::binary);
     std::vector<uint8_t> file((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
     if (file.size() < 0x400) { fwprintf(stderr, L"arquivo invalido\n"); return 2; }
+
+    const wchar_t* slash = wcsrchr(argv[1], L'\\');
+    const wchar_t* fname = slash ? slash + 1 : argv[1];
+    const GameInfo* game = &GameById("dsr");
+    for (const GameInfo* g : AllGames())
+        if (_wcsicmp(fname, g->exe) == 0) game = g;
+    printf("Jogo: %s\n", game->name);
 
     // Map the PE sections the same way the Windows loader does.
     auto rd32 = [&](size_t at) { uint32_t v; memcpy(&v, &file[at], 4); return v; };
@@ -38,46 +51,87 @@ int wmain(int argc, wchar_t** argv)
         if (rawPtr + n <= file.size() && va + n <= img.size()) memcpy(&img[va], &file[rawPtr], n);
     }
 
-    // Which game: by file name.
-    const wchar_t* base = wcsrchr(argv[1], L'\\');
-    base = base ? base + 1 : argv[1];
-    bool elden = _wcsicmp(base, L"eldenring.exe") == 0;
-    uint32_t verMS = 0, verLS = 0;
-    DWORD dummy = 0, sz = GetFileVersionInfoSizeW(argv[1], &dummy);
-    if (sz) {
-        std::vector<uint8_t> data(sz);
-        VS_FIXEDFILEINFO* ffi = nullptr;
-        UINT len = 0;
-        if (GetFileVersionInfoW(argv[1], 0, sz, data.data()) && VerQueryValueW(data.data(), L"\\", (void**)&ffi, &len) && ffi) {
-            verMS = ffi->dwProductVersionMS;
-            verLS = ffi->dwProductVersionLS;
-        }
-    }
-
     GameReader reader;
-    reader.SetModuleForAnalysis((uintptr_t)imageBase, sizeOfImage,
-                                elden ? GameReader::Game::EldenRing : GameReader::Game::DarkSoulsRemastered, verMS, verLS);
+    reader.SetModuleForAnalysis((uintptr_t)imageBase, sizeOfImage, game->id);
     bool ok = reader.AnalyzeImage(img);
-    printf("Jogo: %s\nSizeOfImage: %X\n%s", elden ? "Elden Ring" : "Dark Souls Remastered", sizeOfImage, reader.ScanLog().c_str());
+    printf("SizeOfImage: %X\n%s", sizeOfImage, reader.ScanLog().c_str());
+    printf("Resultado: %s\n", ok ? "OK" : "FALHOU");
 
-    if (elden) {
-        const EldenRingGame& er = reader.eldenRing();
-        bool unique = er.allSignaturesUnique();
-        printf("Assinaturas: %s\n", unique ? "todas encontradas uma única vez e concordando" : "ALGUMA FALHOU");
-        ok = ok && unique;
-        if (verMS == 0x00010002 && verLS == 0) {   // 1.02.0: compare with the addresses checked by hand
-            bool match = er.GameDataManAddr() - imageBase == 0x3C481B8 && er.WorldChrManAddr() - imageBase == 0x3C50268 &&
-                         er.playerInsOffset() == 0x18468;
-            printf("Conferencia 1.02.0: %s\n", match ? "OK" : "DIFERENTE");
-            ok = ok && match;
-        }
-    } else if (sizeOfImage == 0x4869400) {   // 1.01: compare with the addresses found by hand
+    if (game->id == std::string("dsr") && sizeOfImage == 0x4869400) {   // 1.01: compare with the addresses found by hand
         bool match = reader.GameManAddr() - imageBase == 0x1CEA4B8 &&
                      reader.GameDataManAddr() - imageBase == 0x1D00F50 &&
                      reader.WorldChrManAddr() - imageBase == 0x1CEE830;
         printf("Conferencia 1.01: %s\n", match ? "OK" : "DIFERENTE");
-        ok = ok && match;
+        // Boss health bars: MenuMan (RTTI NS_FRPG::MenuMan) + 0x1050, two slots of 0x14 bytes.
+        bool bossMatch = reader.MenuManAddr() - imageBase == 0x1CFF7C8 &&
+                         reader.BossGaugeOffset() == 0x1050 && reader.BossGaugeStride() == 0x14;
+        printf("Conferencia 1.01 (barra de chefe): %s\n", bossMatch ? "OK" : "DIFERENTE");
+        ok = ok && match && bossMatch;
     }
-    printf("Resultado: %s\n", ok ? "OK" : "FALHOU");
+    if (game->id == std::string("ds2")) {
+        // Every signature must be found (no "*" fallback) ...
+        bool all = reader.ScanLog().find('*') == std::string::npos;
+        printf("Todas as assinaturas encontradas: %s\n", all ? "OK" : "NAO");
+        ok = ok && all;
+        if (sizeOfImage == 0x20B6000) {   // Scholar of the First Sin 1.02: compare with the values found by hand
+            const ds2::Layout& L = static_cast<ds2::Module*>(reader.module())->layout();
+            bool match = L.gameManager - imageBase == 0x160B8D0 && L.loadState - imageBase == 0x186CCB0 &&
+                         L.offPlayerCtrl == 0xD0 && L.offPlayerParam == 0x490 && L.offHp == 0x168 &&
+                         L.offDeaths == 0x1A4 && L.offCounters == 0x104 &&
+                         L.offGameData == 0xA8 && L.offCharInfo == 0xC0 && L.offName == 0x24 && L.offNgCycle == 0x68 &&
+                         L.offSlotSummaries == 0xD8 && L.offSlotIndex == 0x1368 && L.summarySize == 0x1F0 &&
+                         L.offTimeStamp == 0x1360 && L.offPlayTime == 0x1CC &&
+                         L.offMapMan == 0x38 && L.offMapIndex == 0x170 && L.offPlaceBase == 0x178 && L.offPlaceDlc == 0x17C &&
+                         L.offMapTable == 0x10 && L.offMapCount == 0x18 && L.offMapIds == 0x20 &&
+                         L.offEventMan == 0x70 && L.offBonfireArea == 0x164 && L.offBonfireId == 0x16C;
+            printf("Conferencia SotFS 1.02: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    }
+    if (game->id == std::string("ds3")) {
+        // Every signature must match exactly once (globals: all of their signatures, agreeing).
+        const Ds3Reader& d = static_cast<Ds3Module*>(reader.module())->reader();
+        bool all = d.signaturesFound == d.signaturesTotal && d.gameMan != 0 && d.fieldArea != 0;
+        printf("Assinaturas DS3: %d/%d %s\n", d.signaturesFound, d.signaturesTotal, all ? "OK" : "FALTANDO");
+        ok = ok && all;
+        if (sizeOfImage == 0x63DF000) {   // 1.15.0: compare with the addresses and offsets found by hand
+            const auto& o = d.off;
+            bool match = d.gameDataMan - imageBase == 0x4740178 && d.worldChrMan - imageBase == 0x4768E78 &&
+                         d.gameMan - imageBase == 0x4743AB0 && d.fieldArea - imageBase == 0x4743A80 &&
+                         o.deaths == 0x98 && o.playTime == 0xA4 && o.playerIns == 0x80 && o.saveSlot == 0xA60 &&
+                         o.respawn == 0xACC && o.modules == 0x1F90 && o.dataModule == 0x18 && o.hp == 0xD8 &&
+                         o.playRegion == 0x1ABC && o.worldInfo == 0x10 && o.blockIndex == 0x20 && o.blockCount == 0x18 &&
+                         o.blockList == 0x20 && o.blockStride == 0x70 && o.blockMapId == 8;
+            printf("Conferencia DS3 1.15.0: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    }
+    if (game->id == std::string("sekiro")) {
+        // Every signature must resolve (exactly one match, independent ones agreeing).
+        const std::string& log = reader.ScanLog();
+        bool all = log.find("NÃO ENCONTRADO") == std::string::npos && log.find("DIVERGENTE") == std::string::npos;
+        printf("Todas as assinaturas: %s\n", all ? "OK" : "FALTANDO");
+        ok = ok && all;
+        if (sizeOfImage == 0x42D2000) {   // 1.05/1.06: compare with the addresses found by hand in 1.06
+            const SekiroReader& sk = static_cast<SekiroModule*>(reader.module())->reader();
+            bool match = sk.GameDataManAddr() - imageBase == 0x3D5AAC0 && sk.GameManAddr() - imageBase == 0x3D5C0D0 &&
+                         sk.WorldChrManAddr() - imageBase == 0x3D7A1E0 && sk.FieldAreaAddr() - imageBase == 0x3D5C0A0;
+            printf("Conferencia Sekiro 1.06: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    }
+    if (game->id == std::string("er")) {
+        // Every signature must match exactly once; the five GameDataMan ones must agree.
+        const EldenRingModule& er = *static_cast<EldenRingModule*>(reader.module());
+        bool all = er.allSignaturesUnique();
+        printf("Assinaturas Elden Ring: %s\n", all ? "todas encontradas uma única vez e concordando" : "ALGUMA FALHOU");
+        ok = ok && all;
+        if (er.versionMS() == 0x00010002 && er.versionLS() == 0) {   // 1.02.0: compare with the addresses checked by hand
+            bool match = er.GameDataManAddr() - imageBase == 0x3C481B8 && er.WorldChrManAddr() - imageBase == 0x3C50268 &&
+                         er.playerInsOffset() == 0x18468;
+            printf("Conferencia Elden Ring 1.02.0: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    }
     return ok ? 0 : 1;
 }

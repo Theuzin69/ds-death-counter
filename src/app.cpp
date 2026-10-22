@@ -7,6 +7,8 @@
 #include <dwmapi.h>
 #include <algorithm>
 #include <cmath>
+#include <string_view>
+#include <utility>
 
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -20,6 +22,29 @@ const wchar_t* kMainWindowClass = L"DSDeathCounterMain";
 namespace {
 constexpr int kHotkeyId = 1;
 constexpr UINT kTrayMenuOpen = 100, kTrayMenuOverlay = 101, kTrayMenuExit = 102;
+
+// {mortes}/{deaths} become the count and {nome}/{name} the character name.
+std::string FillObsFormat(const std::string& format, int deaths, const std::string& name)
+{
+    const std::string count = std::to_string(deaths);
+    const std::pair<std::string_view, const std::string*> tags[] = {
+        { "{mortes}", &count }, { "{deaths}", &count }, { "{nome}", &name }, { "{name}", &name },
+    };
+    std::string out;
+    for (size_t i = 0; i < format.size();) {
+        bool replaced = false;
+        for (const auto& [tag, value] : tags) {
+            if (format.compare(i, tag.size(), tag) == 0) {
+                out += *value;
+                i += tag.size();
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) out += format[i++];
+    }
+    return out;
+}
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -103,8 +128,7 @@ void App::Tick()
 {
     tracker_.Tick(reader_);
     Settings& s = store_.settings;
-    // The path is used by the "Iniciar Dark Souls" button only.
-    if (reader_.IsReady() && reader_.game() == GameReader::Game::DarkSoulsRemastered && s.gameExePath.empty()) {
+    if (reader_.IsReady() && s.gameExePath.empty() && reader_.GameId() == "dsr") {   // "Iniciar Dark Souls" button
         std::wstring path = reader_.ProcessPath();
         if (!path.empty()) {
             s.gameExePath = WideToUtf8(path);
@@ -112,6 +136,7 @@ void App::Tick()
         }
     }
     UpdateOverlay();
+    UpdateObsText();
     UpdateTrayTip();
 }
 
@@ -156,6 +181,46 @@ void App::UpdateOverlay()
         c.color = edited ? s.colorEdited : s.colorNormal;
     }
     overlay_.Update(c, s);
+}
+
+std::wstring App::ObsTextPath() const
+{
+    const std::string& path = store_.settings.obsTextPath;
+    return path.empty() ? GetAppDataDir() + L"\\obs.txt" : Utf8ToWide(path);
+}
+
+std::string App::ObsText()
+{
+    // The character being played or, with the game closed, the last one played.
+    const Profile* p = tracker_.active();
+    if (!p)
+        for (const auto& q : store_.profiles)
+            if (!p || q.lastSeen > p->lastSeen) p = &q;
+    return FillObsFormat(store_.settings.obsTextFormat, p ? p->Shown() : 0, p ? p->name : std::string());
+}
+
+// Keeps the text file read by OBS ("Text (GDI+)" source) in sync with the count.
+void App::UpdateObsText()
+{
+    if (!store_.settings.obsTextEnabled) {
+        obsWrittenPath_.clear();   // write again as soon as it is turned back on
+        obsWriteFailed_ = false;
+        return;
+    }
+    std::wstring path = ObsTextPath();
+    std::string text = ObsText();
+    if (path == obsWrittenPath_ && text == obsWrittenText_) return;
+    ULONGLONG now = GetTickCount64();
+    if (obsWriteFailed_ && now < obsRetryAt_) return;
+    // Atomic replace, so OBS never reads a half-written file. Replacing can fail while OBS is
+    // reading it; then just try again a moment later.
+    obsWriteFailed_ = !WriteFileAtomic(path, text);
+    if (obsWriteFailed_) {
+        obsRetryAt_ = now + 1000;
+    } else {
+        obsWrittenPath_ = path;
+        obsWrittenText_ = text;
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

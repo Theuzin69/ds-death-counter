@@ -1,7 +1,6 @@
 #include "games/eldenring.h"
 #include "games/eldenring_data.h"
 #include "game_reader.h"
-#include "util.h"
 #include <tlhelp32.h>
 #include <algorithm>
 #include <cmath>
@@ -26,6 +25,22 @@ std::wstring Lower(std::wstring s)
     for (auto& c : s) c = (wchar_t)towlower(c);
     return s;
 }
+
+// Product version from the VS_FIXEDFILEINFO in the image's resources (mapped with the exe).
+bool ImageVersion(const std::vector<uint8_t>& img, uint32_t& ms, uint32_t& ls)
+{
+    static const uint8_t sig[] = { 0xBD, 0x04, 0xEF, 0xFE, 0x00, 0x00, 0x01, 0x00 };   // signature, struct version 1.0
+    auto it = std::search(img.begin(), img.end(), std::begin(sig), std::end(sig));
+    if (it == img.end() || img.end() - it < 24) return false;
+    size_t at = (size_t)(it - img.begin());
+    memcpy(&ms, img.data() + at + 16, 4);
+    memcpy(&ls, img.data() + at + 20, 4);
+    return true;
+}
+
+std::string ErGraceName(int id) { return ErGraceLabel((uint32_t)id); }
+
+std::unique_ptr<GameModule> CreateEldenRing() { return std::make_unique<EldenRingModule>(); }
 
 // Game minor version: 1.02 -> 2, ..., 1.09 -> 9, 2.0 (= 1.10) -> 10, 2.6 (= 1.16) -> 16. 0 = unknown.
 int GameMinor(uint32_t ms)
@@ -63,7 +78,7 @@ ErEacCheck ErDetectEac(DWORD gamePid)
     for (const auto& p : procs) {
         if (p.name.find(L"easyanticheat") != std::wstring::npos || p.name == L"start_protected_game.exe") {
             r.active = true;
-            r.reason = "processo " + WideToUtf8(p.name) + " em execução";
+            r.reason = "processo " + ErUtf8(p.name) + " em execução";
             return r;
         }
     }
@@ -81,7 +96,7 @@ ErEacCheck ErDetectEac(DWORD gamePid)
             SERVICE_STATUS st{};
             if (QueryServiceStatus(svc, &st) && st.dwCurrentState != SERVICE_STOPPED) {
                 r.active = true;
-                r.reason = "serviço " + WideToUtf8(name) + " ativo";
+                r.reason = "serviço " + ErUtf8(name) + " ativo";
             }
             CloseServiceHandle(svc);
             if (r.active) break;
@@ -103,20 +118,61 @@ std::string ErVersionName(uint32_t ms, uint32_t ls)
 // ---------------------------------------------------------------------------------------------
 // Memory route
 
-void EldenRingGame::Reset()
+const GameInfo kEldenRingInfo = {
+    "er", L"eldenring.exe", "Elden Ring", "ER", CreateEldenRing,
+    ErGraceName, ErAllMapNames, ErCauseSuggestions, "Última graça (área)", true, true, false, ErRegionOf,
+};
+
+// Before any handle exists: two checks two seconds apart without a sign of EAC, and never again
+// once EAC was seen during this run of the game (GameReader makes a new module per run).
+GameModule::Access EldenRingModule::CheckAccess(DWORD pid, std::string& reason)
 {
-    save_.Reset();
-    gameDataMan_ = worldChrMan_ = 0;
-    matchName_.clear();
-    matchSince_ = 0;
+    if (!eacSeen_) {
+        ErEacCheck eac = ErDetectEac(pid);
+        if (eac.active) {
+            eacSeen_ = true;
+            eacReason_ = "Easy Anti-Cheat ativo (" + eac.reason + ")";
+        } else {
+            ++eacClearChecks_;
+        }
+    }
+    save_.SetAllowCoop(!eacSeen_);   // Seamless Co-op saves only exist without EAC
+    if (eacSeen_) {
+        reason = eacReason_;
+        return Access::Never;
+    }
+    if (eacClearChecks_ < 2) {
+        reason = "verificando o Easy Anti-Cheat";
+        return Access::Wait;
+    }
+    reason = "Easy Anti-Cheat não detectado";
+    return Access::Open;
 }
 
-bool EldenRingGame::AnalyzeImage(const std::vector<uint8_t>& img, uintptr_t base, uint32_t ms, uint32_t ls)
+std::string EldenRingModule::WithoutProcessStatus() const
 {
-    scanLog_.clear();
+    return save_.ActiveSlot() >= 0 ? "pelo arquivo de save" : "aguardando o jogo salvar para saber qual é o personagem";
+}
+
+std::string EldenRingModule::VersionLabel(uint32_t) const
+{
+    return versionMS_ ? ErVersionName(versionMS_, versionLS_) : std::string();
+}
+
+std::string EldenRingModule::LiveDiagnostics() const
+{
+    return save_.StatusText();
+}
+
+bool EldenRingModule::Analyze(const std::vector<uint8_t>& img, uintptr_t base, uint32_t, std::string& scanLog_)
+{
     allUnique_ = true;
     char line[256];
     gameDataMan_ = worldChrMan_ = 0;
+    uint32_t ms = 0, ls = 0;
+    ImageVersion(img, ms, ls);
+    versionMS_ = ms;
+    versionLS_ = ls;
 
     // GameDataMan: several independent code sites must agree. The first two are the game's own
     // "add to the death counter" and "advance play time" functions, which also give the offsets.
@@ -181,7 +237,7 @@ bool EldenRingGame::AnalyzeImage(const std::vector<uint8_t>& img, uintptr_t base
     return gameDataMan_ != 0;
 }
 
-bool EldenRingGame::ReadMemory(HANDLE proc, GameSnapshot& s)
+bool EldenRingModule::Read(HANDLE proc, GameSnapshot& s)
 {
     auto rd = [&](uintptr_t a, void* v, size_t n) {
         SIZE_T got = 0;
@@ -265,7 +321,7 @@ bool EldenRingGame::ReadMemory(HANDLE proc, GameSnapshot& s)
     return true;
 }
 
-bool EldenRingGame::ReadSave(GameSnapshot& s)
+bool EldenRingModule::ReadWithoutProcess(GameSnapshot& s)
 {
     s.game = "er";
     if (!save_.HasData()) return true;
@@ -281,7 +337,7 @@ bool EldenRingGame::ReadSave(GameSnapshot& s)
     s.name = sl.name;
     s.saveSlot = k;
     s.soulLevel = sl.level;
-    s.ngPlus = sl.detailOk ? sl.ngPlus : -1;
+    s.ngPlus = sl.detailOk && sl.ngPlus >= 0 ? sl.ngPlus : 0;
     s.lastBonfire = (int)sl.lastGrace;
     // After a death the save has the new bloodstain: that is where the character died.
     uint32_t map = sl.bloodstainChanged && sl.bloodstainActive ? sl.bloodstainMap : sl.mapId;

@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b> and <b>Elden Ring</b>.<br>
+  Automatic death counter with an on-screen overlay for <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Dark Souls III</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Elden Ring</b> and <b>Bloodborne</b> (PC port, experimental).<br>
   For streamers, and for anyone who wants to know how many times (and where) they died.
 </p>
 
@@ -35,12 +35,13 @@
 - **One count per save/character**, each with its own history.
 - **Never loses the count.** Close the game and counting stops; open it again and it continues where it left off. Deaths that happen while the counter is closed are still added.
 - **Overlay on top of the game** with your choice of font, size, corner, colors and outline. `Ctrl+Shift+D` shows/hides it.
-- **List of every death**: date/time, area (map), last bonfire, cause and play time. Statistics by area and by cause, plus CSV export.
-- **Falls are detected automatically.** For other causes, pick from suggestions (bosses, enemies, traps…) with one click.
+- **List of every death**: date/time, area (map), last bonfire (in Sekiro, the area of the last Sculptor's Idol; in Elden Ring, the area of the last Site of Grace), cause and play time. Statistics by area and by cause, plus CSV export.
+- **OBS text source for streamers.** Optionally writes the count to a text file that an OBS **Text (GDI+)** source reads, so it works with Game Capture and Window Capture. You pick the text, e.g. `Deaths: {mortes}` ([how to set it up](docs/user-guide.md#7-streaming-obs)).
+- **Bosses and falls are detected automatically.** In Dark Souls Remastered, a death while a boss health bar is on screen is recorded as that boss; in the Dark Souls games, a big drop just before dying is recorded as a fall. For other causes, pick from suggestions (enemies, traps…) with one click.
 - **Editable count.** An edited count is clearly flagged in the app and the overlay number changes color.
 - **Runs quietly in the system tray** and can start with Windows: open the game and it is already counting.
 - **Read-only.** It never writes to the game, injects nothing and doesn't touch your saves (see [Is it safe?](#is-it-safe-can-i-get-banned)).
-- **Elden Ring too, without touching Easy Anti-Cheat.** With EAC running (the normal Steam launch) the app never opens the game: it reads the count from your save file, which the game writes after every death. See [Elden Ring and Easy Anti-Cheat](#elden-ring-and-easy-anti-cheat).
+- **Elden Ring without touching Easy Anti-Cheat.** With EAC running (the normal Steam launch) the app never opens the game: it reads the count from your save file, which the game writes after every death. See [Elden Ring and Easy Anti-Cheat](#elden-ring-and-easy-anti-cheat).
 - Single ~1 MB executable, no runtimes to install.
 
 > [!NOTE]
@@ -94,7 +95,7 @@ Some antivirus programs may also flag it heuristically, because it reads another
 ## Quick start
 
 1. Install (or unzip) and open **DS Death Counter**. Expect the [SmartScreen warning](#smartscreen) above.
-2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked.
+2. In the welcome screen, let it find the game (or point to `DarkSoulsRemastered.exe`) and keep **Start with Windows** checked. The other games need no setup: each one is recognized whenever it is running.
 3. Set the game to **Windowed** (or borderless) mode. The overlay can't always draw over exclusive fullscreen. There's a button in *Configurações › Janela do jogo* that makes the game window borderless, so it looks just like fullscreen.
 4. Load a character and play. The count shows up in the corner of the game, and every death goes to the list.
 
@@ -108,7 +109,7 @@ The counter was designed to stay away from anything that could get you flagged:
 - It **never writes** to the game, **injects no DLL**, installs **no hooks** and doesn't modify game files or saves.
 - The overlay is a **separate window** on top of the game; nothing is drawn inside the game.
 - Editing your count only changes the number stored by this app. The game's own counter is never touched.
-- Dark Souls bans (the "soft ban") come from impossible character data being sent to the servers, which this app doesn't touch.
+- Dark Souls bans (the "soft ban") come from impossible character data being sent to the servers, which this app doesn't touch. Sekiro has no online mode at all.
 
 No third-party tool can honestly promise zero risk, but read-only memory access is as safe as it gets.
 
@@ -117,7 +118,7 @@ No third-party tool can honestly promise zero risk, but read-only memory access 
 Elden Ring runs under **Easy Anti-Cheat (EAC)** when you launch it normally through Steam. Anti-cheat software watches which programs open the game, so while EAC is running the counter **does not open the game process at all**: no memory reading, no handle, nothing.
 
 - **EAC running:** the death count comes from the save file `%APPDATA%\EldenRing\<steamid>\ER0000.sl2`. The game writes it after every death, so the count updates **a few seconds after you die**. The file is opened read-only, shared, for a few milliseconds, and is never modified. Reading your own save is what backup tools and Steam Cloud do.
-- **EAC not running** (offline launch with EAC disabled, Seamless Co-op): the counter reads the game's memory, read-only, exactly like Dark Souls Remastered. The count is instant and each death gets the exact area.
+- **EAC not running** (offline launch with EAC disabled, Seamless Co-op): the counter reads the game's memory, read-only, like the other games. The count is instant and each death gets the exact area.
 - EAC is detected without touching the game: the process list (`EasyAntiCheat*.exe`, `start_protected_game.exe`), the EAC services and the program that launched the game. The counter checks twice, two seconds apart, before it ever opens the game. If EAC shows up while the game runs, the counter closes its handle at once and stays on the save file until you close the game.
 
 ## Compatibility
@@ -126,7 +127,11 @@ Elden Ring runs under **Easy Anti-Cheat (EAC)** when you launch it normally thro
 |---|---|
 | Windows | 10 or 11, 64-bit |
 | Dark Souls Remastered | Supports the original 1.01 release and the 1.03.x builds (current Steam version). The game version is detected automatically. |
-| Elden Ring | With Easy Anti-Cheat (normal Steam launch): counts from the save file, a few seconds after each death. Without EAC: reads memory, signatures checked on 1.02.0 and known to work across patches. The current Steam version (1.17) still needs an in-game check; see the [user guide](docs/user-guide.md#elden-ring). |
+| Dark Souls II | **Scholar of the First Sin** (64-bit), since 1.1.0. Checked against the 1.02 executable; the current Steam build (1.03) is found by the same byte signatures but has not been confirmed in-game yet. The original 32-bit Dark Souls II (2014) is **not** supported: the app says so instead of counting. |
+| Dark Souls III | Checked against the **1.15.0** executable: deaths, name, save slot, level, NG+, play time, current map and last bonfire (shown by its map). The current Steam build (1.15.1 / 1.15.2) is found by the same byte signatures but has not been confirmed in-game yet. See the [user guide](docs/user-guide.md#dark-souls-iii). |
+| Sekiro: Shadows Die Twice | **1.06** (current Steam version), checked against the game's exe. The memory layout is read from the game's own code, so older versions (1.02–1.05) will probably work too, but they haven't been tested. Counts **real deaths only**: resurrecting doesn't count (see the [user guide](docs/user-guide.md#sekiro)). Sekiro has no character names, so each save slot is one character. |
+| Bloodborne | **Experimental.** The Bloodborne PC Windows port v0.5 (`bbport.exe`) running Bloodborne 1.09: deaths, name, level, NG+ and play time. No area or fall detection yet, and not yet confirmed in a real play session. See the [user guide](docs/user-guide.md#bloodborne-pc-port-experimental). |
+| Elden Ring | With Easy Anti-Cheat (normal Steam launch): counts from the save file, a few seconds after each death. Without EAC: reads memory (signatures checked on the 1.02.0 executable; offsets read from the game's own code). Tested in the game by the developer; in Elden Ring the overlay even showed in the game's fullscreen mode. The current Steam version (1.17) hasn't been checked statically. See the [user guide](docs/user-guide.md#elden-ring). |
 | Display mode | Windowed / borderless windowed. Exclusive fullscreen may hide the overlay. |
 | Interface language | Brazilian Portuguese (English planned) |
 
@@ -153,7 +158,7 @@ This produces `build\DSDeathCounter.exe`, statically linked with no extra DLLs. 
 
 - Idea, requirements and in-game testing: **MatheusMuzzi**
 - Code, reverse-engineering and docs: **Claude** (Anthropic), via Claude Code. See [How it was made](docs/how-it-was-made.md).
-- Memory offsets and signatures build on public community research: [DSDeaths](https://github.com/quidrex/DSDeaths), [SoulSplitter](https://github.com/FrankvdStam/SoulSplitter), [DSR-Gadget](https://github.com/JKAnderson/DSR-Gadget) and [DS-Gadget](https://github.com/JKAnderson/DS-Gadget).
+- Memory offsets and signatures build on public community research: [DSDeaths](https://github.com/quidrex/DSDeaths), [SoulSplitter](https://github.com/FrankvdStam/SoulSplitter), [DSR-Gadget](https://github.com/JKAnderson/DSR-Gadget), [DS-Gadget](https://github.com/JKAnderson/DS-Gadget) and [DS2S-META](https://github.com/Nordgaren/DS2S-META).
 - The Elden Ring save file layout builds on [er-save-manager](https://github.com/Hapfel1/er-save-manager) and [ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor); Elden Ring area names come from [Smithbox](https://github.com/vawser/Smithbox) (MIT).
 - Libraries: [Dear ImGui](https://github.com/ocornut/imgui) and [nlohmann/json](https://github.com/nlohmann/json), both MIT. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
@@ -161,4 +166,4 @@ This produces `build\DSDeathCounter.exe`, statically linked with no extra DLLs. 
 
 [MIT](LICENSE) © 2026 MatheusMuzzi
 
-*DARK SOULS and ELDEN RING are trademarks of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by them.*
+*DARK SOULS and ELDEN RING are trademarks of BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE is a trademark of FromSoftware, Inc. BLOODBORNE is a trademark of Sony Interactive Entertainment LLC. DS Death Counter is a fan-made tool and is not affiliated with, endorsed by or sponsored by any of them.*

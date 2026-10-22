@@ -8,6 +8,7 @@
 // (new count, new bloodstain, new checksum), a half-written save and a second death, and checks
 // what the counter's save watcher reports after each write. The original file is only read.
 #include "game_reader.h"
+#include "games/eldenring.h"
 #include "games/eldenring_data.h"
 #include "games/eldenring_save.h"
 #include "util.h"
@@ -49,7 +50,7 @@ void Check(bool ok, const char* what)
 }
 
 // Polls like the app does (every 100 ms) until `done` or the timeout.
-template <class F> void PollUntil(EldenRingGame& er, F done, int ms)
+template <class F> void PollUntil(EldenRingModule& er, F done, int ms)
 {
     for (int t = 0; t < ms && !done(); t += 100) {
         er.Poll();
@@ -84,13 +85,12 @@ int Simulate(const std::vector<uint8_t>& orig)
     printf("Cópia: %s\nSlot usado na simulação: %d (%s, %u mortes)\n", WideToUtf8(file).c_str(), target + 1,
            WideToUtf8(before.name).c_str(), before.deaths);
 
-    EldenRingGame er;
-    er.SetMemoryMode(false);
+    EldenRingModule er;
     GameSnapshot s;
     printf("1. Primeira leitura\n");
     PollUntil(er, [&] { return er.save().HasData(); }, 3000);
     Check(er.save().HasData(), "save encontrado e lido");
-    er.ReadSave(s);
+    er.ReadWithoutProcess(s);
     if (used > 1)
         Check(!s.charLoaded && er.save().ActiveSlot() < 0, "vários personagens: espera o jogo gravar para saber qual é");
     else
@@ -112,7 +112,7 @@ int Simulate(const std::vector<uint8_t>& orig)
     printf("2. Morte gravada no slot %d\n", target + 1);
     PollUntil(er, [&] { return er.save().readCount() >= 2; }, 4000);
     s = GameSnapshot{};
-    er.ReadSave(s);
+    er.ReadWithoutProcess(s);
     Check(er.save().ActiveSlot() == target, "slot em uso = o que o jogo regravou");
     Check(s.charLoaded && s.saveSlot == target, "personagem identificado");
     Check(s.deaths == (int)deaths, "contagem nova lida");
@@ -129,7 +129,7 @@ int Simulate(const std::vector<uint8_t>& orig)
     int readsBefore = er.save().readCount();
     PollUntil(er, [&] { return false; }, 2500);
     s = GameSnapshot{};
-    er.ReadSave(s);
+    er.ReadWithoutProcess(s);
     Check(er.save().readCount() == readsBefore, "leitura adiada (tentando de novo)");
     Check(s.deaths == (int)deaths, "contagem não mudou");
 
@@ -144,7 +144,7 @@ int Simulate(const std::vector<uint8_t>& orig)
     printf("4. Gravação terminada (segunda morte)\n");
     PollUntil(er, [&] { return er.save().readCount() > readsBefore; }, 4000);
     s = GameSnapshot{};
-    er.ReadSave(s);
+    er.ReadWithoutProcess(s);
     Check(s.deaths == (int)deaths, "segunda morte lida");
     Check(s.areaName != "Stormveil Castle" && !s.areaName.empty(), "mancha de sangue igual: área = mapa do save");
 

@@ -44,6 +44,9 @@ struct ErSaveData {
     std::string error;
 };
 
+// UTF-16 -> UTF-8 (names and paths in the Diagnostics text).
+std::string ErUtf8(const std::wstring& w);
+
 // Parses a whole ER0000.sl2 / .co2 file already in memory. Never throws.
 bool ErParseSave(const std::vector<uint8_t>& file, ErSaveData& out);
 

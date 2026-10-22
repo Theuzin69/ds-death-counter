@@ -1,4 +1,5 @@
 #include "game_reader.h"
+#include "games/bloodborne.h"
 #include <tlhelp32.h>
 #include <algorithm>
 #include <cmath>
@@ -8,9 +9,6 @@
 #pragma comment(lib, "version.lib")
 
 namespace {
-
-const wchar_t* kGameExe = L"DarkSoulsRemastered.exe";
-const wchar_t* kEldenRingExe = L"eldenring.exe";
 
 // Module sizes of the 1.01.x builds (from DSR-Gadget). Anything else is treated
 // as 1.03 / 1.03.1, the build Steam distributes today.
@@ -88,17 +86,15 @@ int32_t ReadI32(const std::vector<uint8_t>& buf, size_t at)
     return v;
 }
 
-// Lists processes (no handle to them is opened). pidOnly != 0: only reports whether that pid still runs.
-DWORD FindGamePid(GameReader::Game& game, DWORD pidOnly = 0)
+DWORD FindGamePid(const GameInfo** game)
 {
     DWORD pid = 0;
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snap == INVALID_HANDLE_VALUE) return pidOnly;
+    if (snap == INVALID_HANDLE_VALUE) return 0;
     PROCESSENTRY32W pe{ sizeof(pe) };
-    for (BOOL ok = Process32FirstW(snap, &pe); ok; ok = Process32NextW(snap, &pe)) {
-        if (pidOnly && pe.th32ProcessID != pidOnly) continue;
-        if (_wcsicmp(pe.szExeFile, kGameExe) == 0) { pid = pe.th32ProcessID; game = GameReader::Game::DarkSoulsRemastered; break; }
-        if (_wcsicmp(pe.szExeFile, kEldenRingExe) == 0) { pid = pe.th32ProcessID; game = GameReader::Game::EldenRing; break; }
+    for (BOOL ok = Process32FirstW(snap, &pe); ok && !pid; ok = Process32NextW(snap, &pe)) {
+        for (const GameInfo* g : AllGames())
+            if (!g->customReader && _wcsicmp(pe.szExeFile, g->exe) == 0) { pid = pe.th32ProcessID; *game = g; break; }
     }
     CloseHandle(snap);
     return pid;
@@ -106,26 +102,65 @@ DWORD FindGamePid(GameReader::Game& game, DWORD pidOnly = 0)
 
 bool ValidPtr(uintptr_t p) { return p >= 0x10000 && p < 0x7FFFFFFFFFFFull; }
 
+// True while process `pid` runs `exe`. Uses the process list only (no handle to it).
+bool ProcessRunning(DWORD pid, const wchar_t* exe)
+{
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE) return true;
+    bool found = false;
+    PROCESSENTRY32W pe{ sizeof(pe) };
+    for (BOOL ok = Process32FirstW(snap, &pe); ok && !found; ok = Process32NextW(snap, &pe))
+        found = pe.th32ProcessID == pid && _wcsicmp(pe.szExeFile, exe) == 0;
+    CloseHandle(snap);
+    return found;
+}
+
 } // namespace
 
-std::vector<size_t> FindPattern(const std::vector<uint8_t>& buf, const char* pattern)
+std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern)
 {
-    return FindAll(buf, pattern);
+    return FindAll(img, pattern);
 }
 
-const char* GameDisplayName(const std::string& id)
+bool PatternAt(const std::vector<uint8_t>& img, size_t at, const char* pattern)
 {
-    if (id == "er") return "Elden Ring";
-    return "Dark Souls Remastered";
+    Pattern p = ParsePattern(pattern);
+    if (at > img.size() || img.size() - at < p.bytes.size()) return false;
+    for (size_t k = 0; k < p.bytes.size(); ++k)
+        if (p.fixed[k] && img[at + k] != p.bytes[k]) return false;
+    return true;
 }
 
-std::string GameReader::GameName() const
+int32_t ImageI32(const std::vector<uint8_t>& img, size_t at)
 {
-    return game_ == Game::EldenRing ? "Elden Ring" : "Dark Souls Remastered";
+    return at + 4 <= img.size() ? ReadI32(img, at) : 0;
+}
+
+GameReader::GameReader() : bb_(std::make_unique<bb::Reader>()) {}
+
+GameReader::~GameReader() { Detach(); }
+
+DWORD GameReader::pid() const
+{
+    return bb_->Attached() ? bb_->pid() : pid_;
+}
+
+const GameInfo& GameReader::game() const
+{
+    return bb_->Attached() ? GameById("bb") : *game_;
+}
+
+void GameReader::SetModuleForAnalysis(uintptr_t base, uint32_t size, const std::string& gameId)
+{
+    base_ = base;
+    size_ = size;
+    game_ = &GameById(gameId);
+    module_ = game_->create ? game_->create() : nullptr;
 }
 
 std::wstring GameReader::ProcessPath() const
 {
+    if (bb_->Attached()) return bb_->ProcessPath();
     if (!proc_) return {};
     wchar_t buf[MAX_PATH * 2];
     DWORD n = (DWORD)std::size(buf);
@@ -135,13 +170,7 @@ std::wstring GameReader::ProcessPath() const
 
 std::string GameReader::VersionName() const
 {
-    if (game_ == Game::EldenRing) {
-        if (!fileVersionMS_) return state_ == State::SaveFile ? "não lida (EAC ativo)" : "-";
-        char b[64];
-        snprintf(b, sizeof(b), " (exe %u.%u.%u.%u)", HIWORD(fileVersionMS_), LOWORD(fileVersionMS_),
-                 HIWORD(fileVersionLS_), LOWORD(fileVersionLS_));
-        return ErVersionName(fileVersionMS_, fileVersionLS_) + b;
-    }
+    if (bb_->Attached()) return bb_->VersionName();
     if (!proc_) return "-";
     std::string fileVer;
     std::wstring path = ProcessPath();
@@ -157,6 +186,11 @@ std::string GameReader::VersionName() const
                      HIWORD(ffi->dwFileVersionLS), LOWORD(ffi->dwFileVersionLS));
             fileVer = b;
         }
+    }
+    if (module_) {
+        std::string label = module_->VersionLabel(size_);
+        if (label.empty()) label = "?";
+        return label + (fileVer.empty() ? "" : " (exe " + fileVer + ")");
     }
     const char* label = "1.03.x";
     switch (size_) {
@@ -181,73 +215,66 @@ void GameReader::Detach()
     base_ = 0;
     size_ = 0;
     gameMan_ = gameDataMan_ = worldChrMan_ = 0;
+    menuMan_ = 0;
+    offBossGauge_ = 0;
     scanAttempts_ = 0;
     state_ = State::NotRunning;
-    game_ = Game::None;
-    fileVersionMS_ = fileVersionLS_ = 0;
-    er_.Reset();
-    eacClearChecks_ = 0;
-    eacSeen_ = false;
-    eacReason_.clear();
+    game_ = &GameById("dsr");
+    module_.reset();
+    unsupported_.clear();
+    nextAccessCheck_ = 0;
+    accessOpen_ = passive_ = false;
+    accessReason_.clear();
 }
 
-void GameReader::ReadFileVersion()
+// Games whose module may forbid opening them (Elden Ring under Easy Anti-Cheat): asks the module
+// before the process is opened and every two seconds after that. Returns true when Update may go
+// on to open, scan or read the process.
+bool GameReader::CheckModuleAccess(ULONGLONG now)
 {
-    fileVersionMS_ = fileVersionLS_ = 0;
-    std::wstring path = ProcessPath();
-    DWORD dummy = 0, sz = path.empty() ? 0 : GetFileVersionInfoSizeW(path.c_str(), &dummy);
-    if (!sz) return;
-    std::vector<uint8_t> data(sz);
-    VS_FIXEDFILEINFO* ffi = nullptr;
-    UINT len = 0;
-    if (GetFileVersionInfoW(path.c_str(), 0, sz, data.data()) && VerQueryValueW(data.data(), L"\\", (void**)&ffi, &len) && ffi) {
-        fileVersionMS_ = ffi->dwProductVersionMS;
-        fileVersionLS_ = ffi->dwProductVersionLS;
-    }
-}
-
-// Elden Ring: decides between the save file (Easy Anti-Cheat running) and memory before any
-// handle to the game exists. Returns true when Update() may go on and open/scan the game.
-bool GameReader::UpdateEldenRing(ULONGLONG now)
-{
-    er_.Poll();
-    if (now >= nextEacCheck_) {
-        nextEacCheck_ = now + 2000;
-        Game g = Game::None;
-        if (!proc_ && !FindGamePid(g, pid_)) { Detach(); return false; }   // game closed
-        ErEacCheck eac = ErDetectEac(pid_);
-        if (eac.active || eacSeen_) {
-            // Protected by EAC (now or earlier in this run of the game): never keep a handle to it.
-            if (proc_) { CloseHandle(proc_); proc_ = nullptr; }
-            if (eac.active) eacReason_ = eac.reason;
-            eacSeen_ = true;
-            er_.SetMemoryMode(false);
-            state_ = State::SaveFile;
-            return false;
+    module_->Poll();
+    if (now >= nextAccessCheck_) {
+        nextAccessCheck_ = now + 2000;
+        if (!proc_ && !ProcessRunning(pid_, game_->exe)) { Detach(); return false; }   // closed before being opened
+        std::string reason;
+        GameModule::Access a = passive_ ? GameModule::Access::Never : module_->CheckAccess(pid_, reason);
+        if (!reason.empty()) accessReason_ = reason;
+        accessOpen_ = a == GameModule::Access::Open;
+        if (a == GameModule::Access::Never && !passive_) {
+            passive_ = true;
+            if (proc_) { CloseHandle(proc_); proc_ = nullptr; }   // never keep a handle to a protected game
         }
-        ++eacClearChecks_;
     }
-    if (state_ == State::Ready || state_ == State::SaveFile) return false;
-    // Two checks, two seconds apart, without any sign of EAC before touching the game.
-    if (eacClearChecks_ < 2) { state_ = State::Scanning; return false; }
-    er_.SetMemoryMode(true);
+    if (passive_) { state_ = State::Passive; return false; }
+    if (!accessOpen_ && !proc_) { state_ = State::Scanning; return false; }
     return true;
 }
 
-bool GameReader::OpenGame(DWORD pid)
+bool GameReader::OpenGame(DWORD pid, const GameInfo& game)
 {
+    game_ = &game;
     proc_ = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, pid);
     if (!proc_) {
         state_ = (GetLastError() == ERROR_ACCESS_DENIED) ? State::AccessDenied : State::NotRunning;
         return false;
     }
     pid_ = pid;
+    if (!module_ && game.create) module_ = game.create();
+
+    // Every supported game is a 64-bit build. A 32-bit process with the same name (e.g. the
+    // original Dark Souls II) has a different memory layout: say so instead of guessing.
+    BOOL wow64 = FALSE;
+    if (IsWow64Process(proc_, &wow64) && wow64) {
+        unsupported_ = std::string(game.shortName) + " de 32 bits";
+        state_ = State::Unsupported;
+        return false;
+    }
 
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
     if (snap == INVALID_HANDLE_VALUE) { Detach(); return false; }   // game still starting, retry later
     MODULEENTRY32W me{ sizeof(me) };
     for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {
-        if (_wcsicmp(me.szModule, game_ == Game::EldenRing ? kEldenRingExe : kGameExe) == 0) {
+        if (_wcsicmp(me.szModule, game.exe) == 0) {
             base_ = (uintptr_t)me.modBaseAddr;
             size_ = me.modBaseSize;
             break;
@@ -278,8 +305,8 @@ bool GameReader::ScanPatterns()
 
 bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 {
-    if (game_ == Game::EldenRing) return er_.AnalyzeImage(img, base_, fileVersionMS_, fileVersionLS_);
     scanLog_.clear();
+    if (module_) return module_->Analyze(img, base_, size_, scanLog_);
     char line[256];
     // Resolves "mov reg, [rip+rel32]" style references to the address of a global.
     auto resolve = [&](const char* name, std::initializer_list<const char*> patterns, int relOff, int instrLen) -> uintptr_t {
@@ -332,34 +359,74 @@ bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
              newLayout_ ? "1.03+" : "1.01", offSaveSlot_, offLastBonfire_, offStableMap_, offChrMapData_, offHp_);
     scanLog_ += line;
 
+    // Boss health bars (optional: only the automatic "killed by boss" cause depends on them).
+    // MenuMan keeps one slot per bar, { int nameId; int chrHandle; damage counters... }, 0x14 bytes
+    // each, at MenuMan+0x1050 in 1.01. Two small functions give the global and the offsets:
+    //   ClearBossGauge:  mov rax,[MenuMan]; xor ecx,ecx; mov qword [rax+slot0],-1; mov qword [rax+slot1],-1; ...
+    //   slot getter:     cmp ecx,1; ja; movsxd rax,ecx; lea rcx,[rax+rax*4]; mov rax,[MenuMan]; lea rax,[rax+rcx*4]; add rax,slot0
+    // Both must agree when both are found; otherwise the feature stays off rather than guess.
+    menuMan_ = 0;
+    offBossGauge_ = 0;
+    uintptr_t clearMenuMan = 0, getMenuMan = 0;
+    int clearSlot0 = 0, clearStride = 0, getSlot0 = 0;
+    auto clearHits = FindAll(img, "48 8B 05 ? ? ? ? 33 C9 48 C7 80 ? ? ? ? FF FF FF FF 48 C7 80 ? ? ? ? FF FF FF FF 48 89 88");
+    if (clearHits.size() == 1) {
+        size_t h = clearHits[0];
+        clearSlot0 = ReadI32(img, h + 12);
+        clearStride = ReadI32(img, h + 23) - clearSlot0;
+        if (clearSlot0 > 0 && clearSlot0 < 0x10000 && clearStride == 0x14)
+            clearMenuMan = base_ + h + 7 + ReadI32(img, h + 3);
+    }
+    auto getHits = FindAll(img, "83 F9 01 77 ? 48 63 C1 48 8D 0C 80 48 8B 05 ? ? ? ? 48 8D 04 88 48 05 ? ? ? ?");
+    if (getHits.size() == 1) {
+        size_t h = getHits[0];
+        getSlot0 = ReadI32(img, h + 25);
+        if (getSlot0 > 0 && getSlot0 < 0x10000)
+            getMenuMan = base_ + h + 19 + ReadI32(img, h + 15);
+    }
+    if (clearMenuMan && getMenuMan && (clearMenuMan != getMenuMan || clearSlot0 != getSlot0)) {
+        scanLog_ += "MenuMan      -> DIVERGENTE (causa por chefe desativada)\n";
+    } else if (clearMenuMan || getMenuMan) {
+        menuMan_ = clearMenuMan ? clearMenuMan : getMenuMan;
+        offBossGauge_ = clearMenuMan ? clearSlot0 : getSlot0;
+        snprintf(line, sizeof(line), "MenuMan      -> exe+%llX | barra de chefe +%X (passo %X)\n",
+                 (unsigned long long)(menuMan_ - base_), offBossGauge_, bossGaugeStride_);
+        scanLog_ += line;
+    } else {
+        scanLog_ += "MenuMan      -> NÃO ENCONTRADO (causa por chefe desativada)\n";
+    }
+
     return gameMan_ && gameDataMan_ && worldChrMan_;
 }
 
 void GameReader::Update()
 {
+    // Bloodborne (PC port): owns the state while its process is attached.
+    if (!proc_ && !pid_ && bb_->Update(state_)) return;
+
     ULONGLONG now = GetTickCount64();
     if (proc_ && !ProcessAlive()) Detach();
-    if (game_ == Game::EldenRing && pid_ && !UpdateEldenRing(now)) return;
-    if (state_ == State::Ready) return;
+    if (pid_ && module_ && !CheckModuleAccess(now)) return;
+    if (state_ == State::Ready || state_ == State::Unsupported) return;   // Unsupported: wait until it closes
     if (now < nextTry_) return;
     nextTry_ = now + 2000;
 
     if (!proc_) {
-        Game game = game_;
-        DWORD pid = pid_ ? pid_ : FindGamePid(game);
-        if (!pid) { state_ = State::NotRunning; return; }
-        if (!pid_ && game == Game::EldenRing) {
-            // Found but not opened: first make sure Easy Anti-Cheat is not protecting it.
+        const GameInfo* game = game_;
+        DWORD pid = pid_;
+        if (!pid) {
+            pid = FindGamePid(&game);
+            if (!pid) { state_ = State::NotRunning; return; }
             game_ = game;
-            pid_ = pid;
-            state_ = State::Scanning;
-            nextEacCheck_ = now;
-            eacClearChecks_ = 0;
-            return;
+            module_ = game->create ? game->create() : nullptr;
+            if (module_) {
+                // Ask the module before any handle exists (it may forbid opening the game).
+                pid_ = pid;
+                nextAccessCheck_ = 0;
+                if (!CheckModuleAccess(now)) return;
+            }
         }
-        game_ = game;
-        if (!OpenGame(pid)) return;
-        if (game_ == Game::EldenRing) ReadFileVersion();
+        if (!OpenGame(pid, *game)) return;
     }
     state_ = State::Scanning;
     if (ScanPatterns()) {
@@ -368,12 +435,14 @@ void GameReader::Update()
         // Code may not be fully unpacked yet right after launch; try again shortly.
         ++scanAttempts_;
         nextTry_ = now + (scanAttempts_ < 10 ? 3000 : 30000);
-        if (game_ == Game::EldenRing && scanAttempts_ >= 5) {
-            // Unknown game version: count from the save file instead.
+        // An exe the module doesn't recognize (e.g. a newer game version): a module that can count
+        // without the process takes over, and the handle is closed.
+        if (module_ && scanAttempts_ >= 5 && module_->CanReadWithoutProcess()) {
             CloseHandle(proc_);
             proc_ = nullptr;
-            er_.SetMemoryMode(false);
-            state_ = State::SaveFile;
+            passive_ = true;
+            accessReason_ = "executável desta versão não reconhecido";
+            state_ = State::Passive;
         }
     }
 }
@@ -388,11 +457,14 @@ uintptr_t GameReader::ReadPtr(uintptr_t addr) const
 bool GameReader::Read(GameSnapshot& s)
 {
     s = GameSnapshot{};
-    if (game_ == Game::EldenRing) {
-        if (state_ == State::SaveFile) return er_.ReadSave(s);
-        return state_ == State::Ready && er_.ReadMemory(proc_, s);
+    if (bb_->Attached()) return state_ == State::Ready && bb_->Read(s);
+    if (state_ == State::Passive) {
+        s.game = game_->id;
+        return module_ && module_->ReadWithoutProcess(s);
     }
     if (state_ != State::Ready) return false;
+    s.game = game_->id;
+    if (module_) return module_->Read(proc_, s);
 
     if (uintptr_t gdm = ReadPtr(gameDataMan_)) {
         s.gameDataOk = true;
@@ -432,6 +504,19 @@ bool GameReader::Read(GameSnapshot& s)
         }
     }
 
+    if (menuMan_ && offBossGauge_) {
+        if (uintptr_t mm = ReadPtr(menuMan_)) {
+            for (int i = 0; i < GameSnapshot::kBossSlots; ++i) {
+                // Empty slots hold -1/-1. Name ids come from a 16-bit field of the event script.
+                int32_t slot[2] = { -1, -1 };   // { nameId, chrHandle }
+                SIZE_T n = 0;
+                if (ReadProcessMemory(proc_, (LPCVOID)(mm + offBossGauge_ + i * bossGaugeStride_), slot, sizeof(slot), &n) &&
+                    n == sizeof(slot) && slot[0] > 0 && slot[0] <= 0x7FFF && slot[1] != -1)
+                    s.bossNameId[i] = slot[0];
+            }
+        }
+    }
+
     if (uintptr_t wcm = ReadPtr(worldChrMan_)) {
         if (uintptr_t pins = ReadPtr(wcm + 0x68)) {
             s.inWorld = true;
@@ -456,27 +541,24 @@ bool GameReader::Read(GameSnapshot& s)
 
 std::string GameReader::DiagnosticsText() const
 {
+    if (bb_->Attached()) return bb_->DiagnosticsText(state_);
     char b[512];
     std::string t;
     const char* st = "jogo não encontrado";
     switch (state_) {
         case State::AccessDenied: st = "acesso negado (o jogo está rodando como administrador?)"; break;
+        case State::Unsupported:  st = "versão não suportada"; break;
         case State::Scanning:     st = "analisando o executável..."; break;
         case State::Ready:        st = "conectado"; break;
-        case State::SaveFile:
-            st = eacSeen_ ? "Easy Anti-Cheat ativo: lendo só o arquivo de save (o jogo não é acessado)"
-                          : "versão sem leitura de memória: lendo o arquivo de save";
-            break;
+        case State::Passive:      st = "contando sem acessar o processo do jogo"; break;
         default: break;
     }
     snprintf(b, sizeof(b), "Jogo: %s\nEstado: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
-             game_ == Game::None ? "-" : GameName().c_str(), st, pid_, (unsigned long long)base_, size_,
-             VersionName().c_str(), scanAttempts_);
+             game_->name, st, pid_, (unsigned long long)base_, size_, VersionName().c_str(), scanAttempts_);
     t += b;
-    t += ScanLog();
-    if (game_ == Game::EldenRing) {
-        t += "Easy Anti-Cheat: " + (eacSeen_ ? "detectado (" + eacReason_ + ")" : std::string("não detectado")) + "\n";
-        t += er_.save().StatusText();
-    }
+    if (!unsupported_.empty()) t += "Não suportado: " + unsupported_ + "\n";
+    if (!accessReason_.empty()) t += "Acesso ao processo: " + accessReason_ + "\n";
+    t += scanLog_;
+    if (module_ && (state_ == State::Ready || state_ == State::Passive)) t += module_->LiveDiagnostics();
     return t;
 }

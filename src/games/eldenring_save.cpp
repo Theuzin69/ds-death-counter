@@ -1,6 +1,5 @@
 #include "games/eldenring_save.h"
 #include "games/eldenring_data.h"
-#include "util.h"
 #include <bcrypt.h>
 #include <algorithm>
 #include <cstdio>
@@ -146,6 +145,15 @@ void ParseSlot(const View& s, uint64_t steamId, ErSaveSlot& out)
 }
 
 } // namespace
+
+std::string ErUtf8(const std::wstring& w)
+{
+    if (w.empty()) return {};
+    int n = WideCharToMultiByte(CP_UTF8, 0, w.c_str(), (int)w.size(), nullptr, 0, nullptr, nullptr);
+    std::string out(n > 0 ? n : 0, '\0');
+    if (n > 0) WideCharToMultiByte(CP_UTF8, 0, w.c_str(), (int)w.size(), out.data(), n, nullptr, nullptr);
+    return out;
+}
 
 bool ErParseSave(const std::vector<uint8_t>& file, ErSaveData& out)
 {
@@ -356,7 +364,7 @@ std::string ErSaveWatcher::StatusText() const
 {
     std::string t;
     char b[256];
-    t += "Save: " + (path_.empty() ? std::string("(não encontrado)") : WideToUtf8(path_)) + "\n";
+    t += "Save: " + (path_.empty() ? std::string("(não encontrado)") : ErUtf8(path_)) + "\n";
     snprintf(b, sizeof(b), "Leituras: %d", reads_);
     t += b;
     if (lastRead_) {
@@ -372,7 +380,7 @@ std::string ErSaveWatcher::StatusText() const
     for (int i = 0; i < 10; ++i) {
         const ErSaveSlot& sl = data_.slots[i];
         if (!sl.used) continue;
-        std::string name = WideToUtf8(sl.name);
+        std::string name = ErUtf8(sl.name);
         if (sl.valid)
             snprintf(b, sizeof(b), "  slot %d: %s | nível %d | mortes %u | %s | NG+ %d | v%u\n", i + 1, name.c_str(), sl.level,
                      sl.deaths, ErMapIdText(sl.mapId).c_str(), sl.ngPlus, sl.version);
