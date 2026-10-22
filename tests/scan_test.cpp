@@ -4,10 +4,12 @@
 //   build\tests\scan_test.exe "C:\...\DarkSoulsII.exe"
 //   build\tests\scan_test.exe "C:\...\DarkSoulsIII.exe"
 //   build\tests\scan_test.exe "C:\...\sekiro.exe"
+//   build\tests\scan_test.exe "C:\...\eldenring.exe"
 // The game is picked from the file name (as the app does from the process name).
 #include "game_reader.h"
 #include "games/ds2.h"
 #include "games/ds3.h"
+#include "games/eldenring.h"
 #include "games/sekiro.h"
 #include <cstdio>
 #include <cstring>
@@ -19,7 +21,7 @@
 int wmain(int argc, wchar_t** argv)
 {
     if (argc < 2) {
-        fwprintf(stderr, L"uso: scan_test <DarkSoulsRemastered.exe | DarkSoulsII.exe>\n");
+        fwprintf(stderr, L"uso: scan_test <DarkSoulsRemastered.exe | DarkSoulsII.exe | DarkSoulsIII.exe | sekiro.exe | eldenring.exe>\n");
         return 2;
     }
     std::ifstream f(argv[1], std::ios::binary);
@@ -115,6 +117,19 @@ int wmain(int argc, wchar_t** argv)
             bool match = sk.GameDataManAddr() - imageBase == 0x3D5AAC0 && sk.GameManAddr() - imageBase == 0x3D5C0D0 &&
                          sk.WorldChrManAddr() - imageBase == 0x3D7A1E0 && sk.FieldAreaAddr() - imageBase == 0x3D5C0A0;
             printf("Conferencia Sekiro 1.06: %s\n", match ? "OK" : "DIFERENTE");
+            ok = ok && match;
+        }
+    }
+    if (game->id == std::string("er")) {
+        // Every signature must match exactly once; the five GameDataMan ones must agree.
+        const EldenRingModule& er = *static_cast<EldenRingModule*>(reader.module());
+        bool all = er.allSignaturesUnique();
+        printf("Assinaturas Elden Ring: %s\n", all ? "todas encontradas uma única vez e concordando" : "ALGUMA FALHOU");
+        ok = ok && all;
+        if (er.versionMS() == 0x00010002 && er.versionLS() == 0) {   // 1.02.0: compare with the addresses checked by hand
+            bool match = er.GameDataManAddr() - imageBase == 0x3C481B8 && er.WorldChrManAddr() - imageBase == 0x3C50268 &&
+                         er.playerInsOffset() == 0x18468;
+            printf("Conferencia Elden Ring 1.02.0: %s\n", match ? "OK" : "DIFERENTE");
             ok = ok && match;
         }
     }

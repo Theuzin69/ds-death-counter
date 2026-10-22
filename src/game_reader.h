@@ -5,6 +5,9 @@
 // Only ReadProcessMemory is used: nothing is written to the game, nothing is
 // injected and no hooks are installed. The game cannot tell the difference
 // between this and any other program that happens to be running.
+//
+// A module can also forbid opening its game (Elden Ring while Easy Anti-Cheat runs): then the
+// process is never opened and the module counts without it (State::Passive).
 
 #include <windows.h>
 #include <cstdint>
@@ -45,7 +48,8 @@ struct GameSnapshot {
 
 class GameReader {
 public:
-    enum class State { NotRunning, AccessDenied, Unsupported, Scanning, Ready };
+    // Passive: the game runs but is not opened (anti-cheat); its module counts without the process.
+    enum class State { NotRunning, AccessDenied, Unsupported, Scanning, Ready, Passive };
 
     GameReader();
     ~GameReader();
@@ -57,7 +61,11 @@ public:
 
     State state() const { return state_; }
     DWORD pid() const;
-    bool  IsReady() const { return state_ == State::Ready; }
+    bool  IsReady() const { return state_ == State::Ready || state_ == State::Passive; }
+    // Found, but its module hasn't allowed opening it yet (e.g. still checking for Easy Anti-Cheat).
+    bool  AccessPending() const { return state_ == State::Scanning && !proc_ && module_; }
+    // Why the game is (not) opened, from GameModule::CheckAccess ("" for games that don't check).
+    const std::string& AccessReason() const { return accessReason_; }
     std::wstring ProcessPath() const;
     std::string VersionName() const;
     std::string DiagnosticsText() const;
@@ -82,6 +90,7 @@ private:
     bool OpenGame(DWORD pid, const GameInfo& game);
     bool ScanPatterns();
     bool ProcessAlive() const;
+    bool CheckModuleAccess(ULONGLONG now);
 
     uintptr_t ReadPtr(uintptr_t addr) const;
     template <class T> bool ReadT(uintptr_t addr, T& v) const {
@@ -115,4 +124,10 @@ private:
     int  offBossGauge_ = 0;     // MenuMan offset of boss bar slot 0 (0 = not found)
     int  bossGaugeStride_ = 0x14;
     std::string scanLog_;
+
+    // GameModule::CheckAccess (games that may not always be opened)
+    ULONGLONG nextAccessCheck_ = 0;
+    bool accessOpen_ = false;   // the module allowed opening the process
+    bool passive_ = false;      // never open it during this run of the game
+    std::string accessReason_;
 };

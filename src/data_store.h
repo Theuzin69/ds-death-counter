@@ -39,6 +39,7 @@ struct DeathRecord {
     std::string time;           // local time when detected
     uint32_t playTimeMs = 0;
     int mapArea = -1, mapBlock = -1;
+    uint32_t mapId = 0;         // full map id mAA_BB_CC_DD (games other than DSR; 0 = not recorded)
     std::string area;           // display name (auto or edited)
     int bonfire = 0;
     bool hasPos = false;

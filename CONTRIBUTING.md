@@ -14,10 +14,11 @@ Requirements: Windows 10/11 x64 and Visual Studio 2019/2022 with the *Desktop de
 
 ```bat
 build.bat                 :: -> build\DSDeathCounter.exe
-tests\build_tests.bat     :: -> build\tests\scan_test.exe, boss_cause_test.exe, overlay_test.exe, bb_*.exe
+tests\build_tests.bat     :: -> build\tests\scan_test.exe, boss_cause_test.exe, er_save_test.exe, overlay_test.exe, bb_*.exe
 ```
 
-- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` (or `DarkSoulsII.exe`, `DarkSoulsIII.exe`, `sekiro.exe`) runs the app's signature scanner against a game executable on disk; the game is picked from the file name. Use it to check a game version without launching it.
+- `build\tests\scan_test.exe "C:\path\to\DarkSoulsRemastered.exe"` (or `DarkSoulsII.exe`, `DarkSoulsIII.exe`, `sekiro.exe`, `eldenring.exe`) runs the app's signature scanner against a game executable on disk; the game is picked from the file name. Use it to check a game version without launching it.
+- `build\tests\er_save_test.exe "%APPDATA%\EldenRing\<steamid>\ER0000.sl2"` shows what the counter reads from an Elden Ring save (read-only). With `--simulate` it copies the save to `%TEMP%` and plays the game's writes on the copy to test the save watcher.
 - `build\tests\boss_cause_test.exe` checks the boss health bar → cause of death table (also run by CI).
 - `build\tests\overlay_test.exe` shows the overlay for six seconds.
 - `build\tests\bb_scan_test.exe "C:\path\to\eboot.bin"` runs the Bloodborne scanner against the `eboot.bin` file the Bloodborne PC port loads.
@@ -34,7 +35,8 @@ src/data_store.*     settings and history (JSON, %APPDATA%\DSDeathCounter\data.j
 src/overlay.*        click-through layered window drawn over the game (GDI+)
 src/app*.cpp         main window (Win32 + Direct3D 11 + Dear ImGui), tray, hotkey
 src/ds1_data.*       map names, bonfire names, cause suggestions
-src/games/           the other games: registry (games.*), GameModule interface, one module per game (ds2.*, ds3.*, sekiro.*, bloodborne.* for the Bloodborne PC port)
+src/games/           the other games: registry (games.*), GameModule interface, one module per game (ds2.*, ds3.*, sekiro.*,
+                     eldenring.* with eldenring_save.* for the save file; *_data.cpp: names), bloodborne.* (Bloodborne PC port)
 src/platform.*       start with Windows, Steam lookup, game window helpers, dialogs
 src/version.h        the version number (single source)
 installer/           Inno Setup script
@@ -46,6 +48,7 @@ third_party/         Dear ImGui and nlohmann/json (vendored, MIT)
 ## Ground rules
 
 - **Read-only, always.** The app must never write to the game process, inject code or install hooks. That's what keeps it ban-safe. Pull requests that change this won't be accepted.
+- **Never open a game protected by an anti-cheat.** Elden Ring is not opened at all while Easy Anti-Cheat runs (`GameModule::CheckAccess`); that mode reads the save file only.
 - Match the style of the surrounding code (C++20, MSVC, no warnings).
 - User-facing text is in Brazilian Portuguese for now. If you add strings, keep them easy to translate later.
 
@@ -68,5 +71,6 @@ Obrigado pelo interesse! Relatos de bug, relatos de versão do jogo, traduções
 
 - **Bug:** use o [formulário de bug](https://github.com/Theuzin69/ds-death-counter/issues/new/choose) e cole o texto da aba **Diagnóstico** (botão *Copiar*).
 - **Compilar:** Visual Studio 2019/2022 com *Desenvolvimento para desktop com C++*; rode `build.bat`. Testes em `tests\build_tests.bat`.
+- **Antitrapaça:** com o Easy Anti-Cheat rodando, o Elden Ring nunca é aberto pelo app (nenhum handle); a contagem vem só do arquivo de save.
 - **Regra principal:** o app é **somente leitura**. Nada de escrever na memória do jogo, injetar código ou instalar hooks; é isso que evita ban.
 - **Publicar versão:** atualize `src/version.h` e o `CHANGELOG.md`, crie a tag `vX.Y.Z` e envie (`git push origin main vX.Y.Z`). O GitHub Actions compila e publica o release sozinho.

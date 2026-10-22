@@ -51,7 +51,7 @@ void DeathTracker::Tick(GameReader& reader)
     // Remember where the player was while alive. HP 0 freezes the history at the moment of death.
     bool alive = s.inWorld && s.hasPos && s.hp != 0;
     if (alive) {
-        Sample sample{ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName };
+        Sample sample{ now, s.pos, s.mapArea, s.mapBlock, s.lastBonfire, s.playTimeMs, s.areaName, s.mapRaw };
         std::copy(std::begin(s.bossNameId), std::end(s.bossNameId), sample.boss);
         history_.push_back(sample);
         while (!history_.empty() && now - history_.front().t > 10000) history_.pop_front();
@@ -190,6 +190,7 @@ void DeathTracker::RecordDeaths(Profile& p, int count)
         std::string area = haveSample ? last.area : snap_.areaName;
         r.area = area.empty() ? AreaLabel(r.mapArea, r.mapBlock) : area;
         r.bonfire = haveSample ? last.bonfire : snap_.lastBonfire;
+        if (snap_.game != "dsr") r.mapId = haveSample ? last.mapRaw : snap_.mapRaw;
         if (haveSample) {
             r.hasPos = true;
             r.x = last.pos.x; r.y = last.pos.y; r.z = last.pos.z;

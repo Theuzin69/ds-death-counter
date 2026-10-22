@@ -20,6 +20,9 @@ struct GameInfo {
     bool           hasLevel;         // the character has a level worth showing
     bool           fallHeuristic;    // big height loss before dying means a fall death
     bool           customReader;     // attached by its own reader (Bloodborne port), not by GameReader's scan
+    // Optional: groups detailed area names for the "Por área" statistics ("Limgrave - Church of Elleh"
+    // -> "Limgrave"). nullptr = each area on its own.
+    std::string (*areaGroup)(const std::string& area) = nullptr;
 };
 
 const std::vector<const GameInfo*>& AllGames();

@@ -23,6 +23,24 @@ public:
     virtual std::string VersionLabel(uint32_t moduleSize) const { (void)moduleSize; return {}; }
     // Extra lines for the Diagnostics tab with values that are not part of GameSnapshot.
     virtual std::string LiveDiagnostics() const { return {}; }
+
+    // --- Optional: games that may not always be opened (Elden Ring under Easy Anti-Cheat) ---
+    enum class Access {
+        Open,    // the process may be opened and read
+        Wait,    // not yet; GameReader asks again two seconds later
+        Never,   // don't touch the process for the rest of this run of the game
+    };
+    // Asked before the game process is opened and every two seconds while it runs, without any
+    // handle to it. `reason` is shown in the header and the Diagnostics tab.
+    virtual Access CheckAccess(DWORD pid, std::string& reason) { (void)pid; (void)reason; return Access::Open; }
+    // Counting without any access to the game process (Elden Ring: the save file). Used while
+    // CheckAccess says Never, or when the exe can't be analyzed.
+    virtual bool CanReadWithoutProcess() const { return false; }
+    virtual bool ReadWithoutProcess(GameSnapshot& s) { (void)s; return false; }
+    // Header text while counting without the process ("pelo arquivo de save").
+    virtual std::string WithoutProcessStatus() const { return {}; }
+    // Called on every GameReader::Update while the game runs, with or without a handle.
+    virtual void Poll() {}
 };
 
 // Every offset of `pattern` ("48 8B ? ? 05", '?' = any byte) inside `img`.

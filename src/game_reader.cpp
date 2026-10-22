@@ -102,6 +102,19 @@ DWORD FindGamePid(const GameInfo** game)
 
 bool ValidPtr(uintptr_t p) { return p >= 0x10000 && p < 0x7FFFFFFFFFFFull; }
 
+// True while process `pid` runs `exe`. Uses the process list only (no handle to it).
+bool ProcessRunning(DWORD pid, const wchar_t* exe)
+{
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE) return true;
+    bool found = false;
+    PROCESSENTRY32W pe{ sizeof(pe) };
+    for (BOOL ok = Process32FirstW(snap, &pe); ok && !found; ok = Process32NextW(snap, &pe))
+        found = pe.th32ProcessID == pid && _wcsicmp(pe.szExeFile, exe) == 0;
+    CloseHandle(snap);
+    return found;
+}
+
 } // namespace
 
 std::vector<size_t> FindPattern(const std::vector<uint8_t>& img, const char* pattern)
@@ -209,6 +222,32 @@ void GameReader::Detach()
     game_ = &GameById("dsr");
     module_.reset();
     unsupported_.clear();
+    nextAccessCheck_ = 0;
+    accessOpen_ = passive_ = false;
+    accessReason_.clear();
+}
+
+// Games whose module may forbid opening them (Elden Ring under Easy Anti-Cheat): asks the module
+// before the process is opened and every two seconds after that. Returns true when Update may go
+// on to open, scan or read the process.
+bool GameReader::CheckModuleAccess(ULONGLONG now)
+{
+    module_->Poll();
+    if (now >= nextAccessCheck_) {
+        nextAccessCheck_ = now + 2000;
+        if (!proc_ && !ProcessRunning(pid_, game_->exe)) { Detach(); return false; }   // closed before being opened
+        std::string reason;
+        GameModule::Access a = passive_ ? GameModule::Access::Never : module_->CheckAccess(pid_, reason);
+        if (!reason.empty()) accessReason_ = reason;
+        accessOpen_ = a == GameModule::Access::Open;
+        if (a == GameModule::Access::Never && !passive_) {
+            passive_ = true;
+            if (proc_) { CloseHandle(proc_); proc_ = nullptr; }   // never keep a handle to a protected game
+        }
+    }
+    if (passive_) { state_ = State::Passive; return false; }
+    if (!accessOpen_ && !proc_) { state_ = State::Scanning; return false; }
+    return true;
 }
 
 bool GameReader::OpenGame(DWORD pid, const GameInfo& game)
@@ -220,7 +259,7 @@ bool GameReader::OpenGame(DWORD pid, const GameInfo& game)
         return false;
     }
     pid_ = pid;
-    module_ = game.create ? game.create() : nullptr;
+    if (!module_ && game.create) module_ = game.create();
 
     // Every supported game is a 64-bit build. A 32-bit process with the same name (e.g. the
     // original Dark Souls II) has a different memory layout: say so instead of guessing.
@@ -363,18 +402,30 @@ bool GameReader::AnalyzeImage(const std::vector<uint8_t>& img)
 void GameReader::Update()
 {
     // Bloodborne (PC port): owns the state while its process is attached.
-    if (!proc_ && bb_->Update(state_)) return;
+    if (!proc_ && !pid_ && bb_->Update(state_)) return;
 
     ULONGLONG now = GetTickCount64();
     if (proc_ && !ProcessAlive()) Detach();
+    if (pid_ && module_ && !CheckModuleAccess(now)) return;
     if (state_ == State::Ready || state_ == State::Unsupported) return;   // Unsupported: wait until it closes
     if (now < nextTry_) return;
     nextTry_ = now + 2000;
 
     if (!proc_) {
-        const GameInfo* game = nullptr;
-        DWORD pid = FindGamePid(&game);
-        if (!pid) { state_ = State::NotRunning; return; }
+        const GameInfo* game = game_;
+        DWORD pid = pid_;
+        if (!pid) {
+            pid = FindGamePid(&game);
+            if (!pid) { state_ = State::NotRunning; return; }
+            game_ = game;
+            module_ = game->create ? game->create() : nullptr;
+            if (module_) {
+                // Ask the module before any handle exists (it may forbid opening the game).
+                pid_ = pid;
+                nextAccessCheck_ = 0;
+                if (!CheckModuleAccess(now)) return;
+            }
+        }
         if (!OpenGame(pid, *game)) return;
     }
     state_ = State::Scanning;
@@ -384,6 +435,15 @@ void GameReader::Update()
         // Code may not be fully unpacked yet right after launch; try again shortly.
         ++scanAttempts_;
         nextTry_ = now + (scanAttempts_ < 10 ? 3000 : 30000);
+        // An exe the module doesn't recognize (e.g. a newer game version): a module that can count
+        // without the process takes over, and the handle is closed.
+        if (module_ && scanAttempts_ >= 5 && module_->CanReadWithoutProcess()) {
+            CloseHandle(proc_);
+            proc_ = nullptr;
+            passive_ = true;
+            accessReason_ = "executável desta versão não reconhecido";
+            state_ = State::Passive;
+        }
     }
 }
 
@@ -398,6 +458,10 @@ bool GameReader::Read(GameSnapshot& s)
 {
     s = GameSnapshot{};
     if (bb_->Attached()) return state_ == State::Ready && bb_->Read(s);
+    if (state_ == State::Passive) {
+        s.game = game_->id;
+        return module_ && module_->ReadWithoutProcess(s);
+    }
     if (state_ != State::Ready) return false;
     s.game = game_->id;
     if (module_) return module_->Read(proc_, s);
@@ -486,13 +550,15 @@ std::string GameReader::DiagnosticsText() const
         case State::Unsupported:  st = "versão não suportada"; break;
         case State::Scanning:     st = "analisando o executável..."; break;
         case State::Ready:        st = "conectado"; break;
+        case State::Passive:      st = "contando sem acessar o processo do jogo"; break;
         default: break;
     }
     snprintf(b, sizeof(b), "Jogo: %s\nEstado: %s\nPID: %lu\nBase: %llX  Tamanho: %X\nVersão: %s\nTentativas de análise: %d\n",
              game_->name, st, pid_, (unsigned long long)base_, size_, VersionName().c_str(), scanAttempts_);
     t += b;
     if (!unsupported_.empty()) t += "Não suportado: " + unsupported_ + "\n";
+    if (!accessReason_.empty()) t += "Acesso ao processo: " + accessReason_ + "\n";
     t += scanLog_;
-    if (module_ && state_ == State::Ready) t += module_->LiveDiagnostics();
+    if (module_ && (state_ == State::Ready || state_ == State::Passive)) t += module_->LiveDiagnostics();
     return t;
 }

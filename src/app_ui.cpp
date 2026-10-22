@@ -147,8 +147,25 @@ void App::UiHeader()
             break;
         case GameReader::State::Scanning:
             StatusDot(kYellow);
-            ImGui::TextColored(kYellow, "%s encontrado, preparando a leitura...", reader_.game().name);
+            if (reader_.AccessPending())
+                ImGui::TextColored(kYellow, "%s encontrado, %s antes de ler...", reader_.game().name,
+                                   reader_.AccessReason().c_str());
+            else
+                ImGui::TextColored(kYellow, "%s encontrado, preparando a leitura...", reader_.game().name);
             break;
+        case GameReader::State::Passive: {
+            // The game is not opened at all (e.g. Easy Anti-Cheat): its module counts without it.
+            StatusDot(kGreen);
+            std::string how = reader_.module() ? reader_.module()->WithoutProcessStatus() : std::string();
+            if (active)
+                ImGui::Text("Contando as mortes de %s (slot %s) %s", active->name.c_str(), SlotText(active->slot).c_str(),
+                            how.c_str());
+            else
+                ImGui::Text("%s: %s", reader_.game().name, how.c_str());
+            ImGui::SetItemTooltip("%s.\nO app não abre o processo do jogo: a contagem pode chegar alguns segundos depois da morte.",
+                                  reader_.AccessReason().c_str());
+            break;
+        }
         case GameReader::State::Ready:
             StatusDot(kGreen);
             if (active)
@@ -398,8 +415,17 @@ void App::UiDeathTable(Profile& p)
 
                 ImGui::TableSetColumnIndex(2);
                 ImGui::TextUnformatted(r.area.c_str());
-                if (r.hasPos)
+                if (r.mapId) {
+                    char id[24];
+                    snprintf(id, sizeof(id), "m%02u_%02u_%02u_%02u", r.mapId >> 24, (r.mapId >> 16) & 0xFF,
+                             (r.mapId >> 8) & 0xFF, r.mapId & 0xFF);
+                    if (r.hasPos)
+                        ImGui::SetItemTooltip("Mapa %s  ·  posição %.1f, %.1f, %.1f", id, r.x, r.y, r.z);
+                    else
+                        ImGui::SetItemTooltip("Mapa %s", id);
+                } else if (r.hasPos) {
                     ImGui::SetItemTooltip("Mapa m%02d_%02d  ·  posição %.1f, %.1f, %.1f", r.mapArea, r.mapBlock, r.x, r.y, r.z);
+                }
 
                 ImGui::TableSetColumnIndex(3);
                 std::string bonfire = game.bonfireName(r.bonfire);
@@ -438,10 +464,11 @@ void App::UiStatsTable(Profile& p, bool byCause)
 {
     std::map<std::string, int> counts;
     int total = 0;
+    auto group = GameById(p.game).areaGroup;   // e.g. Elden Ring: open world tiles by region
     for (const auto& r : p.deaths) {
         if (r.untracked) continue;
         std::string key = byCause ? (r.cause.empty() ? "(causa não definida)" : r.cause)
-                                  : (r.area.empty() ? "Desconhecida" : r.area);
+                                  : (r.area.empty() ? "Desconhecida" : group ? group(r.area) : r.area);
         ++counts[key];
         ++total;
     }
@@ -723,13 +750,18 @@ void App::UiSettingsTab()
     ImGui::SeparatorText("Janela do jogo");
     ImGui::TextDisabled("O overlay é uma janela própria desenhada por cima do jogo. Ele aparece com o jogo em modo "
                         "Janela ou Janela sem bordas; em Tela cheia ele pode não aparecer ou piscar, dependendo do Windows e do driver.");
-    ImGui::BeginDisabled(!gameHwnd_);
+    // While the game must not be touched (anti-cheat) the app doesn't change its window either.
+    bool passive = reader_.state() == GameReader::State::Passive;
+    ImGui::BeginDisabled(!gameHwnd_ || passive);
     if (ImGui::Button("Deixar a janela do jogo sem bordas (tela cheia em janela)")) {
         bool ok = MakeWindowBorderless(gameHwnd_);
         statusMessage_ = ok ? "Janela do jogo ajustada" : "Não foi possível ajustar a janela do jogo";
         statusMessageUntil_ = GetTickCount64() + 4000;
     }
     ImGui::EndDisabled();
+    if (passive)
+        ImGui::TextDisabled("Desligado enquanto o app não acessa o jogo (%s): use o modo \"Janela sem bordas\" do "
+                            "próprio jogo.", reader_.AccessReason().c_str());
     ImGui::TextDisabled("Coloque o jogo em modo Janela, na resolução do seu monitor, e use o botão acima. "
                         "Só mexe na moldura da janela; nada dentro do jogo é alterado.");
 
@@ -853,6 +885,10 @@ void App::UiAboutTab()
     ImGui::BulletText("O overlay é uma janela separada por cima do jogo; nada é desenhado dentro dele.");
     ImGui::BulletText("Os banimentos do Dark Souls vêm de dados de personagem impossíveis enviados aos servidores, "
                       "coisa que este app não toca.");
+    ImGui::BulletText("Elden Ring: enquanto o Easy Anti-Cheat estiver rodando, o app não abre o processo do jogo nem lê "
+                      "a memória dele. A contagem vem do arquivo de save (ER0000.sl2), que o jogo grava depois de cada "
+                      "morte; o arquivo só é lido, nunca alterado. A memória só é lida quando o jogo foi aberto sem o "
+                      "Easy Anti-Cheat (modo offline), e aí a contagem aparece na hora e com a área exata da morte.");
 
     ImGui::SeparatorText("Dados");
     ImGui::TextDisabled("%s", WideToUtf8(store_.FilePath()).c_str());

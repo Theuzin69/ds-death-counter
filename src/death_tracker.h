@@ -29,6 +29,7 @@ private:
         int mapArea, mapBlock, bonfire;
         uint32_t playTimeMs;
         std::string area;       // GameSnapshot::areaName
+        uint32_t mapRaw = 0;    // GameSnapshot::mapRaw
         int boss[GameSnapshot::kBossSlots] = { -1, -1 };   // boss bars on screen (name ids)
     };
 

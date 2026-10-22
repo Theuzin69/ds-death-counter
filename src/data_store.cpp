@@ -73,6 +73,7 @@ json ToJson(const DeathRecord& r)
         { "cause", r.cause }, { "causeEdited", r.causeEdited }, { "untracked", r.untracked },
     };
     if (r.hasPos) j["pos"] = { r.x, r.y, r.z };
+    if (r.mapId) j["mapId"] = r.mapId;
     return j;
 }
 
@@ -85,6 +86,7 @@ DeathRecord RecordFromJson(const json& j)
     r.playTimeMs = j.value("playTimeMs", 0u);
     r.mapArea = j.value("mapArea", -1);
     r.mapBlock = j.value("mapBlock", -1);
+    r.mapId = j.value("mapId", 0u);
     r.area = j.value("area", std::string());
     r.bonfire = j.value("bonfire", 0);
     r.cause = j.value("cause", std::string());
