@@ -38,7 +38,9 @@ jobs:
 
       - name: Run tests
         shell: cmd
-        run: build\tests\boss_cause_test.exe
+        run: |
+          build\tests\boss_cause_test.exe || exit /b 1
+          build\tests\hk_death_test.exe || exit /b 1
 
       - name: Install Inno Setup
         shell: pwsh

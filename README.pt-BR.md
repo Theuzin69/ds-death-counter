@@ -5,7 +5,7 @@
 <h1 align="center">DS Death Counter</h1>
 
 <p align="center">
-  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Sekiro: Shadows Die Twice</b> e <b>Bloodborne</b> (port de PC, experimental).<br>
+  Contador de mortes automático, com overlay na tela, para <b>Dark Souls Remastered</b>, <b>Dark Souls II: Scholar of the First Sin</b>, <b>Sekiro: Shadows Die Twice</b>, <b>Bloodborne</b> (port de PC, experimental) e <b>Hollow Knight</b>.<br>
   Para streamers e para quem quer saber quantas vezes (e onde) morreu.
 </p>
 
@@ -31,11 +31,11 @@
 
 ## Recursos
 
-- **Conta as mortes sozinho.** Lê o contador de mortes que o próprio jogo guarda para cada personagem; você não precisa apertar nada enquanto joga.
+- **Conta as mortes sozinho.** Lê o contador de mortes que o próprio jogo guarda para cada personagem; você não precisa apertar nada enquanto joga. (O Hollow Knight não guarda contador, então nele o próprio app conta cada morte.)
 - **Uma contagem para cada save/personagem**, cada uma com o seu histórico.
 - **Nunca perde a contagem.** Fechou o jogo, a contagem para; abriu de novo, continua de onde parou. Mortes que acontecerem com o contador fechado também entram.
 - **Overlay por cima do jogo**, com fonte, tamanho, canto, cores e contorno à sua escolha. `Ctrl+Shift+D` mostra/oculta.
-- **Lista de todas as mortes**: data/hora, área (mapa), última fogueira (no Sekiro, a área do último Ídolo do Escultor), causa e tempo de jogo. Estatísticas por área e por causa, e exportação para CSV.
+- **Lista de todas as mortes**: data/hora, área (mapa), última fogueira (no Sekiro, a área do último Ídolo do Escultor; no Hollow Knight, a do último banco), causa e tempo de jogo. Estatísticas por área e por causa, e exportação para CSV.
 - **Fonte de texto para o OBS, para quem faz live.** Se quiser, grava a contagem num arquivo de texto que uma fonte **Texto (GDI+)** do OBS lê, então funciona com Captura de jogo e Captura de janela. Você escolhe o texto, ex.: `Mortes: {mortes}` ([como configurar](docs/guia-do-usuario.md#7-lives-obs)).
 - **Chefes e quedas são detectados automaticamente.** No Dark Souls Remastered, morreu com a barra de vida de um chefe na tela, a causa é aquele chefe; nos Dark Souls, perdeu muita altura logo antes de morrer, é queda. Para as outras causas, escolha nas sugestões (inimigos, armadilhas…) com um clique.
 - **Contagem editável.** Quando editada, ela fica marcada no app e o número do overlay muda de cor.
@@ -105,7 +105,7 @@ O contador foi feito para ficar longe de tudo que poderia marcar sua conta:
 - **Nunca escreve** no jogo, **não injeta DLL**, **não instala hooks** e não altera arquivos nem saves.
 - O overlay é uma **janela separada** por cima do jogo; nada é desenhado dentro dele.
 - Editar a contagem só muda o número guardado por este app. O contador do próprio jogo nunca é tocado.
-- Os banimentos do Dark Souls (o "soft ban") vêm de dados de personagem impossíveis enviados aos servidores, coisa que este app não toca. O Sekiro nem tem modo online.
+- Os banimentos do Dark Souls (o "soft ban") vêm de dados de personagem impossíveis enviados aos servidores, coisa que este app não toca. O Sekiro e o Hollow Knight nem têm modo online.
 
 Nenhuma ferramenta de terceiros pode prometer risco zero com honestidade, mas ler a memória sem modificar nada é o cenário mais seguro possível.
 
@@ -118,6 +118,7 @@ Nenhuma ferramenta de terceiros pode prometer risco zero com honestidade, mas le
 | Dark Souls II | **Scholar of the First Sin** (64 bits), desde a 1.1.0. Conferido no executável 1.02; a versão atual da Steam (1.03) é encontrada pelas mesmas assinaturas de bytes, mas ainda não foi confirmada no jogo. O Dark Souls II original de 32 bits (2014) **não** é suportado: o app avisa em vez de contar. |
 | Sekiro: Shadows Die Twice | **1.06** (a versão atual da Steam), conferida no executável do jogo. O app lê a organização da memória do próprio código do jogo, então as versões anteriores (1.02 a 1.05) provavelmente funcionam, mas não foram testadas. Conta **só as mortes de verdade**: ressuscitar não conta (veja o [guia do usuário](docs/guia-do-usuario.md#sekiro)). O Sekiro não tem nome de personagem, então cada slot de save é um personagem. |
 | Bloodborne | **Experimental.** O Bloodborne PC Windows port v0.5 (`bbport.exe`) rodando o Bloodborne 1.09: mortes, nome, nível, NG+ e tempo de jogo. Ainda sem área nem detecção de quedas, e ainda não confirmado numa sessão de jogo de verdade. Veja o [guia do usuário](docs/guia-do-usuario.md#bloodborne-port-de-pc-experimental). |
+| Hollow Knight | A versão atual da Steam (Unity 6, 2026), lida pelo runtime Mono do jogo, pelo nome das classes e dos campos. O jogo **não tem contador de mortes**, então o app conta cada morte enquanto está aberto, por slot de save (saves Steel Soul ficam separados); mortes em sonhos e no Godhome também contam, um espinho que só tira uma máscara não. Registra a área, a área do último banco e o chefe da arena. Ainda não confirmado no jogo. Versões antigas (1.4.3.2 e anteriores) não são suportadas. Veja o [guia do usuário](docs/guia-do-usuario.md#hollow-knight). |
 | Modo de tela | Janela / janela sem bordas. Em tela cheia exclusiva o overlay pode não aparecer. |
 | Idioma do app | Português do Brasil (inglês planejado) |
 
@@ -151,4 +152,4 @@ Gera `build\DSDeathCounter.exe`, com tudo embutido (sem DLLs extras). Testes, in
 
 [MIT](LICENSE) © 2026 MatheusMuzzi
 
-*DARK SOULS é marca registrada da BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE é marca registrada da FromSoftware, Inc. BLOODBORNE é marca registrada da Sony Interactive Entertainment LLC. O DS Death Counter é uma ferramenta feita por fãs, sem nenhum vínculo, aprovação ou patrocínio de nenhuma delas.*
+*DARK SOULS é marca registrada da BANDAI NAMCO Entertainment Inc. / FromSoftware, Inc. SEKIRO: SHADOWS DIE TWICE é marca registrada da FromSoftware, Inc. BLOODBORNE é marca registrada da Sony Interactive Entertainment LLC. HOLLOW KNIGHT é marca registrada da Team Cherry. O DS Death Counter é uma ferramenta feita por fãs, sem nenhum vínculo, aprovação ou patrocínio de nenhuma delas.*

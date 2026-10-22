@@ -4,6 +4,13 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 *Todas as mudanças relevantes do projeto ficam registradas aqui (em inglês e português).*
 
+## [Unreleased]
+
+### New games / Jogos novos
+
+- **Hollow Knight** (current Steam version, Unity 6): the game keeps no death counter, so the app counts each death itself while it's open and keeps the total per save slot (Steel Soul saves apart). Counts every time the Knight dies, dream and Godhome deaths included; a spike or acid hit that only costs a mask, quitting and loading a save don't count. Records the area, the area of the last bench and, in boss arenas, the boss. Read-only through the game's Mono runtime; not yet confirmed in-game. Old versions (1.4.3.2 and earlier) aren't supported. See the [user guide](docs/user-guide.md#hollow-knight).
+  *Suporte ao **Hollow Knight** (versão atual da Steam, Unity 6): o jogo não guarda contador de mortes, então o próprio app conta cada morte enquanto está aberto e guarda o total por slot de save (saves Steel Soul separados). Conta toda vez que o Cavaleiro morre, inclusive em sonhos e no Godhome; um espinho ou ácido que só tira uma máscara, sair do jogo e carregar um save não contam. Registra a área, a área do último banco e, nas arenas, o chefe. Só lê a memória, pelo runtime Mono do jogo; ainda não confirmado no jogo. Versões antigas (1.4.3.2 e anteriores) não são suportadas. Veja o [guia do usuário](docs/guia-do-usuario.md#hollow-knight).*
+
 ## [1.1.0] - 2026-10-21
 
 Three more games, automatic boss detection in Dark Souls Remastered and an OBS text source. / Mais três jogos, detecção automática de chefes no Dark Souls Remastered e uma fonte de texto para o OBS.

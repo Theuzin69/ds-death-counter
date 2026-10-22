@@ -20,6 +20,8 @@ struct GameInfo {
     bool           hasLevel;         // the character has a level worth showing
     bool           fallHeuristic;    // big height loss before dying means a fall death
     bool           customReader;     // attached by its own reader (Bloodborne port), not by GameReader's scan
+    bool           countsItself;     // the game keeps no death counter (Hollow Knight): GameSnapshot::deaths counts the
+                                     // deaths seen since the module attached and the app keeps each profile's total
 };
 
 const std::vector<const GameInfo*>& AllGames();
